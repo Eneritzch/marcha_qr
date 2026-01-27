@@ -157,7 +157,14 @@ function renderRegistrosTable(data) {
                  </span>
             </td>
             <td class="px-6 py-4 text-center">
-                 <a href="/api/v1/alumnos/descargar-qr/${a.cedula}/" target="_blank" class="text-unemi-blue hover:text-unemi-orange"><i data-lucide="qr-code" class="w-4 h-4 mx-auto"></i></a>
+                 <div class="flex items-center justify-center gap-2">
+                     <a href="/api/v1/alumnos/descargar-qr/${a.cedula}/" target="_blank" class="flex items-center gap-1 px-2 py-1 bg-blue-50 text-unemi-blue rounded hover:bg-unemi-blue hover:text-white transition-colors text-xs font-bold border border-blue-100">
+                        <i data-lucide="qr-code" class="w-3 h-3"></i> QR
+                     </a>
+                     <a href="/api/v1/alumnos/descargar-credencial/${a.cedula}/" target="_blank" class="flex items-center gap-1 px-2 py-1 bg-orange-50 text-unemi-orange rounded hover:bg-unemi-orange hover:text-white transition-colors text-xs font-bold border border-orange-100">
+                        <i data-lucide="file-text" class="w-3 h-3"></i> PDF
+                     </a>
+                 </div>
             </td>
         `;
         tbody.appendChild(tr);
@@ -339,16 +346,19 @@ async function startScanner() {
         await new Promise(r => setTimeout(r, 500));
 
         // Responsive Config - Larger Scan Area
-        const qrBoxSize = Math.min(window.innerWidth * 0.85, 500); // 85% width or max 500px
+        const qrBoxSize = Math.min(window.innerWidth * 0.90, 600); // 90% width or max 600px
 
         await html5QrCode.start(
             currentCameraId,
             {
-                fps: 15, // Smooth scanning
+                fps: 20, // Balanced for performance/stability
                 qrbox: { width: qrBoxSize, height: qrBoxSize },
                 aspectRatio: 1.0,
-                disableFlip: false,
-                formatsToSupport: [Html5QrcodeSupportedFormats.QR_CODE] // Optimize for QR only
+                disableFlip: true, // Always true for rear cameras usually
+                formatsToSupport: [Html5QrcodeSupportedFormats.QR_CODE],
+                experimentalFeatures: {
+                    useBarCodeDetectorIfSupported: true
+                }
             },
             onScanSuccess,
             (errorMessage) => {

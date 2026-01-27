@@ -30,11 +30,12 @@ def ensure_user(username, password, nombre):
                 'email': f"{username}@test.com",
                 'telefono': "0999999999",
                 'activo': True,
-                'visible_en_registro': False
+                'visible_en_registro': True
             }
         )
         if not l_created:
              lider.activo = True
+             lider.visible_en_registro = True
              lider.grupo = 1
              lider.save()
              print(f"Lider profile for '{username}' updated.")

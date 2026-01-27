@@ -217,17 +217,50 @@ document.addEventListener('DOMContentLoaded', async () => {
             // Since we need to Download, we use the download link
             // For Image preview, we can use the same generic download link or a dedicated one
             // If backend does NOT return image data directly, we can just use the link
-            document.getElementById('qr-image').src = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${res.data.codigo_qr}`; // Fallback or use real endpoint
-            document.getElementById('download-btn').href = `/api/v1/alumnos/descargar-qr/${res.data.cedula}/`;
+            // Use backend endpoint to show the correct Dual-Tone QR (with cache busting)
+            document.getElementById('qr-image').src = `/api/v1/alumnos/descargar-qr/${res.data.cedula}/?t=${new Date().getTime()}`;
+            // Link Download Buttons
+            document.getElementById('download-trigger-pdf').href = `/api/v1/alumnos/descargar-credencial/${res.data.cedula}/`;
+            document.getElementById('download-trigger-qr').href = `/api/v1/alumnos/descargar-qr/${res.data.cedula}/`;
 
         } catch (error) {
             console.error(error);
             const feedback = document.getElementById('form-feedback');
             feedback.classList.remove('hidden');
+
             let msg = 'Error en el registro. Verifique sus datos.';
-            if (error.response?.data?.cedula) msg = `Error: ${error.response.data.cedula[0]}`;
-            if (error.response?.data?.email) msg = `Error: ${error.response.data.email[0]}`;
-            feedback.textContent = msg;
+
+            // Parse Backend Errors
+            if (error.response && error.response.data) {
+                const data = error.response.data;
+                const errors = [];
+
+                // Common fields
+                if (data.cedula) errors.push(`Cédula: ${data.cedula[0]}`);
+                if (data.email) errors.push(`Email: ${data.email[0]}`);
+                if (data.telefono) errors.push(`Teléfono: ${data.telefono[0]}`);
+                if (data.cuenta_bancaria) {
+                    // Check nested bank errors
+                    if (data.cuenta_bancaria.numero_cuenta) errors.push(`Cuenta: ${data.cuenta_bancaria.numero_cuenta[0]}`);
+                }
+
+                // Fallback for other errors
+                if (errors.length === 0) {
+                    // Try to get any first error found
+                    const firstKey = Object.keys(data)[0];
+                    if (firstKey) errors.push(`${firstKey}: ${data[firstKey][0]}`);
+                }
+
+                if (errors.length > 0) {
+                    msg = errors.join('<br>');
+                    // Highlight fields if possible - simplistic approach
+                    if (data.cedula) document.querySelector('[name="cedula"]').classList.add('border-red-500');
+                    if (data.email) document.querySelector('[name="email"]').classList.add('border-red-500');
+                }
+            }
+
+            feedback.innerHTML = `<i data-lucide="alert-circle" class="w-5 h-5 shrink-0"></i> <div>${msg}</div>`;
+            lucide.createIcons();
 
             btnSubmit.disabled = false;
             btnSubmit.innerHTML = `<span>Reintentar</span>`;

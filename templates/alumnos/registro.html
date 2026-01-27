@@ -5,9 +5,7 @@
 {% block header %}
 <nav class="bg-white border-b border-slate-200 h-16 flex items-center justify-between px-4 sm:px-8 sticky top-0 z-40 bg-opacity-90 backdrop-blur-md">
     <div class="flex items-center space-x-3">
-        <div class="w-10 h-10 bg-unemi-blue rounded-lg flex items-center justify-center font-bold text-white text-xl shadow-lg shadow-blue-900/20">
-            U
-        </div>
+        <img src="/media/icono.png" alt="UNEMI Logo" class="w-10 h-10 object-contain">
         <span class="font-black tracking-tighter text-unemi-blue text-lg uppercase hidden sm:inline">Marcha UNEMI</span>
     </div>
     
@@ -241,11 +239,16 @@
             </div>
 
             <div class="flex flex-col sm:flex-row gap-4 justify-center">
-                 <a id="download-btn" href="#" target="_blank" class="bg-unemi-blue text-white font-bold py-3 px-8 rounded-xl hover:bg-slate-800 transition-colors shadow-lg shadow-blue-500/20 flex items-center justify-center gap-2">
-                    <i data-lucide="download" class="w-4 h-4"></i> Descargar Credencial
+                 <a id="download-trigger-pdf" href="#" target="_blank" class="bg-unemi-blue text-white font-bold py-3 px-8 rounded-xl hover:bg-slate-800 transition-colors shadow-lg shadow-blue-500/20 flex items-center justify-center gap-2">
+                    <i data-lucide="file-text" class="w-4 h-4"></i> Descargar Credencial (PDF)
                  </a>
-                 <button onclick="window.location.reload()" class="bg-slate-100 text-slate-600 font-bold py-3 px-8 rounded-xl hover:bg-slate-200 transition-colors">
-                    Nuevo Registro
+                 <a id="download-trigger-qr" href="#" target="_blank" class="bg-orange-50 text-unemi-orange border border-orange-200 font-bold py-3 px-8 rounded-xl hover:bg-orange-100 transition-colors shadow-sm flex items-center justify-center gap-2">
+                    <i data-lucide="image" class="w-4 h-4"></i> Descargar QR (Imagen)
+                 </a>
+            </div>
+            <div class="mt-6 flex justify-center">
+                 <button onclick="window.location.reload()" class="text-slate-400 font-bold hover:text-unemi-blue transition-colors text-sm flex items-center gap-1">
+                    <i data-lucide="refresh-cw" class="w-3 h-3"></i> Nuevo Registro
                  </button>
             </div>
         </div>

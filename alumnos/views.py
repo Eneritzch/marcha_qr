@@ -56,6 +56,18 @@ class CredentialRecoveryView(views.APIView):
         serializer = AlumnoSerializer(alumno)
         return Response(serializer.data)
 
+from core.credentials import CredentialGenerator
+
+class CredentialDownloadView(views.APIView):
+    """Generates and serves the PDF credential."""
+    def get(self, request, cedula):
+        alumno = get_object_or_404(Alumno, cedula=cedula)
+        pdf_buffer = CredentialGenerator.generate_pdf(alumno)
+        
+        response = HttpResponse(pdf_buffer, content_type="application/pdf")
+        response['Content-Disposition'] = f'attachment; filename="credencial_{alumno.cedula}.pdf"'
+        return response
+
 class QRDownloadView(views.APIView):
     """Generates and serves the QR code for a student on-the-fly."""
     def get(self, request, cedula):
