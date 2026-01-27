@@ -44,45 +44,95 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     }
 
-    // === LOAD LEADERS ===
+    // === LOAD LEADERS & CUSTOM SEARCH ===
+    let allLeaders = []; // Flat array
+
     try {
         const res = await axios.get('/api/v1/lideres/activos/');
-        const data = res.data;
-        const select = document.getElementById('lider-select');
-        select.innerHTML = '<option value="">Seleccione a su Líder...</option>';
-
-        // Save for later group lookup
-        Object.values(data).flat().forEach(l => {
-            leadersData[l.id] = l;
-        });
-
-        Object.entries(data).forEach(([grupo, lideres]) => {
-            const optgroup = document.createElement('optgroup');
-            optgroup.label = `GRUPO ${grupo}`;
-            lideres.forEach(l => {
-                const opt = document.createElement('option');
-                opt.value = l.id;
-                opt.textContent = l.nombre_completo;
-                optgroup.appendChild(opt);
-            });
-            select.appendChild(optgroup);
+        // Structure is { "1": [leader, ...], "2": ... }
+        Object.values(res.data).flat().forEach(l => {
+            allLeaders.push(l);
+            leadersData[l.id] = l; // Keep cache map
         });
     } catch (e) {
         console.error("Error loading leaders", e);
     }
 
-    // Leader Change - Update Preview
-    document.getElementById('lider-select').addEventListener('change', (e) => {
-        const leader = leadersData[e.target.value];
-        const preview = document.getElementById('grupo-preview');
-        if (leader) {
-            preview.textContent = `GRUPO ${leader.grupo}`;
-            preview.className = 'text-3xl font-black text-unemi-orange animate-pulse';
+    // Elements
+    const searchInput = document.getElementById('lider-search');
+    const hiddenInput = document.getElementById('lider-select'); // This is now a hidden input
+    const dropdown = document.getElementById('lider-dropdown');
+    const clearBtn = document.getElementById('clear-search');
+    const param = document.getElementById('grupo-preview');
+
+    // Search Event
+    searchInput.addEventListener('input', (e) => {
+        const q = e.target.value.toLowerCase().trim();
+
+        // Show/Hide Clear Button
+        clearBtn.classList.toggle('hidden', q.length === 0);
+
+        if (q.length < 1) { // Show all if empty? Or wait? User said "Escribe". Let's show if > 0. Actually user prompt implies immediate usability. Let's show filtered.
+            dropdown.classList.add('hidden');
+            return;
+        }
+
+        const matches = allLeaders.filter(l => l.nombre_completo.toLowerCase().includes(q));
+        renderDropdown(matches);
+    });
+
+    // Clear Event
+    clearBtn.addEventListener('click', () => {
+        searchInput.value = '';
+        hiddenInput.value = '';
+        dropdown.classList.add('hidden');
+        clearBtn.classList.add('hidden');
+        param.textContent = '--';
+        param.className = 'text-3xl font-black text-slate-300';
+    });
+
+    function renderDropdown(matches) {
+        dropdown.innerHTML = '';
+        if (matches.length === 0) {
+            dropdown.innerHTML = `<div class="p-4 text-center text-slate-400 text-sm">No se encontraron resultados</div>`;
         } else {
-            preview.textContent = '--';
-            preview.className = 'text-3xl font-black text-slate-300';
+            matches.forEach(l => {
+                const item = document.createElement('div');
+                item.className = 'p-3 hover:bg-blue-50 cursor-pointer flex items-center justify-between group';
+                item.innerHTML = `
+                    <span class="font-bold text-slate-700 group-hover:text-unemi-blue transition-colors">${l.nombre_completo}</span>
+                    <span class="text-xs bg-slate-100 text-slate-500 px-2 py-1 rounded hidden group-hover:inline-block">Seleccionar</span>
+                `;
+                item.addEventListener('click', () => {
+                    selectLeader(l);
+                });
+                dropdown.appendChild(item);
+            });
+        }
+        dropdown.classList.remove('hidden');
+    }
+
+    function selectLeader(leader) {
+        searchInput.value = leader.nombre_completo;
+        hiddenInput.value = leader.id;
+        dropdown.classList.add('hidden');
+
+        // Auto-show Group
+        param.textContent = `GRUPO ${leader.grupo}`;
+        param.className = 'text-3xl font-black text-unemi-orange animate-pulse';
+
+        // Clear error style if any
+        searchInput.classList.remove('border-red-500');
+    }
+
+    // Close dropdown on click outside
+    document.addEventListener('click', (e) => {
+        if (!searchInput.contains(e.target) && !dropdown.contains(e.target)) {
+            dropdown.classList.add('hidden');
         }
     });
+
+    // Old change event (removed since we handle it in selectLeader)
 
     // === STEPPER LOGIC ===
     btnNext.addEventListener('click', async () => {
@@ -306,6 +356,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             // Populate Success View
             document.getElementById('success-name').textContent = res.data.nombre_completo;
             document.getElementById('success-cedula').textContent = res.data.cedula;
+            document.getElementById('success-group').textContent = `GRUPO ${res.data.grupo}`;
             // Assuming backend generates QR returns URL or valid data
             // Since we need to Download, we use the download link
             // For Image preview, we can use the same generic download link or a dedicated one

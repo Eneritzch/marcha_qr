@@ -30,6 +30,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.getElementById('filter-banco').addEventListener('change', filterBancos);
     document.getElementById('excel-form').addEventListener('submit', handleExcelUpload);
 
+    // This tool call is actually invalid because I haven't read the file yet. I will switch to view_file.
     // Leaders Events
     document.getElementById('search-lideres').addEventListener('input', (e) => filterLideres(e.target.value));
     document.getElementById('filter-lider-grupo').addEventListener('change', () => filterLideres(document.getElementById('search-lideres').value));
@@ -395,8 +396,15 @@ function renderLideresTable(data) {
         tr.innerHTML = `
             <td class="px-6 py-4 font-bold text-slate-500 text-xs text-center">${index + 1}</td>
             <td class="px-6 py-4 font-bold text-slate-700">${l.nombre_completo}</td>
-             <td class="px-6 py-4 font-mono text-xs">${l.cedula}</td>
-             <td class="px-6 py-4"><span class="bg-slate-100 text-slate-600 px-2 py-1 rounded font-bold text-xs">G${l.grupo}</span></td>
+             <td class="px-6 py-4 font-mono text-xs">${l.email || 'N/A'}</td>
+            <td class="px-6 py-4">
+                 <select onchange="updateLeaderGroup('${l.id}', this.value)" class="appearance-none bg-white border border-slate-200 text-unemi-blue text-[10px] font-black px-3 py-1.5 rounded-lg focus:ring-2 focus:ring-unemi-orange focus:border-unemi-orange cursor-pointer transition-all hover:border-unemi-orange hover:shadow-sm bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20fill%3D%22none%22%20viewBox%3D%220%200%2024%2024%22%20stroke%3D%22%23EF7D00%22%20stroke-width%3D%222.5%22%3E%3Cpath%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%20d%3D%22m19.5%208.25-7.5%207.5-7.5-7.5%22%2F%3E%3C%2Fsvg%3E')] bg-[length:0.8rem_0.8rem] bg-[right_0.4rem_center] bg-no-repeat pr-6 shadow-sm uppercase tracking-tighter">
+                     <option value="1" ${l.grupo == 1 ? 'selected' : ''}>Grupo 1</option>
+                     <option value="2" ${l.grupo == 2 ? 'selected' : ''}>Grupo 2</option>
+                     <option value="3" ${l.grupo == 3 ? 'selected' : ''}>Grupo 3</option>
+                     <option value="4" ${l.grupo == 4 ? 'selected' : ''}>Grupo 4</option>
+                 </select>
+             </td>
              <td class="px-6 py-4 text-xs text-slate-500">
                 <div>Inv: ${l.total_invitados || 0}</div>
                 <div>Asist: ${l.total_asistencias || 0}</div>
@@ -417,12 +425,28 @@ function renderLideresTable(data) {
     lucide.createIcons();
 }
 
+window.updateLeaderGroup = async function (id, newGroup) {
+    try {
+        await axios.patch(`/api/v1/lideres/lideres/${id}/`, { grupo: parseInt(newGroup) }, {
+            headers: { Authorization: `Token ${token}` }
+        });
+        // Optional: show toast, but select update is instant feedback
+    } catch (e) {
+        Swal.fire({
+            icon: 'error',
+            title: 'Error al actualizar grupo',
+            text: 'No se pudo guardar el cambio del grupo.',
+            confirmButtonColor: '#0F1E4B'
+        });
+    }
+}
+
 function filterLideres(query) {
     const q = query.toLowerCase();
     const group = document.getElementById('filter-lider-grupo').value;
 
     const filtered = allLideres.filter(l => {
-        const matchesSearch = l.nombre_completo.toLowerCase().includes(q) || l.cedula.includes(q);
+        const matchesSearch = l.nombre_completo.toLowerCase().includes(q) || (l.email && l.email.toLowerCase().includes(q));
         const matchesGroup = group === 'all' || l.grupo.toString() === group;
         return matchesSearch && matchesGroup;
     });
@@ -481,8 +505,12 @@ async function saveLider(e) {
         document.getElementById('lider-modal').classList.add('hidden');
         fetchLideres(); // Refresh list
     } catch (err) {
-        console.error("Error saving leader", err);
-        alert("Error al guardar líder. Verifique los datos.");
+        Swal.fire({
+            icon: 'error',
+            title: 'Error al guardar',
+            text: 'Verifique los datos e intente nuevamente.',
+            confirmButtonColor: '#0F1E4B'
+        });
     }
 
     // Add missing toggleCamera function wrapper for button that calls it
@@ -505,3 +533,144 @@ window.toggleTorch = function () {
         DashboardScanner.toggleTorch();
     }
 };
+
+window.smartShuffleLeaders = async function () {
+    const result = await Swal.fire({
+        title: '¿Sorteo Inteligente?',
+        text: "Esto redistribuirá a todos los líderes activos aleatoriamente en los 4 grupos.",
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonColor: '#EF7D00',
+        cancelButtonColor: '#64748b',
+        confirmButtonText: 'Sí, ¡redistribuir!',
+        cancelButtonText: 'Cancelar'
+    });
+
+    if (!result.isConfirmed) return;
+
+    try {
+        window.showLoader && window.showLoader();
+
+        if (allLideres.length === 0) await fetchLideres();
+        const activeLideres = allLideres.filter(l => l.activo);
+
+        const shuffled = [...activeLideres];
+        for (let i = shuffled.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+        }
+
+        let count = 0;
+        const promises = shuffled.map(l => {
+            const newGroup = (count % 4) + 1;
+            count++;
+            return axios.patch(`/api/v1/lideres/lideres/${l.id}/`, { grupo: newGroup }, {
+                headers: { Authorization: `Token ${token}` }
+            });
+        });
+
+        await Promise.all(promises);
+
+        Swal.fire({
+            icon: 'success',
+            title: 'Sorteo Completado',
+            text: `${count} líderes redistribuidos con éxito.`,
+            confirmButtonColor: '#0F1E4B'
+        });
+        fetchLideres();
+
+    } catch (err) {
+        console.error("Error in smart shuffle:", err);
+        Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: 'Ocurrió un error al redistribuir líderes.',
+            confirmButtonColor: '#0F1E4B'
+        });
+    } finally {
+        window.hideLoader && window.hideLoader();
+    }
+};
+
+window.openLeaderImportModal = function () {
+    document.getElementById('leader-import-modal').classList.remove('hidden');
+    document.getElementById('leader-upload-status').classList.add('hidden');
+    document.getElementById('leader-file-info').innerHTML = `
+        <i data-lucide="upload-cloud" class="w-12 h-12 text-slate-300 mx-auto mb-4"></i>
+        <p class="text-sm text-slate-500 font-bold">Arrastra o selecciona tu archivo Excel</p>
+        <p class="text-xs text-slate-400 mt-1">Formato: Nombres (Col 1), Correo (Col 2)</p>
+    `;
+    lucide.createIcons();
+};
+
+window.closeLeaderImportModal = function () {
+    document.getElementById('leader-import-modal').classList.add('hidden');
+};
+
+window.updateLeaderFileName = function (input) {
+    if (input.files && input.files[0]) {
+        const fileName = input.files[0].name;
+        document.getElementById('leader-file-info').innerHTML = `
+            <i data-lucide="file-check" class="w-12 h-12 text-emerald-500 mx-auto mb-4"></i>
+            <p class="text-sm text-slate-700 font-black">${fileName}</p>
+            <p class="text-xs text-emerald-500 mt-1">Archivo listo para procesar</p>
+        `;
+        lucide.createIcons();
+    }
+};
+
+window.handleLeaderExcelUpload = async function (e) {
+    e.preventDefault();
+    const fileInput = document.getElementById('leader-excel-file');
+    const statusDiv = document.getElementById('leader-upload-status');
+
+    if (!fileInput.files || !fileInput.files[0]) return;
+
+    const formData = new FormData();
+    formData.append('file', fileInput.files[0]);
+
+    statusDiv.classList.remove('hidden');
+    statusDiv.textContent = "Procesando...";
+    statusDiv.className = "text-unemi-blue font-bold text-center animate-pulse";
+
+    try {
+        window.showLoader && window.showLoader();
+        const response = await axios.post('/api/v1/lideres/upload-excel/', formData, {
+            headers: {
+                Authorization: `Token ${token}`,
+                'Content-Type': 'multipart/form-data'
+            }
+        });
+
+        statusDiv.textContent = response.data.message || "¡Carga Exitosa!";
+        statusDiv.className = "text-emerald-500 font-black text-center p-3 bg-emerald-50 rounded-xl";
+
+        Swal.fire({
+            icon: 'success',
+            title: '¡Importación Exitosa!',
+            text: response.data.message,
+            confirmButtonColor: '#0F1E4B'
+        });
+
+        setTimeout(() => {
+            window.closeLeaderImportModal();
+            fetchLideres(); // Refresh the list
+        }, 2000);
+
+    } catch (err) {
+        console.error("Error al cargar líderes:", err);
+        const errorMsg = err.response?.data?.error || "Error al procesar el archivo.";
+        statusDiv.textContent = errorMsg;
+        statusDiv.className = "text-red-500 font-bold text-center p-3 bg-red-50 rounded-xl";
+
+        Swal.fire({
+            icon: 'error',
+            title: 'Error de Importación',
+            text: errorMsg,
+            confirmButtonColor: '#0F1E4B'
+        });
+    } finally {
+        window.hideLoader && window.hideLoader();
+    }
+};
+

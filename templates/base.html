@@ -35,6 +35,8 @@
     <script src="https://unpkg.com/lucide@latest"></script>
     <!-- Axios -->
     <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <!-- SweetAlert2 -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;900&display=swap');
@@ -78,14 +80,19 @@
         {% block content %}{% endblock %}
     </main>
 
-    <footer class="mt-auto p-8 border-t border-slate-100 text-center flex flex-col items-center bg-white">
-        <p class="text-slate-400 text-xs font-bold tracking-widest uppercase">
-            MUC-FEUE - Marcha UNEMI
-        </p>
-        <div class="flex space-x-4 mt-2">
-            <div class="w-2 h-2 rounded-full bg-unemi-blue"></div>
-            <div class="w-2 h-2 rounded-full bg-unemi-orange"></div>
-            <div class="w-2 h-2 rounded-full bg-unemi-blue"></div>
+    <footer class="mt-auto p-10 border-t border-slate-100 text-center flex flex-col items-center bg-white">
+        <div class="mb-6">
+            <h4 class="text-unemi-blue font-black text-xl uppercase tracking-tighter">MUC-FEUE</h4>
+            <p class="text-slate-400 text-[10px] font-bold tracking-[0.4em] uppercase mt-1">Gran Marcha Universitaria 2025</p>
+        </div>
+        
+        <div class="flex flex-col items-center space-y-1">
+            <p class="text-slate-400 text-[9px] font-bold uppercase tracking-widest mb-1">Desarrollado por:</p>
+            <div class="flex items-center space-x-4 text-slate-600 font-bold text-xs uppercase tracking-tight">
+                <span class="hover:text-unemi-orange transition-colors cursor-default">Ing. Jaione Cherres</span>
+                <span class="w-1.5 h-1.5 rounded-full bg-unemi-orange"></span>
+                <span class="hover:text-unemi-blue transition-colors cursor-default">Ing. Ronny Arellano</span>
+            </div>
         </div>
     </footer>
 

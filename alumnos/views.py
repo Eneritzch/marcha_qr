@@ -1,4 +1,4 @@
-from rest_framework import viewsets, status, views, permissions
+from rest_framework import viewsets, status, views, permissions, authentication
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.parsers import MultiPartParser, FormParser
@@ -19,10 +19,23 @@ class AlumnoViewSet(viewsets.ModelViewSet):
     queryset = Alumno.objects.all()
     serializer_class = AlumnoSerializer
     lookup_field = 'cedula'
+    authentication_classes = [authentication.TokenAuthentication] # Use token, skip session/csrf
+
+    def get_permissions(self):
+        # Use getattr to be safe during early lifecycle calls
+        action = getattr(self, 'action', None)
+        if action in ['validar_cedula', 'create']:
+            return [permissions.AllowAny()]
+        return [permissions.IsAuthenticated()]
 
     def get_queryset(self):
-        """Filter students by the logged-in leader."""
+        """Filter students for leaders, allow all for public validation/creation."""
         user = self.request.user
+        action = getattr(self, 'action', None)
+        
+        if action in ['validar_cedula', 'create']:
+            return Alumno.objects.all()
+        
         if user.is_staff:
             return Alumno.objects.all()
         if hasattr(user, 'lider_profile'):

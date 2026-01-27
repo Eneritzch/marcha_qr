@@ -11,105 +11,103 @@ window.DashboardScanner = {
     isScanning: false,
     isTorchOn: false,
 
+    facingMode: "environment", // Default for mobile (back camera)
+
     start: async function (dataProcessor) {
         if (this.isScanning) return;
-
-        // Save callback
         this.dataProcessor = dataProcessor;
 
         const statusEl = document.getElementById('scan-status');
         const switchBtn = document.getElementById('btn-switch-camera');
 
-        if (statusEl) statusEl.textContent = "Solicitando permisos...";
-
         try {
-            // 1. Get Cameras
-            // Check for Secure Context (HTTPS) - Required by Browser API
             if (!window.isSecureContext) {
-                if (statusEl) statusEl.innerHTML = `<span class="text-red-500 font-bold block bg-white px-2 rounded">Error: Se requiere HTTPS o Localhost para usar la cámara.</span>`;
+                if (statusEl) statusEl.innerHTML = `<span class="text-red-500 font-bold block bg-white px-2 rounded">Error: Se requiere HTTPS.</span>`;
                 return;
-            }
-
-            this.cameras = await Html5Qrcode.getCameras();
-            if (!this.cameras || this.cameras.length === 0) {
-                if (statusEl) statusEl.textContent = "No se detectaron cámaras.";
-                return;
-            }
-
-            // 2. Select initial camera (Prefer Back/Environment)
-            // Only select if we don't have one, OR if the current one is invalid
-            if (!this.currentCameraId || !this.cameras.find(c => c.id === this.currentCameraId)) {
-                // Prefer back camera
-                const backCam = this.cameras.find(c => c.label.toLowerCase().includes('back') || c.label.toLowerCase().includes('trasera')) || this.cameras[this.cameras.length - 1];
-                this.currentCameraId = backCam.id;
-            }
-
-            // Show switch button if multiple cameras
-            if (switchBtn) {
-                if (this.cameras.length > 1) {
-                    switchBtn.classList.remove('hidden');
-                } else {
-                    switchBtn.classList.add('hidden');
-                }
-            }
-
-            // 3. Start Scanning
-            if (!this.html5QrCode) {
-                this.html5QrCode = new Html5Qrcode("qr-reader");
             }
 
             if (statusEl) statusEl.textContent = "Iniciando cámara...";
 
-            // Ensure DOM is ready (increased delay for stability)
-            await new Promise(r => setTimeout(r, 500));
-
-            // Responsive Config - Larger Scan Area (Restoring from example.js)
-            const qrBoxSize = Math.min(window.innerWidth * 0.90, 600); // 90% width or max 600px
-
-            await this.html5QrCode.start(
-                this.currentCameraId,
-                {
-                    fps: 20, // Faster scanning
-                    qrbox: { width: qrBoxSize, height: qrBoxSize },
-                    aspectRatio: 1.0,
-                    disableFlip: true,
-                    formatsToSupport: [Html5QrcodeSupportedFormats.QR_CODE],
-                    experimentalFeatures: {
-                        useBarCodeDetectorIfSupported: true // Native barcode detector is much faster
-                    },
-                    videoConstraints: {
-                        advanced: [{ focusMode: "continuous" }, { exposureMode: "continuous" }]
-                    }
-                },
-                (decodedText) => this.onScanSuccess(decodedText),
-                (errorMessage) => {
-                    // Ignore frame parse errors
+            // 1. Get List to show switch button
+            try {
+                this.cameras = await Html5Qrcode.getCameras();
+                if (switchBtn && this.cameras && this.cameras.length > 1) {
+                    switchBtn.classList.remove('hidden');
                 }
-            ).catch(err => {
-                console.error("Start failed", err);
-                if (statusEl) statusEl.textContent = "Error al iniciar cámara. Intente refrescar.";
-                this.isScanning = false;
-            });
+            } catch (e) {
+                console.warn("Could not list cameras, using facingMode only");
+            }
+
+            // 2. Setup Scanner
+            if (!this.html5QrCode) {
+                this.html5QrCode = new Html5Qrcode("qr-reader");
+            }
+
+            // 3. Selection Function with Fallback (e.g. Laptops usually don't have back camera)
+            const tryStart = async (mode) => {
+                const cameraConfig = this.currentCameraId ? this.currentCameraId : { facingMode: mode };
+                const qrBoxSize = (w, h) => {
+                    const size = Math.min(w, h) * 0.75;
+                    return { width: size, height: size };
+                };
+
+                return this.html5QrCode.start(
+                    cameraConfig,
+                    {
+                        fps: 20,
+                        qrbox: qrBoxSize,
+                        aspectRatio: 1.0,
+                        experimentalFeatures: { useBarCodeDetectorIfSupported: true }
+                    },
+                    (decodedText) => this.onScanSuccess(decodedText),
+                    (errorMessage) => { /* ignore */ }
+                );
+            };
+
+            try {
+                // Try starting with preferred facingMode
+                await tryStart(this.facingMode);
+            } catch (err) {
+                // FALLBACK: If environment/back failed, try user/front (common on laptops)
+                if (this.facingMode === "environment") {
+                    console.info("Back camera not available, falling back to front camera...");
+                    if (statusEl) statusEl.textContent = "Buscando cámara frontal...";
+                    this.facingMode = "user";
+                    this.currentCameraId = null;
+                    await tryStart("user");
+                } else {
+                    throw err;
+                }
+            }
 
             this.isScanning = true;
-            if (statusEl) statusEl.textContent = "Escaneando... (Apunta al QR)";
+            if (statusEl) {
+                statusEl.textContent = this.facingMode === "environment" ? "Escaneando (Cámara Trasera)" : "Escaneando (Cámara Frontal)";
+                statusEl.classList.remove('text-red-400', 'text-unemi-orange');
+            }
 
-            // CHECK TORCH CAPABILITY
-            try {
-                const track = this.html5QrCode.getRunningTrackCameraCapabilities();
-                const torchBtn = document.getElementById('btn-torch');
-                if (track && track.torchFeature() && torchBtn) {
-                    torchBtn.classList.remove('hidden');
-                } else if (torchBtn) {
-                    torchBtn.classList.add('hidden');
-                }
-            } catch (e) { /* Capabilities might not be accessible immediately */ }
+            // CHECK TORCH
+            setTimeout(() => {
+                try {
+                    const track = this.html5QrCode.getRunningTrackCameraCapabilities();
+                    const torchBtn = document.getElementById('btn-torch');
+                    if (track && track.torchFeature() && torchBtn) {
+                        torchBtn.classList.remove('hidden');
+                    } else if (torchBtn) {
+                        torchBtn.classList.add('hidden');
+                    }
+                } catch (e) { }
+            }, 800);
 
             if (window.lucide) window.lucide.createIcons();
 
         } catch (err) {
-            console.error("Error starting scanner:", err);
-            if (statusEl) statusEl.innerHTML = `<span class="text-red-400">Error: ${err.name || 'Desconocido'} - ${err.message || 'Sin detalles'}</span>`;
+            console.error("Scanner start error:", err);
+            if (statusEl) {
+                statusEl.textContent = "Error: Acceso a cámara denegado.";
+                statusEl.classList.add('text-red-400');
+            }
+            this.isScanning = false;
         }
     },
 
@@ -118,10 +116,8 @@ window.DashboardScanner = {
             try {
                 await this.html5QrCode.stop();
                 this.isScanning = false;
-                const statusEl = document.getElementById('scan-status');
-                if (statusEl) statusEl.textContent = "Cámara detenida";
             } catch (err) {
-                console.error("Failed to stop scanner", err);
+                console.error("Scanner stop error", err);
             }
         }
     },
@@ -156,17 +152,28 @@ window.DashboardScanner = {
     },
 
     toggleCamera: async function () {
-        if (!this.cameras || this.cameras.length < 2) return;
+        const statusEl = document.getElementById('scan-status');
+        if (statusEl) statusEl.textContent = "Cambiando cámara...";
 
         await this.stop();
 
-        // Find current index
-        const currentIndex = this.cameras.findIndex(c => c.id === this.currentCameraId);
-        let nextIndex = currentIndex + 1;
-        if (nextIndex >= this.cameras.length) nextIndex = 0;
+        // Wait for system release
+        await new Promise(r => setTimeout(r, 600));
 
-        this.currentCameraId = this.cameras[nextIndex].id;
-        this.start(this.dataProcessor); // Reuse saved callback
+        // Logic for toggling
+        if (this.cameras && this.cameras.length > 2) {
+            // Mobile devices often have 3+ cameras (Wide, Ultra, Front)
+            const currentIndex = this.cameras.findIndex(c => c.id === this.currentCameraId);
+            let nextIndex = currentIndex + 1;
+            if (nextIndex >= this.cameras.length) nextIndex = 0;
+            this.currentCameraId = this.cameras[nextIndex].id;
+        } else {
+            // Standard toggle (Front/Back)
+            this.facingMode = (this.facingMode === "environment") ? "user" : "environment";
+            this.currentCameraId = null;
+        }
+
+        this.start(this.dataProcessor);
     },
 
     onScanSuccess: async function (decodedText) {
@@ -232,7 +239,7 @@ window.DashboardScanner = {
                 statusEl.textContent = "Escaneando...";
                 statusEl.classList.remove('text-unemi-orange');
                 if (this.html5QrCode) await this.html5QrCode.resume();
-            }, 1500); // Faster cycle
+            }, 1500);
         }
     }
 };

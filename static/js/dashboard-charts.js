@@ -307,10 +307,13 @@ window.DashboardCharts = {
                         row.className = 'hover:bg-slate-50 transition-colors';
                         row.innerHTML = `
                         <td class="px-4 py-3 font-bold text-slate-400 text-xs text-center">${i + 1}</td>
-                        <td class="px-4 py-3 font-bold text-slate-800 line-clamp-1">${l.nombre_completo}</td>
-                        <td class="px-4 py-3 font-mono text-xs"><span class="bg-slate-100 px-2 py-1 rounded">G${l.grupo}</span></td>
-                        <td class="px-4 py-3 text-center font-mono text-xs text-slate-500">${l.invited}</td>
-                        <td class="px-4 py-3 text-center font-mono text-xs font-bold text-slate-700">${l.attended}</td>
+                        <td class="px-4 py-3">
+                            <div class="font-bold text-slate-800 leading-tight">${l.nombre_completo}</div>
+                            <div class="text-[10px] text-slate-400 md:hidden">Inv: ${l.invited} | Asist: ${l.attended}</div>
+                        </td>
+                        <td class="px-4 py-3 font-mono text-xs hidden md:table-cell"><span class="bg-slate-100 px-2 py-1 rounded">G${l.grupo}</span></td>
+                        <td class="px-4 py-3 text-center font-mono text-xs text-slate-500 hidden md:table-cell">${l.invited}</td>
+                        <td class="px-4 py-3 text-center font-mono text-xs font-bold text-slate-700 hidden md:table-cell">${l.attended}</td>
                         <td class="px-4 py-3 text-right">
                             <span class="px-2 py-1 rounded-lg text-xs font-bold ${colorClass}">${l.efficiency.toFixed(1)}%</span>
                         </td>
