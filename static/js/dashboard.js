@@ -15,7 +15,17 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.getElementById('user-group').textContent = `Grupo ${user.grupo || '?'}`;
 
     // Initial Fetch
-    await refreshData();
+    // Initial Fetch
+    // Restore View IMMEDIATELY (Before Fetch)
+    const lastView = localStorage.getItem('lastView') || 'overview';
+    console.log("Restoring view:", lastView);
+    switchView(lastView);
+
+    if (window.refreshData) {
+        await window.refreshData();
+    } else {
+        console.error("refreshData function not found!");
+    }
 
     // Event Listeners
     document.getElementById('search-registros').addEventListener('input', (e) => filterRegistros(e.target.value));
@@ -33,9 +43,13 @@ function logout() {
 window.switchView = function (viewName) {
     const views = ['overview', 'scanner', 'registros', 'bancos'];
 
+    // Save state
+    localStorage.setItem('lastView', viewName);
+
     // Hide all views
     views.forEach(v => {
-        document.getElementById(`view-${v}`).classList.add('hidden');
+        const viewEl = document.getElementById(`view-${v}`);
+        if (viewEl) viewEl.classList.add('hidden');
 
         // Reset Sidebar Styles
         const sidebarItem = document.getElementById(`sidebar-nav-${v}`);
@@ -53,7 +67,8 @@ window.switchView = function (viewName) {
     });
 
     // Show selected view
-    document.getElementById(`view-${viewName}`).classList.remove('hidden');
+    const targetView = document.getElementById(`view-${viewName}`);
+    if (targetView) targetView.classList.remove('hidden');
 
     // Activate Sidebar
     const activeSidebar = document.getElementById(`sidebar-nav-${viewName}`);
@@ -90,27 +105,7 @@ window.switchView = function (viewName) {
 }
 
 // === DATA FETCHING ===
-window.refreshData = async function () {
-    try {
-        window.showLoader && window.showLoader();
-        const response = await axios.get('/api/v1/alumnos/alumnos/', {
-            headers: { Authorization: `Token ${token}` }
-        });
-        allAlumnos = response.data.results || response.data;
 
-        updateKPIs();
-        renderRegistrosTable(allAlumnos);
-        renderBancosTable(allAlumnos);
-        updateCharts();
-        populateBankFilter();
-
-    } catch (error) {
-        console.error("Fetch error:", error);
-        if (error.response?.status === 401) logout();
-    } finally {
-        window.hideLoader && window.hideLoader();
-    }
-}
 
 function updateKPIs() {
     const total = allAlumnos.length;
@@ -304,6 +299,12 @@ async function startScanner() {
 
     try {
         // 1. Get Cameras
+        // Check for Secure Context (HTTPS) - Required by Browser API
+        if (!window.isSecureContext) {
+            statusEl.innerHTML = `<span class="text-red-500 font-bold block bg-white px-2 rounded">Error: Se requiere HTTPS o Localhost para usar la cámara.</span>`;
+            return;
+        }
+
         cameras = await Html5Qrcode.getCameras();
         if (!cameras || cameras.length === 0) {
             statusEl.textContent = "No se detectaron cámaras.";
@@ -311,26 +312,20 @@ async function startScanner() {
         }
 
         // 2. Select initial camera (Prefer Back/Environment)
-        // Usually the last camera is the back one on mobile, or check label
-        // Simple heuristic: Try the last one first (often back), or 0 if only one.
-        // Better: look for 'back' or 'environment' in label if available, else last.
-        let selectedCamera = cameras[cameras.length - 1];
-
-        // Use current if already set (for toggling)
-        if (currentCameraId) {
-            const found = cameras.find(c => c.id === currentCameraId);
-            if (found) selectedCamera = found;
-        } else {
-            currentCameraId = selectedCamera.id;
+        // Only select if we don't have one, OR if the current one is invalid
+        if (!currentCameraId || !cameras.find(c => c.id === currentCameraId)) {
+            // Prefer back camera
+            const backCam = cameras.find(c => c.label.toLowerCase().includes('back') || c.label.toLowerCase().includes('trasera')) || cameras[cameras.length - 1];
+            currentCameraId = backCam.id;
         }
 
         // Show switch button if multiple cameras
-        if (cameras.length > 1) {
-            switchBtn.classList.remove('hidden');
-            // Icon: Refresh-cw or similar? Camera-off is placeholder, using switch icon
-            switchBtn.innerHTML = '<i data-lucide="refresh-cw" class="w-6 h-6"></i>';
-        } else {
-            switchBtn.classList.add('hidden');
+        if (switchBtn) {
+            if (cameras.length > 1) {
+                switchBtn.classList.remove('hidden');
+            } else {
+                switchBtn.classList.add('hidden');
+            }
         }
 
         // 3. Start Scanning
@@ -340,26 +335,66 @@ async function startScanner() {
 
         statusEl.textContent = "Iniciando cámara...";
 
+        // Ensure DOM is ready (increased delay for stability)
+        await new Promise(r => setTimeout(r, 500));
+
+        // Responsive Config - Larger Scan Area
+        const qrBoxSize = Math.min(window.innerWidth * 0.85, 500); // 85% width or max 500px
+
         await html5QrCode.start(
             currentCameraId,
             {
-                fps: 10,
-                qrbox: { width: 250, height: 250 },
-                aspectRatio: 1.0
+                fps: 15, // Smooth scanning
+                qrbox: { width: qrBoxSize, height: qrBoxSize },
+                aspectRatio: 1.0,
+                disableFlip: false,
+                formatsToSupport: [Html5QrcodeSupportedFormats.QR_CODE] // Optimize for QR only
             },
             onScanSuccess,
             (errorMessage) => {
-                // verbose false, ignore frame errors 
+                // Ignore frame parse errors
             }
-        );
+        ).catch(err => {
+            console.error("Start failed", err);
+            statusEl.textContent = "Error al iniciar cámara. Intente refrescar.";
+            isScanning = false;
+        });
 
         isScanning = true;
-        statusEl.textContent = "Escaneando...";
+        statusEl.textContent = "Escaneando... (Apunta al QR)";
         lucide.createIcons();
 
     } catch (err) {
         console.error("Error starting scanner:", err);
-        statusEl.textContent = "Error: Acceso a cámara denegado o no disponible.";
+        statusEl.innerHTML = `<span class="text-red-400">Error: ${err.name || 'Desconocido'} - ${err.message || 'Sin detalles'}</span>`;
+    }
+}
+
+// === DATA FETCHING ===
+window.refreshData = async function () {
+    try {
+        window.showLoader && window.showLoader();
+        const response = await axios.get('/api/v1/alumnos/alumnos/', {
+            headers: { Authorization: `Token ${token}` }
+        });
+        allAlumnos = response.data.results || response.data;
+
+        // Initial Render
+        updateKPIs();
+        renderRegistrosTable(allAlumnos);
+        renderBancosTable(allAlumnos);
+        updateCharts();
+        populateBankFilter();
+
+        // View restoration is now handled in DOMContentLoaded
+
+    } catch (err) {
+        console.error("Fetch error:", err);
+        if (err.response && err.response.status === 401) {
+            logout();
+        }
+    } finally {
+        window.hideLoader && window.hideLoader();
     }
 }
 
@@ -396,27 +431,26 @@ async function onScanSuccess(decodedText, decodedResult) {
     const feedbackBox = document.getElementById('scan-result');
     const statusEl = document.getElementById('scan-status');
 
+    // UI Feedback (Quick Overlay)
     statusEl.textContent = "¡Procesando!";
-    feedbackBox.classList.remove('hidden');
-    feedbackBox.classList.add('processing');
+    statusEl.classList.add('text-unemi-orange');
+    feedbackBox.classList.add('processing'); // Lock scanning
 
     try {
-        // API Call
         const response = await axios.post('/api/v1/alumnos/marcar-asistencia/',
             { cedula: decodedText },
             { headers: { Authorization: `Token ${token}` } }
         );
         const alumno = response.data.alumno;
 
-        // Success UI
-        feedbackBox.className = "mt-4 p-4 bg-green-100 text-green-800 rounded-xl font-bold block border border-green-200 shadow-sm animate-in fade-in slide-in-from-bottom-4";
+        // Success Pop-up (Non-blocking visual)
+        feedbackBox.className = "absolute bottom-16 left-4 right-4 p-4 bg-green-500/90 backdrop-blur-md text-white rounded-2xl shadow-xl flex items-center gap-4 animate-in slide-in-from-bottom-10 z-30 border border-white/20";
+        feedbackBox.classList.remove('hidden');
         feedbackBox.innerHTML = `
-            <div class="flex items-center gap-3">
-                <div class="bg-green-500 text-white rounded-full p-2"><i data-lucide="check" class="w-5 h-5"></i></div>
-                <div>
-                    <p class="text-xs uppercase text-green-600 font-bold">Asistencia Marcada</p>
-                    <p class="text-lg leading-tight">${alumno.nombre}</p>
-                </div>
+            <div class="bg-white text-green-500 rounded-full p-2 shadow-sm"><i data-lucide="check" class="w-6 h-6"></i></div>
+            <div>
+                <p class="text-xs font-bold uppercase opacity-80">Asistencia Ok</p>
+                <p class="text-lg font-bold">${alumno.nombre}</p>
             </div>
         `;
 
@@ -424,35 +458,34 @@ async function onScanSuccess(decodedText, decodedResult) {
         const idx = allAlumnos.findIndex(a => a.cedula === alumno.cedula);
         if (idx !== -1) {
             allAlumnos[idx].asistio = true;
-            updateKPIs(); // Refresh counters/charts
+            updateKPIs();
         }
 
     } catch (err) {
-        console.error(err);
-        feedbackBox.className = "mt-4 p-4 bg-red-50 text-red-600 rounded-xl font-bold block border border-red-100 animate-in fade-in slide-in-from-bottom-4";
-        const errorMsg = err.response?.data?.error || "Código no reconocido";
-
+        // Error Pop-up
+        feedbackBox.className = "absolute bottom-16 left-4 right-4 p-4 bg-red-500/90 backdrop-blur-md text-white rounded-2xl shadow-xl flex items-center gap-4 animate-in slide-in-from-bottom-10 z-30 border border-white/20";
+        feedbackBox.classList.remove('hidden');
+        const errorMsg = err.response?.data?.error || "Código no compatible";
         feedbackBox.innerHTML = `
-            <div class="flex items-center gap-3">
-                <div class="bg-red-500 text-white rounded-full p-2"><i data-lucide="x" class="w-5 h-5"></i></div>
-                <div>
-                    <p class="text-xs uppercase text-red-400 font-bold">Error</p>
-                    <p class="text-sm">${errorMsg}</p>
-                    <p class="text-xs font-mono opacity-50">${decodedText}</p>
-                </div>
+            <div class="bg-white text-red-500 rounded-full p-2 shadow-sm"><i data-lucide="x" class="w-6 h-6"></i></div>
+            <div>
+                <p class="text-xs font-bold uppercase opacity-80">Error</p>
+                <p class="text-sm font-medium">${errorMsg}</p>
             </div>
-         `;
+        `;
     } finally {
         lucide.createIcons();
-        // Pause briefly before next scan
+
+        // Pause briefly (1.5s) then clear for next scan
         if (html5QrCode) await html5QrCode.pause();
 
         setTimeout(async () => {
             feedbackBox.classList.add('hidden');
             feedbackBox.classList.remove('processing');
             statusEl.textContent = "Escaneando...";
+            statusEl.classList.remove('text-unemi-orange');
             if (html5QrCode) await html5QrCode.resume();
-        }, 2500);
+        }, 1500); // Faster cycle
     }
 }
 

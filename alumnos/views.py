@@ -71,13 +71,26 @@ class MarcarAsistenciaView(views.APIView):
     permission_classes = [permissions.IsAuthenticated] # Leaders only
 
     def post(self, request):
-        cedula = request.data.get('cedula')
-        if not cedula:
-            return Response({"error": "Cédula requerida"}, status=status.HTTP_400_BAD_REQUEST)
+        codigo = request.data.get('cedula') # Frontend sends scanned text here
+        if not codigo:
+            return Response({"error": "Código o Cédula requerida"}, status=status.HTTP_400_BAD_REQUEST)
         
         try:
-            alumno = Alumno.objects.get(cedula=cedula)
+            # Look up by QR Code OR Cedula
+            from django.db.models import Q
+            alumno = Alumno.objects.get(Q(cedula=codigo) | Q(codigo_qr=codigo))
             
+            # Check if already attended
+            if alumno.asistio:
+                 return Response({
+                    "message": "Asistencia ya registrada previamente",
+                    "alumno": {
+                        "nombre": alumno.nombre_completo,
+                        "cedula": alumno.cedula,
+                        "asistio": True
+                    }
+                })
+
             # Update attendance
             alumno.asistio = True
             alumno.save()
@@ -91,4 +104,4 @@ class MarcarAsistenciaView(views.APIView):
                 }
             })
         except Alumno.DoesNotExist:
-            return Response({"error": "Estudiante no encontrado"}, status=status.HTTP_404_NOT_FOUND)
+            return Response({"error": f"Estudiante no encontrado: {codigo}"}, status=status.HTTP_404_NOT_FOUND)

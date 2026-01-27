@@ -189,16 +189,19 @@
 
             <!-- VIEW: SCANNER -->
             <section id="view-scanner" class="hidden space-y-6 fade-in">
-                <div class="max-w-md mx-auto">
+                <div class="max-w-2xl mx-auto">
                     <div class="bg-white rounded-3xl shadow-xl overflow-hidden border border-slate-200">
-                        <div class="bg-slate-900 p-6 text-center text-white">
+                        <div class="bg-slate-900 p-6 text-center text-white relative">
+                            <button id="btn-switch-camera" onclick="toggleCamera()" class="hidden absolute top-4 right-4 bg-white/10 hover:bg-white/20 p-2 rounded-full transition-colors">
+                                <i data-lucide="refresh-cw" class="w-5 h-5 text-white"></i>
+                            </button>
                             <i data-lucide="scan" class="w-12 h-12 mx-auto mb-2 text-unemi-orange"></i>
                             <h3 class="text-xl font-bold">Escanear Credencial</h3>
                             <p class="text-slate-400 text-sm">Apunta la cámara al código QR del estudiante</p>
                         </div>
                         
-                        <div class="p-4 bg-black">
-                            <div id="qr-reader" class="rounded-xl overflow-hidden"></div>
+                        <div class="p-4 bg-black relative">
+                            <div id="qr-reader" class="rounded-xl overflow-hidden w-full"></div>
                         </div>
 
                         <div class="p-6 text-center">
