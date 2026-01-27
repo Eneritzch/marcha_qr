@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Acceso Líderes - Marcha UNEMI</title>
+    
+    <!-- Tailwind CSS (CDN) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        unemi: {
+                            blue: '#0F1E4B',
+                            orange: '#EF7D00',
+                            bg: '#F8FAFC',
+                            text: '#1E293B'
+                        },
+                        unemi_hover: {
+                            orange: '#d97200',
+                            blue: '#0c183b'
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+                    },
+                    animation: {
+                        'fade-in-up': 'fadeInUp 0.5s ease-out',
+                        'shake': 'shake 0.5s cubic-bezier(.36,.07,.19,.97) both',
+                    },
+                    keyframes: {
+                        fadeInUp: {
+                            '0%': { opacity: '0', transform: 'translateY(10px)' },
+                            '100%': { opacity: '1', transform: 'translateY(0)' },
+                        },
+                        shake: {
+                            '10%, 90%': { transform: 'translate3d(-1px, 0, 0)' },
+                            '20%, 80%': { transform: 'translate3d(2px, 0, 0)' },
+                            '30%, 50%, 70%': { transform: 'translate3d(-4px, 0, 0)' },
+                            '40%, 60%': { transform: 'translate3d(4px, 0, 0)' }
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Axios -->
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;900&display=swap');
+        body { font-family: 'Inter', sans-serif; }
+    </style>
+</head>
+<body class="bg-white min-h-screen">
+
+    <!-- Minimalist Header for Split View -->
+    <nav class="absolute top-0 left-0 w-full p-6 z-20 flex justify-between items-center bg-gradient-to-b from-black/50 to-transparent lg:bg-transparent lg:from-transparent">
+        <div class="flex items-center space-x-3 text-white lg:text-unemi-blue">
+            <div class="w-10 h-10 bg-white/20 backdrop-blur-md rounded-lg flex items-center justify-center font-bold text-white lg:bg-unemi-blue lg:shadow-xl">
+                U
+            </div>
+            <span class="font-bold tracking-widest hidden sm:inline lg:text-slate-800">MARCHA UNEMI</span>
+        </div>
+        <a href="/registro" class="text-white/90 hover:text-white font-bold text-sm bg-white/10 backdrop-blur-md px-4 py-2 rounded-full border border-white/20 hover:bg-white/20 transition-all lg:text-slate-500 lg:bg-white lg:border-slate-200 lg:hover:text-unemi-orange lg:hover:border-unemi-orange">
+            ← Volver al Registro
+        </a>
+    </nav>
+    
+    <!-- Include Global Loader HTML/JS logic directly here if needed, or simply omit if unwanted on login -->
+    <!-- Adding a small local loader implementation just for login feedback -->
+
+    <div class="min-h-screen flex text-slate-800">
+        
+        <!-- LEFT SIDE: Carousel (Hidden on mobile) -->
+        <div class="hidden lg:flex w-1/2 relative bg-slate-900 overflow-hidden">
+            <!-- Overlay -->
+            <div class="absolute inset-0 z-10 bg-unemi-blue/40 mix-blend-multiply"></div>
+            <div class="absolute inset-0 z-10 bg-gradient-to-t from-black/80 via-transparent to-transparent"></div>
+
+            <!-- Carousel Images -->
+            <div id="login-carousel" class="absolute inset-0 w-full h-full">
+                <!-- User requested hero.jpg and hero1.jpg -->
+                <img src="/media/hero2.png" class="absolute inset-0 w-full h-full object-cover transition-transform duration-[10s] ease-in-out scale-110 opacity-100" id="slide-1" alt="Marcha UNEMI 1">
+                <img src="/media/hero1.jpg" class="absolute inset-0 w-full h-full object-cover transition-transform duration-[10s] ease-in-out scale-110 opacity-0" id="slide-2" alt="Marcha UNEMI 2">
+            </div>
+
+            <!-- Content over carousel -->
+            <div class="relative z-20 mt-auto p-16 w-full text-white">
+                <div class="mb-4 w-16 h-1 bg-unemi-orange rounded-full"></div>
+                <h1 class="text-5xl font-black uppercase leading-tight mb-4 tracking-tight">Liderazgo<br/>que Inspira</h1>
+                <p class="text-lg text-slate-200 font-light max-w-md leading-relaxed">Gestiona tu equipo, monitorea asistencias y sé parte de la historia en los 25 años de UNEMI.</p>
+            </div>
+        </div>
+
+        <!-- RIGHT SIDE: Login Form -->
+        <div class="w-full lg:w-1/2 flex items-center justify-center bg-white p-8 relative">
+            <div class="w-full max-w-md space-y-8 animate-fade-in-up">
+                
+                <div class="text-center lg:text-left mb-10 mt-16 lg:mt-0">
+                    <h2 class="text-3xl font-black text-unemi-blue mb-2">Bienvenido, Líder</h2>
+                    <p class="text-slate-400">Ingresa tus credenciales para acceder al panel de control.</p>
+                </div>
+
+                <form id="login-form" class="space-y-6">
+                    
+                    <div id="error-message" class="hidden transform transition-all bg-red-50 border-l-4 border-red-500 p-4 rounded-r-xl flex items-start space-x-3">
+                        <i data-lucide="alert-circle" class="text-red-500 w-5 h-5 mt-0.5 flex-shrink-0"></i>
+                        <div>
+                            <h4 class="text-red-800 font-bold text-sm">Error de Acceso</h4>
+                            <p class="text-red-600 text-sm mt-1" id="error-text"></p>
+                        </div>
+                    </div>
+
+                    <div class="space-y-5">
+                        <div class="group">
+                            <label for="username" class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2 ml-1 transition-colors group-focus-within:text-unemi-blue">Usuario</label>
+                            <div class="relative">
+                                <div class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-unemi-blue transition-colors">
+                                    <i data-lucide="user" class="w-5 h-5"></i>
+                                </div>
+                                <input
+                                    id="username"
+                                    name="username"
+                                    type="text"
+                                    required
+                                    placeholder="ej: rpezer"
+                                    class="w-full pl-12 pr-4 py-4 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-unemi-blue focus:bg-white outline-none transition-all font-medium text-slate-700"
+                                />
+                            </div>
+                        </div>
+
+                        <div class="group">
+                             <label for="password" class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2 ml-1 transition-colors group-focus-within:text-unemi-blue">Contraseña</label>
+                            <div class="relative">
+                                <div class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-unemi-blue transition-colors">
+                                    <i data-lucide="lock" class="w-5 h-5"></i>
+                                </div>
+                                <input
+                                    id="password"
+                                    name="password"
+                                    type="password"
+                                    required
+                                    placeholder="••••••••"
+                                    class="w-full pl-12 pr-4 py-4 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-unemi-blue focus:bg-white outline-none transition-all font-medium text-slate-700"
+                                />
+                                <button type="button" onclick="togglePassword()" class="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 cursor-pointer">
+                                    <i data-lucide="eye" class="w-5 h-5"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="flex items-center justify-between text-sm">
+                        <label class="flex items-center space-x-2 cursor-pointer text-slate-500 hover:text-slate-700">
+                            <input type="checkbox" class="w-4 h-4 rounded text-unemi-blue focus:ring-unemi-blue border-slate-300">
+                            <span>Recordarme</span>
+                        </label>
+                        <a href="#" class="font-bold text-unemi-blue hover:text-unemi-orange transition-colors">¿Olvidaste tu contraseña?</a>
+                    </div>
+
+                    <button
+                        type="submit"
+                        id="submit-btn"
+                        class="w-full bg-unemi-blue text-white font-bold py-4 rounded-xl shadow-lg shadow-blue-900/10 hover:shadow-blue-900/20 hover:bg-slate-800 hover:-translate-y-0.5 transition-all active:scale-95 active:translate-y-0 flex items-center justify-center space-x-2 group"
+                    >
+                        <span id="btn-text">INICIAR SESIÓN</span>
+                        <i data-lucide="arrow-right" class="w-5 h-5 group-hover:translate-x-1 transition-transform"></i>
+                        <div id="btn-spinner" class="hidden w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                    </button>
+
+                </form>
+                
+
+            </div>
+        </div>
+    </div>
+
+    <script>
+        lucide.createIcons();
+
+        // === CAROUSEL LOGIC ===
+        const slides = [document.getElementById('slide-1'), document.getElementById('slide-2')];
+        let currentSlide = 0;
+
+        // Apply Ken Burns Effect (Zoom & Fade)
+        setInterval(() => {
+            // Fade out current
+            slides[currentSlide].classList.remove('opacity-100', 'scale-110');
+            slides[currentSlide].classList.add('opacity-0', 'scale-100');
+            
+            // Next slide
+            currentSlide = (currentSlide + 1) % slides.length;
+            
+            // Fade in next
+            slides[currentSlide].classList.remove('opacity-0', 'scale-100');
+            slides[currentSlide].classList.add('opacity-100', 'scale-110');
+        }, 6000); // 6 seconds per slide
+
+        // === PASSWORD TOGGLE ===
+        function togglePassword() {
+            const input = document.getElementById('password');
+            input.type = input.type === 'password' ? 'text' : 'password';
+        }
+
+        // === LOGIN LOGIC ===
+        document.getElementById('login-form').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const usernameInput = document.getElementById('username');
+            const passwordInput = document.getElementById('password');
+            const errorDiv = document.getElementById('error-message');
+            const errorText = document.getElementById('error-text');
+            const btnText = document.getElementById('btn-text');
+            const btnSpinner = document.getElementById('btn-spinner');
+            const submitBtn = document.querySelector('button[type="submit"]');
+
+            // Reset UI
+            errorDiv.classList.add('hidden');
+            submitBtn.classList.add('opacity-80', 'cursor-not-allowed');
+            btnText.classList.add('hidden');
+            document.querySelector('.lucide-arrow-right')?.classList.add('hidden');
+            btnSpinner.classList.remove('hidden');
+
+            try {
+                const response = await axios.post('/api/v1/lideres/login/', {
+                    username: usernameInput.value,
+                    password: passwordInput.value
+                });
+                
+                // Success
+                localStorage.setItem('token', response.data.token);
+                localStorage.setItem('user', JSON.stringify(response.data));
+                
+                // Allow animation to be seen briefly
+                setTimeout(() => {
+                    window.location.href = '/dashboard';
+                }, 500);
+
+            } catch (error) {
+                console.error(error);
+                errorDiv.classList.remove('hidden');
+                let msg = 'Credenciales incorrectas o problema de conexión.';
+                
+                if (error.response) {
+                    if (error.response.data.error) msg = error.response.data.error;
+                    if (error.response.status === 401) msg = "Usuario o contraseña inválidos.";
+                }
+                
+                errorText.textContent = msg;
+                
+                // Reset Button
+                submitBtn.classList.remove('opacity-80', 'cursor-not-allowed');
+                btnText.classList.remove('hidden');
+                 document.querySelector('.lucide-arrow-right')?.classList.remove('hidden');
+                btnSpinner.classList.add('hidden');
+                
+                // Shake animation on error div
+                errorDiv.classList.add('animate-shake');
+                setTimeout(() => errorDiv.classList.remove('animate-shake'), 500);
+            }
+        });
+
+        // === SESSION CHECK ===
+        if (localStorage.getItem('token')) {
+            window.location.href = '/dashboard';
+        }
+    </script>
+</body>
+</html>

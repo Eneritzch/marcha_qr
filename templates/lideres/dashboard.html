@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard Líder - Marcha UNEMI</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        unemi: {
+                            blue: '#0F1E4B',
+                            orange: '#EF7D00',
+                            bg: '#F8FAFC',
+                            text: '#1E293B'
+                        },
+                        unemi_hover: {
+                            orange: '#d97200',
+                            blue: '#0c183b'
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <!-- Icons & Utils -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <!-- HTML5-QRCode -->
+    <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;900&display=swap');
+        body { font-family: 'Inter', sans-serif; }
+        .sidebar-item-active {
+            background-color: #EF7D00;
+            color: white;
+        }
+    </style>
+</head>
+<body class="bg-unemi-bg text-unemi-text h-screen flex overflow-hidden">
+
+    <!-- SIDEBAR -->
+    <aside class="w-64 bg-unemi-blue text-white flex flex-col shadow-2xl z-20 hidden md:flex">
+        <div class="p-6 flex items-center gap-3 border-b border-white/10">
+            <div class="w-8 h-8 bg-unemi-orange rounded-lg flex items-center justify-center font-bold text-white">U</div>
+            <span class="font-bold tracking-widest text-sm">MARCHA UNEMI</span>
+        </div>
+
+        <div class="p-6">
+            <h3 class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4">Menú Principal</h3>
+            <nav class="space-y-2">
+                <button onclick="switchView('overview')" id="nav-overview" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all hover:bg-white/10 text-left sidebar-item-active">
+                    <i data-lucide="bar-chart-2" class="w-5 h-5"></i>
+                    <span class="font-medium">Resumen</span>
+                </button>
+                <button onclick="switchView('scanner')" id="nav-scanner" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all hover:bg-white/10 text-left text-slate-300 hover:text-white">
+                    <i data-lucide="scan" class="w-5 h-5"></i>
+                    <span class="font-medium">Escanear QR</span>
+                </button>
+                 <button onclick="switchView('registros')" id="nav-registros" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all hover:bg-white/10 text-left text-slate-300 hover:text-white">
+                    <i data-lucide="users" class="w-5 h-5"></i>
+                    <span class="font-medium">Registros</span>
+                </button>
+                 <button onclick="switchView('bancos')" id="nav-bancos" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all hover:bg-white/10 text-left text-slate-300 hover:text-white">
+                    <i data-lucide="credit-card" class="w-5 h-5"></i>
+                    <span class="font-medium">Datos Bancarios</span>
+                </button>
+            </nav>
+        </div>
+
+        <div class="mt-auto p-6 border-t border-white/10">
+            <div class="flex items-center gap-3 mb-4">
+                <div class="w-10 h-10 bg-white/10 rounded-full flex items-center justify-center">
+                    <i data-lucide="user" class="w-5 h-5"></i>
+                </div>
+                <div>
+                     <p id="user-name" class="font-bold text-sm">Cargando...</p>
+                     <p id="user-group" class="text-xs text-slate-400">Grupo ?</p>
+                </div>
+            </div>
+            <button onclick="logout()" class="w-full flex items-center justify-center gap-2 bg-red-500/20 text-red-300 hover:bg-red-500 hover:text-white px-4 py-2 rounded-lg transition-colors text-sm font-medium">
+                <i data-lucide="log-out" class="w-4 h-4"></i> Cerrar Sesión
+            </button>
+        </div>
+    </aside>
+
+    <!-- MOBILE HEADER -->
+    <div class="md:hidden fixed top-0 w-full bg-unemi-blue text-white z-30 px-4 py-3 flex justify-between items-center shadow-lg">
+        <span class="font-bold">MARCHA UNEMI</span>
+        <button onclick="document.getElementById('mobile-menu').classList.toggle('hidden')" class="p-2">
+            <i data-lucide="menu" class="w-6 h-6"></i>
+        </button>
+    </div>
+    <!-- MOBILE MENU OVERLAY -->
+    <div id="mobile-menu" class="hidden fixed inset-0 z-40 bg-slate-900/95 text-white p-8 flex flex-col justify-center gap-6 md:hidden">
+         <button onclick="switchView('overview'); toggleMobileMenu()" class="text-2xl font-bold">Resumen</button>
+         <button onclick="switchView('scanner'); toggleMobileMenu()" class="text-2xl font-bold">Escanear QR</button>
+         <button onclick="switchView('registros'); toggleMobileMenu()" class="text-2xl font-bold">Registros</button>
+         <button onclick="switchView('bancos'); toggleMobileMenu()" class="text-2xl font-bold">Datos Bancarios</button>
+         <button onclick="logout()" class="text-2xl font-bold text-red-400 mt-8">Cerrar Sesión</button>
+         <button onclick="toggleMobileMenu()" class="absolute top-4 right-4"><i data-lucide="x" class="w-8 h-8"></i></button>
+    </div>
+
+
+    <!-- MAIN CONTENT -->
+    <main class="flex-1 overflow-y-auto relative pt-16 md:pt-0">
+        
+        <!-- HEADER TOOLBAR -->
+        <header class="bg-white border-b border-slate-100 p-6 sticky top-0 z-10 hidden md:flex justify-between items-center shadow-sm">
+            <h2 id="page-title" class="text-2xl font-bold text-slate-800">Resumen General</h2>
+            <div class="flex gap-3">
+                <button onclick="document.getElementById('excel-upload-modal').classList.remove('hidden')" class="flex items-center gap-2 px-4 py-2 bg-slate-50 text-slate-600 hover:bg-slate-100 rounded-lg text-sm font-bold transition-colors">
+                    <i data-lucide="file-up" class="w-4 h-4"></i> Cargar Excel
+                </button>
+                <button onclick="refreshData()" class="flex items-center gap-2 px-4 py-2 bg-unemi-blue text-white hover:bg-slate-800 rounded-lg text-sm font-bold transition-colors shadow-lg shadow-blue-500/20">
+                    <i data-lucide="refresh-cw" class="w-4 h-4"></i> Actualizar
+                </button>
+            </div>
+        </header>
+
+        <div class="p-6 md:p-8 space-y-8 max-w-7xl mx-auto">
+
+            <!-- VIEW: OVERVIEW (Charts & Stats) -->
+            <section id="view-overview" class="space-y-6 fade-in">
+                <!-- KPI Cards -->
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div class="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm">
+                        <p class="text-xs font-bold text-slate-400 uppercase">Total Registrados</p>
+                        <p id="kpi-total" class="text-3xl font-black text-slate-800 mt-2">--</p>
+                    </div>
+                    <div class="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm">
+                        <p class="text-xs font-bold text-green-500 uppercase">Asistencias Confirmadas</p>
+                        <p id="kpi-asistencias" class="text-3xl font-black text-green-500 mt-2">--</p>
+                    </div>
+                     <div class="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm">
+                        <p class="text-xs font-bold text-slate-400 uppercase">Porcentaje</p>
+                        <p id="kpi-porcentaje" class="text-3xl font-black text-unemi-orange mt-2">--%</p>
+                    </div>
+                    <div class="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm">
+                        <p class="text-xs font-bold text-slate-400 uppercase">Pendientes</p>
+                        <p id="kpi-pendientes" class="text-3xl font-black text-slate-400 mt-2">--</p>
+                    </div>
+                </div>
+
+                <!-- Charts Area -->
+                <div class="grid md:grid-cols-2 gap-6">
+                    <div class="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm h-80">
+                         <h3 class="font-bold text-slate-700 mb-4">Progreso de Asistencia</h3>
+                         <div class="h-full pb-8">
+                            <canvas id="chart-attendance"></canvas>
+                         </div>
+                    </div>
+                     <div class="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm h-80">
+                         <h3 class="font-bold text-slate-700 mb-4">Distribución por Carrera (Top 5)</h3>
+                         <div class="h-full pb-8">
+                            <canvas id="chart-careers"></canvas>
+                         </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- VIEW: SCANNER -->
+            <section id="view-scanner" class="hidden space-y-6 fade-in">
+                <div class="max-w-md mx-auto">
+                    <div class="bg-white rounded-3xl shadow-xl overflow-hidden border border-slate-200">
+                        <div class="bg-slate-900 p-6 text-center text-white">
+                            <i data-lucide="scan" class="w-12 h-12 mx-auto mb-2 text-unemi-orange"></i>
+                            <h3 class="text-xl font-bold">Escanear Credencial</h3>
+                            <p class="text-slate-400 text-sm">Apunta la cámara al código QR del estudiante</p>
+                        </div>
+                        
+                        <div class="p-4 bg-black">
+                            <div id="qr-reader" class="rounded-xl overflow-hidden"></div>
+                        </div>
+
+                        <div class="p-6 text-center">
+                            <p id="scan-status" class="text-sm font-bold text-slate-500 animate-pulse">Esperando cámara...</p>
+                            <div id="scan-result" class="hidden mt-4 p-4 bg-green-50 text-green-700 rounded-xl font-bold"></div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- VIEW: REGISTROS TABLE -->
+            <section id="view-registros" class="hidden space-y-6 fade-in">
+                <div class="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+                    <div class="p-6 border-b border-slate-100 flex flex-col md:flex-row gap-4 justify-between items-center">
+                        <div class="relative w-full md:w-96">
+                            <i data-lucide="search" class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4"></i>
+                            <input type="text" id="search-registros" placeholder="Buscar por nombre o cédula..." class="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-unemi-blue">
+                        </div>
+                        <div class="flex gap-2">
+                             <select id="filter-estado" class="bg-slate-50 border border-slate-200 text-sm rounded-lg p-2.5 focus:ring-unemi-blue focus:border-unemi-blue">
+                                <option value="all">Todos los Estados</option>
+                                <option value="present">Asistió</option>
+                                <option value="absent">Pendiente</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-sm text-left text-slate-500">
+                            <thead class="text-xs text-slate-700 uppercase bg-slate-50">
+                                <tr>
+                                    <th class="px-6 py-3">Estudiante</th>
+                                    <th class="px-6 py-3">Cédula</th>
+                                    <th class="px-6 py-3">Carrera</th>
+                                    <th class="px-6 py-3 text-center">Asistencia</th>
+                                    <th class="px-6 py-3 text-center">Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tbody-registros" class="divide-y divide-slate-100">
+                                <!-- Data injected here -->
+                            </tbody>
+                        </table>
+                    </div>
+                    <div id="pagination-registros" class="p-4 border-t border-slate-100 flex justify-center gap-2"></div>
+                </div>
+            </section>
+
+
+            <!-- VIEW: BANCOS TABLE -->
+            <section id="view-bancos" class="hidden space-y-6 fade-in">
+                 <div class="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+                    <div class="p-6 border-b border-slate-100 flex flex-col md:flex-row gap-4 justify-between items-center bg-blue-50/30">
+                         <div class="flex items-center gap-2">
+                            <i data-lucide="credit-card" class="text-unemi-blue w-5 h-5"></i>
+                            <h3 class="font-bold text-unemi-blue">Detalle Bancario</h3>
+                         </div>
+                        <div class="flex gap-2 w-full md:w-auto">
+                             <select id="filter-banco" class="w-full md:w-64 bg-white border border-slate-200 text-sm rounded-lg p-2.5 focus:ring-unemi-blue focus:border-unemi-blue shadow-sm">
+                                <option value="all">Filtrar por Banco (Todos)</option>
+                                <!-- Populated dynamically -->
+                            </select>
+                        </div>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-sm text-left text-slate-500">
+                            <thead class="text-xs text-white uppercase bg-slate-800">
+                                <tr>
+                                    <th class="px-6 py-3 rounded-tl-lg">Beneficiario</th>
+                                    <th class="px-6 py-3">Cédula</th>
+                                    <th class="px-6 py-3">Banco</th>
+                                    <th class="px-6 py-3">Tipo Cuenta</th>
+                                    <th class="px-6 py-3 rounded-tr-lg">Número de Cuenta</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tbody-bancos" class="divide-y divide-slate-100 font-mono">
+                                <!-- Data injected here -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+        </div>
+    </main>
+
+    <!-- EXCEL MODAL (Reused) -->
+    <div id="excel-upload-modal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden">
+             <div class="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+                <h3 class="font-bold text-unemi-blue">Carga Masiva (Excel)</h3>
+                <button onclick="document.getElementById('excel-upload-modal').classList.add('hidden')" class="text-slate-400 hover:text-slate-600"><i data-lucide="x" class="w-6 h-6"></i></button>
+            </div>
+            <div class="p-8 space-y-4">
+                 <form id="excel-form" class="space-y-4">
+                    <input type="file" id="excel-file" accept=".xlsx" class="block w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-unemi-blue file:text-white hover:file:bg-slate-700 cursor-pointer"/>
+                    <div id="upload-status" class="hidden text-center text-sm font-bold animate-pulse">Procesando...</div>
+                    <button type="submit" class="w-full bg-unemi-orange hover:bg-unemi_hover-orange text-white font-bold py-3 rounded-xl transition-all">Subir Archivo</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- JS Logic -->
+    <script src="/static/js/dashboard.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+           lucide.createIcons();
+        });
+        function toggleMobileMenu() {
+            document.getElementById('mobile-menu').classList.toggle('hidden');
+        }
+    </script>
+</body>
+</html>

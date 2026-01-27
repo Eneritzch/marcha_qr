@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Marcha UNEMI{% endblock %}</title>
+    
+    <!-- Tailwind CSS (CDN) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        unemi: {
+                            blue: '#0F1E4B',
+                            orange: '#EF7D00',
+                            bg: '#F8FAFC',
+                            text: '#1E293B'
+                        },
+                        unemi_hover: {
+                            orange: '#d97200',
+                            blue: '#0c183b'
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Axios -->
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;900&display=swap');
+        body { font-family: 'Inter', sans-serif; }
+    </style>
+
+    {% block extra_head %}{% endblock %}
+</head>
+<body class="bg-unemi-bg text-unemi-text min-h-screen flex flex-col">
+
+    <!-- Global Loader -->
+    <div id="global-loader" class="fixed inset-0 z-50 flex items-center justify-center bg-white/90 transition-opacity duration-300">
+        <div class="flex flex-col items-center">
+            <img src="/media/TIGRILLO_LOAD_3.gif" alt="Cargando..." class="w-24 h-24 mb-4 object-contain">
+            <p class="text-unemi-blue font-bold text-sm tracking-widest animate-pulse">Cargando...</p>
+        </div>
+    </div>
+
+    <!-- Header (Optional override) -->
+    {% block header %}
+    <header class="bg-white border-b border-slate-200 h-16 flex items-center justify-between px-6 sticky top-0 z-30 shadow-sm">
+        <div class="flex items-center space-x-3">
+            <div class="w-10 h-10 bg-unemi-blue rounded-lg flex items-center justify-center font-bold text-white text-xl">
+                U
+            </div>
+            <span class="font-bold tracking-widest text-unemi-blue">MARCHA UNEMI</span>
+        </div>
+        
+        <div id="user-info" class="hidden flex items-center space-x-4">
+            <div class="text-right hidden sm:block">
+                <p id="nav-username" class="text-sm font-bold text-unemi-blue leading-none"></p>
+                <p id="nav-group" class="text-xs text-slate-500 mt-1 uppercase tracking-tighter"></p>
+            </div>
+            <div class="w-10 h-10 bg-slate-100 rounded-full border border-slate-200 flex items-center justify-center font-bold text-unemi-blue">
+                <i data-lucide="user"></i>
+            </div>
+        </div>
+    </header>
+    {% endblock %}
+
+    <main class="flex-grow">
+        {% block content %}{% endblock %}
+    </main>
+
+    <footer class="mt-auto p-8 border-t border-slate-100 text-center flex flex-col items-center bg-white">
+        <p class="text-slate-400 text-xs font-bold tracking-widest uppercase">
+            Sistema de Gestión Académica - Marcha UNEMI
+        </p>
+        <div class="flex space-x-4 mt-2">
+            <div class="w-2 h-2 rounded-full bg-unemi-blue"></div>
+            <div class="w-2 h-2 rounded-full bg-unemi-orange"></div>
+            <div class="w-2 h-2 rounded-full bg-unemi-blue"></div>
+        </div>
+    </footer>
+
+    <script>
+        lucide.createIcons();
+
+        // Loader Login
+        window.addEventListener('load', () => {
+            const loader = document.getElementById('global-loader');
+            if(loader) {
+                loader.classList.add('opacity-0');
+                setTimeout(() => {
+                    loader.classList.add('hidden');
+                }, 300);
+            }
+        });
+
+        // Global functions to control loader
+        window.showLoader = () => {
+            const loader = document.getElementById('global-loader');
+            if(loader) {
+                loader.classList.remove('hidden');
+                setTimeout(() => loader.classList.remove('opacity-0'), 10);
+            }
+        };
+
+        window.hideLoader = () => {
+            const loader = document.getElementById('global-loader');
+            if(loader) {
+                loader.classList.add('opacity-0');
+                setTimeout(() => {
+                    loader.classList.add('hidden');
+                }, 300);
+            }
+        };
+    </script>
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

@@ -1,0 +1,298 @@
+{% extends 'base.html' %}
+
+{% block title %}Registro - Marcha UNEMI{% endblock %}
+
+{% block header %}
+<nav class="bg-white border-b border-slate-200 h-16 flex items-center justify-between px-4 sm:px-8 sticky top-0 z-40 bg-opacity-90 backdrop-blur-md">
+    <div class="flex items-center space-x-3">
+        <div class="w-10 h-10 bg-unemi-blue rounded-lg flex items-center justify-center font-bold text-white text-xl shadow-lg shadow-blue-900/20">
+            U
+        </div>
+        <span class="font-black tracking-tighter text-unemi-blue text-lg uppercase hidden sm:inline">Marcha UNEMI</span>
+    </div>
+    
+    <a href="/recuperar" class="flex items-center space-x-2 text-slate-500 hover:text-unemi-orange transition-colors font-bold text-sm bg-slate-50 px-4 py-2 rounded-full border border-slate-200 hover:border-unemi-orange">
+        <i data-lucide="qr-code" class="w-4 h-4"></i>
+        <span>Mis Credenciales</span>
+    </a>
+</nav>
+{% endblock %}
+
+{% block content %}
+<!-- Hero Section with Carousel -->
+<div class="relative h-64 sm:h-80 md:h-96 overflow-hidden bg-slate-900">
+    <!-- Carousel Images -->
+    <div id="hero-carousel" class="absolute inset-0">
+        <img src="/media/CAMPUS-UNEMI-MILAGRO-2024-1536x1024.jpg" class="absolute inset-0 w-full h-full object-cover transition-opacity duration-1000 opacity-100" id="hero-img-1" alt="Campus UNEMI Milagro">
+        <img src="/media/crai-1-scaled.jpg" class="absolute inset-0 w-full h-full object-cover transition-opacity duration-1000 opacity-0" id="hero-img-2" alt="CRAI UNEMI">
+        <img src="/media/rectror.jpg" class="absolute inset-0 w-full h-full object-cover transition-opacity duration-1000 opacity-0" id="hero-img-3" alt="Rectorado">
+    </div>
+    
+    <!-- Gradient Overlay -->
+    <div class="absolute inset-0 bg-gradient-to-t from-unemi-blue via-unemi-blue/60 to-transparent"></div>
+    
+    <!-- Text Content -->
+    <div class="absolute bottom-0 left-0 right-0 p-8 sm:p-12 text-center sm:text-left max-w-7xl mx-auto flex flex-col sm:flex-row items-end sm:items-center justify-between gap-6">
+        <div>
+            <span class="bg-unemi-orange text-white text-xs font-black px-3 py-1 rounded-full uppercase tracking-widest mb-2 inline-block shadow-lg">Evento Oficial</span>
+            <h1 class="text-3xl sm:text-5xl font-black text-white uppercase tracking-tighter leading-none mb-2">Gran Marcha <br/><span class="text-transparent bg-clip-text bg-gradient-to-r from-orange-400 to-yellow-200">Universitaria</span></h1>
+            <p class="text-slate-300 font-medium max-w-xl text-sm sm:text-base hidden sm:block">Únete a la celebración de los 25 años de nuestra universidad. Regístrate y obtén tu credencial digital.</p>
+        </div>
+        
+        <!-- Timer or Badge (Optional) -->
+        <div class="hidden md:block bg-white/10 backdrop-blur-md border border-white/20 p-4 rounded-xl text-center">
+            <p class="text-white text-xs uppercase tracking-widest mb-1">Faltan</p>
+            <div class="text-3xl font-black text-white font-mono">05 <span class="text-sm font-normal text-slate-300">días</span></div>
+        </div>
+    </div>
+</div>
+
+<!-- Main Form Container -->
+<div class="max-w-4xl mx-auto -mt-10 relative z-20 px-4 pb-20">
+    <div class="bg-white rounded-3xl shadow-xl shadow-slate-200/50 border border-slate-100 overflow-hidden">
+        
+        <!-- Stepper Header -->
+        <div class="bg-slate-50 border-b border-slate-200 p-6">
+            <div class="flex items-center justify-between max-w-2xl mx-auto relative">
+                <!-- Progress Bar Background -->
+                <div class="absolute top-1/2 left-0 w-full h-1 bg-slate-200 -z-0 rounded-full"></div>
+                <!-- Active Progress -->
+                <div id="progress-bar" class="absolute top-1/2 left-0 h-1 bg-unemi-orange -z-0 rounded-full transition-all duration-500 ease-out" style="width: 0%"></div>
+
+                <!-- Steps -->
+                <div class="relative z-10 flex flex-col items-center step-item active" data-step="1">
+                    <div class="w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm border-2 transition-all bg-unemi-blue border-unemi-blue text-white shadow-lg shadow-blue-500/30">1</div>
+                    <span class="text-[10px] font-bold uppercase mt-2 text-unemi-blue tracking-tighter">Datos</span>
+                </div>
+                <div class="relative z-10 flex flex-col items-center step-item" data-step="2">
+                    <div class="w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm border-2 bg-white border-slate-300 text-slate-400 transition-all">2</div>
+                    <span class="text-[10px] font-bold uppercase mt-2 text-slate-400 tracking-tighter">Líder</span>
+                </div>
+                <div class="relative z-10 flex flex-col items-center step-item" data-step="3">
+                    <div class="w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm border-2 bg-white border-slate-300 text-slate-400 transition-all">3</div>
+                    <span class="text-[10px] font-bold uppercase mt-2 text-slate-400 tracking-tighter">Banco</span>
+                </div>
+                <div class="relative z-10 flex flex-col items-center step-item" data-step="4">
+                    <div class="w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm border-2 bg-white border-slate-300 text-slate-400 transition-all">4</div>
+                    <span class="text-[10px] font-bold uppercase mt-2 text-slate-400 tracking-tighter">QR</span>
+                </div>
+            </div>
+        </div>
+
+        <form id="registro-form" class="p-6 sm:p-10">
+            
+            <!-- STEP 1: Personal Info -->
+            <div id="step-1" class="step-content animate-fade-in-up">
+                <h2 class="text-2xl font-black text-unemi-blue mb-6 flex items-center gap-2">
+                    <i data-lucide="user-circle" class="text-unemi-orange"></i> Información Personal
+                </h2>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="md:col-span-2">
+                        <label class="block text-xs font-bold text-slate-400 uppercase mb-2 ml-1">Cédula de Identidad</label>
+                        <input required id="input-cedula" name="cedula" type="text" maxlength="10" placeholder="Ej: 0912345678" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-unemi-blue outline-none transition-all font-mono text-lg tracking-widest app-input" />
+                    </div>
+                    <div class="md:col-span-2">
+                        <label class="block text-xs font-bold text-slate-400 uppercase mb-2 ml-1">Nombre Completo</label>
+                        <input required id="input-nombre" name="nombre_completo" type="text" placeholder="Como aparece en tu cédula" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-unemi-blue outline-none transition-all uppercase app-input" />
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-400 uppercase mb-2 ml-1">Correo Institucional</label>
+                        <input required name="email" type="email" placeholder="usuario@unemi.edu.ec" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-unemi-blue outline-none transition-all app-input" />
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-400 uppercase mb-2 ml-1">Celular / WhatsApp</label>
+                        <input required name="telefono" type="tel" placeholder="099..." class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-unemi-blue outline-none transition-all app-input" />
+                    </div>
+                    
+                    <!-- Dynamic Filters -->
+                    <div>
+                         <label class="block text-xs font-bold text-slate-400 uppercase mb-2 ml-1">Modalidad de Estudios</label>
+                         <select required id="modalidad-select" name="modalidad" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-unemi-blue outline-none transition-all cursor-pointer app-input">
+                            <option value="">Seleccione Modalidad...</option>
+                         </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-400 uppercase mb-2 ml-1">Facultad</label>
+                        <select required id="facultad-select" name="facultad" disabled class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-unemi-blue outline-none transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed app-input">
+                            <option value="">Primero seleccione Modalidad...</option>
+                        </select>
+                    </div>
+                    <div class="md:col-span-2">
+                        <label class="block text-xs font-bold text-slate-400 uppercase mb-2 ml-1">Carrera</label>
+                        <select required id="carrera-select" name="carrera" disabled class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-unemi-blue outline-none transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed app-input">
+                            <option value="">Primero seleccione Facultad...</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- STEP 2: Leader Selection -->
+            <div id="step-2" class="step-content hidden animate-fade-in-up">
+                <h2 class="text-2xl font-black text-unemi-blue mb-2 flex items-center gap-2">
+                    <i data-lucide="users" class="text-unemi-orange"></i> Selección de Líder
+                </h2>
+                <p class="text-slate-500 mb-8 text-sm">Indica quién te invitó a participar en la marcha. Serás asignado a su grupo.</p>
+
+                <div class="bg-blue-50 border border-blue-100 p-6 rounded-2xl mb-6">
+                    <label class="block text-xs font-bold text-blue-800 uppercase mb-2 ml-1">Busca a tu Líder</label>
+                    <select required id="lider-select" name="lider_invitador" class="w-full px-4 py-4 bg-white border border-blue-200 rounded-xl focus:ring-2 focus:ring-unemi-blue outline-none transition-all text-lg cursor-pointer app-input">
+                        <option value="">Cargando lista de líderes...</option>
+                    </select>
+                </div>
+                
+                <div class="text-center p-4 bg-slate-50 rounded-xl border border-slate-100">
+                    <p class="text-xs text-slate-400 uppercase tracking-widest font-bold mb-1">Tu grupo asignado será</p>
+                    <div id="grupo-preview" class="text-3xl font-black text-slate-300">--</div>
+                </div>
+            </div>
+
+             <!-- STEP 3: Bank Info -->
+            <div id="step-3" class="step-content hidden animate-fade-in-up">
+                <h2 class="text-2xl font-black text-unemi-blue mb-2 flex items-center gap-2">
+                    <i data-lucide="credit-card" class="text-unemi-orange"></i> Datos Bancarios
+                </h2>
+                <p class="text-slate-500 mb-8 text-sm">Información necesaria para la gestión de logística y viáticos.</p>
+
+                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="md:col-span-2">
+                        <div class="flex items-center p-4 bg-slate-50 rounded-xl border border-slate-200 cursor-pointer" onclick="document.getElementById('check-misma-cuenta').click()">
+                            <input type="checkbox" id="check-misma-cuenta" class="w-5 h-5 text-unemi-blue rounded border-slate-300 focus:ring-unemi-blue" checked>
+                            <label for="check-misma-cuenta" class="ml-3 text-sm font-bold text-slate-700 select-none cursor-pointer">La cuenta es personal (está a mi nombre)</label>
+                        </div>
+                    </div>
+
+                    <div id="titular-fields" class="md:col-span-2 hidden grid grid-cols-1 md:grid-cols-2 gap-6 animate-in fade-in slide-in-from-top-4">
+                        <div class="md:col-span-2">
+                            <label class="block text-xs font-bold text-slate-400 uppercase mb-2 ml-1">Nombre del Titular</label>
+                            <input name="titular_nombre" type="text" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-unemi-blue outline-none transition-all uppercase app-input" />
+                        </div>
+                        <div class="md:col-span-2">
+                            <label class="block text-xs font-bold text-slate-400 uppercase mb-2 ml-1">Cédula del Titular</label>
+                            <input name="titular_cedula" type="text" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-unemi-blue outline-none transition-all app-input" />
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold text-slate-400 uppercase mb-2 ml-1">Institución Financiera</label>
+                        <select name="banco" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-unemi-blue outline-none transition-all cursor-pointer app-input">
+                            <option value="PICHINCHA">Banco Pichincha</option>
+                            <option value="GUAYAQUIL">Banco Guayaquil</option>
+                            <option value="PACIFICO">Banco Pacífico</option>
+                            <option value="PRODUBANCO">Produbanco</option>
+                            <option value="BOLIVARIANO">Bolivariano</option>
+                            <option value="OTRO">Otro</option>
+                        </select>
+                    </div>
+                    <div>
+                         <label class="block text-xs font-bold text-slate-400 uppercase mb-2 ml-1">Tipo de Cuenta</label>
+                        <select name="tipo_cuenta" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-unemi-blue outline-none transition-all cursor-pointer app-input">
+                            <option value="AHORROS">Ahorros</option>
+                            <option value="CORRIENTE">Corriente</option>
+                        </select>
+                    </div>
+                    <div class="md:col-span-2">
+                        <label class="block text-xs font-bold text-slate-400 uppercase mb-2 ml-1">Número de Cuenta</label>
+                        <input required name="numero_cuenta" type="text" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-unemi-blue outline-none transition-all font-mono text-lg tracking-widest app-input" />
+                    </div>
+                 </div>
+            </div>
+
+            <!-- Error Feedback -->
+            <div id="form-feedback" class="hidden mt-6 rounded-xl p-4 flex items-start space-x-3 bg-red-50 text-red-700 border border-red-200 animate-pulse"></div>
+
+            <!-- Navigation Buttons -->
+            <div class="mt-8 flex gap-4 pt-6 border-t border-slate-100">
+                <button type="button" id="prev-btn" class="hidden flex-1 bg-slate-100 text-slate-600 font-bold py-4 rounded-2xl hover:bg-slate-200 transition-colors">
+                    Atrás
+                </button>
+                <button type="button" id="next-btn" class="flex-1 bg-unemi-blue text-white font-bold py-4 rounded-2xl shadow-xl shadow-blue-500/20 hover:bg-slate-800 transition-all active:scale-95">
+                    Siguiente Paso
+                </button>
+                <button type="submit" id="submit-btn" class="hidden flex-1 bg-unemi-orange text-white font-bold py-4 rounded-2xl shadow-xl shadow-orange-500/30 hover:bg-unemi_hover-orange transition-all active:scale-95 flex items-center justify-center gap-2">
+                    <span>Finalizar Registro</span>
+                    <i data-lucide="check" class="w-5 h-5"></i>
+                </button>
+            </div>
+
+        </form>
+
+        <!-- Final Success View with QR -->
+        <div id="success-view" class="hidden p-10 text-center animate-in zoom-in duration-500">
+            <div class="w-24 h-24 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-6 shadow-xl shadow-green-500/20">
+                <i data-lucide="check" class="w-12 h-12"></i>
+            </div>
+            <h2 class="text-3xl font-black text-unemi-blue mb-2">¡REGISTRO CONFIRMADO!</h2>
+            <p class="text-slate-500 mb-8 max-w-md mx-auto">Bienvenido a la Marcha UNEMI. Hemos generado tu credencial digital.</p>
+            
+            <div class="bg-slate-50 p-8 rounded-3xl border border-dashed border-slate-300 max-w-sm mx-auto mb-8 relative group cursor-pointer hover:border-unemi-blue transition-colors">
+                 <div class="absolute top-4 right-4 text-slate-300 group-hover:text-unemi-blue transition-colors">
+                    <i data-lucide="scan-line" class="w-6 h-6"></i>
+                 </div>
+                 <h3 class="font-bold text-unemi-blue uppercase mb-1" id="success-name">Nombre Estudiante</h3>
+                 <p class="text-xs text-slate-500 uppercase tracking-widest mb-6">Invitado Oficial</p>
+                 
+                 <!-- QR Placeholders -->
+                 <div class="bg-white p-4 rounded-xl shadow-sm inline-block mb-4">
+                     <img id="qr-image" src="" class="w-48 h-48 object-contain" alt="QR Code" />
+                 </div>
+                 
+                 <p class="font-mono text-lg font-bold text-slate-700 tracking-widest" id="success-cedula">0000000000</p>
+            </div>
+
+            <div class="flex flex-col sm:flex-row gap-4 justify-center">
+                 <a id="download-btn" href="#" target="_blank" class="bg-unemi-blue text-white font-bold py-3 px-8 rounded-xl hover:bg-slate-800 transition-colors shadow-lg shadow-blue-500/20 flex items-center justify-center gap-2">
+                    <i data-lucide="download" class="w-4 h-4"></i> Descargar Credencial
+                 </a>
+                 <button onclick="window.location.reload()" class="bg-slate-100 text-slate-600 font-bold py-3 px-8 rounded-xl hover:bg-slate-200 transition-colors">
+                    Nuevo Registro
+                 </button>
+            </div>
+        </div>
+
+    </div>
+    
+    <p class="text-center text-slate-400 text-xs font-bold mt-8 uppercase tracking-widest">Marcha con Orgullo · UNEMI 2025</p>
+</div>
+
+<style>
+    .step-item.active div {
+        background-color: #EF7D00 !important; /* Orange */
+        border-color: #EF7D00 !important;
+        color: white !important;
+    }
+    .step-item.completed div {
+        background-color: #0F1E4B !important; /* Blue */
+        border-color: #0F1E4B !important;
+        color: white !important;
+    }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<!-- Import Academic Data Module -->
+<script type="module">
+    import { ACADEMIC_DATA } from '/static/js/academic_data.js';
+    window.ACADEMIC_DATA = ACADEMIC_DATA;
+</script>
+<script src="/static/js/registro.js"></script>
+<script>
+    // Simple Carousel Logic
+    let currentSlide = 0;
+    const slides = [
+        document.getElementById('hero-img-1'),
+        document.getElementById('hero-img-2'),
+        document.getElementById('hero-img-3')
+    ];
+    
+    setInterval(() => {
+        slides[currentSlide].classList.remove('opacity-100');
+        slides[currentSlide].classList.add('opacity-0');
+        
+        currentSlide = (currentSlide + 1) % slides.length;
+        
+        slides[currentSlide].classList.remove('opacity-0');
+        slides[currentSlide].classList.add('opacity-100');
+    }, 5000); // 5 seconds
+</script>
+{% endblock %}
