@@ -11,7 +11,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     const progressBar = document.getElementById('progress-bar');
 
     // === ACADEMIC DATA LOAD (Wait for module) ===
-    setTimeout(initAcademicFilters, 100);
+    if (window.ACADEMIC_DATA) {
+        initAcademicFilters();
+    } else {
+        window.addEventListener('academicDataReady', initAcademicFilters);
+    }
 
     // === REAL-TIME VALIDATION ===
     const cedulaInput = document.getElementById('input-cedula');
