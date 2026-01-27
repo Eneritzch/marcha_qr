@@ -110,32 +110,55 @@
     </aside>
 
     <!-- MOBILE BOTTOM NAVBAR (App-like) -->
-    <nav class="md:hidden fixed bottom-0 w-full bg-white border-t border-slate-200 z-50 flex justify-around items-center px-2 py-3 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)] pb-safe">
-        <button onclick="switchView('overview')" id="mobile-nav-overview" class="flex flex-col items-center gap-1 p-2 text-unemi-orange transition-colors">
-            <i data-lucide="bar-chart-2" class="w-6 h-6"></i>
-            <span class="text-[10px] font-bold">Resumen</span>
-        </button>
-        <button onclick="switchView('scanner')" id="mobile-nav-scanner" class="flex flex-col items-center gap-1 p-2 text-slate-400 hover:text-unemi-blue transition-colors">
-            <i data-lucide="scan" class="w-6 h-6"></i>
-            <span class="text-[10px] font-bold">Scanner</span>
-        </button>
-        <div class="relative -top-5">
-             <button onclick="switchView('importar-exportar')" class="bg-unemi-orange text-white w-14 h-14 rounded-full flex items-center justify-center shadow-lg shadow-orange-500/30 border-4 border-slate-50">
-                <i data-lucide="file-spreadsheet" class="w-7 h-7"></i>
+    <!-- MOBILE BOTTOM NAVBAR (App-like) -->
+    <nav class="md:hidden fixed bottom-0 w-full bg-white border-t border-slate-200 z-50 flex justify-around items-end px-2 pb-safe transition-all h-20">
+        <!-- 1. Overview -->
+        <div class="nav-item-wrapper relative w-16 flex justify-center transition-all duration-300" data-target="overview">
+            <button onclick="switchView('overview')" id="mobile-nav-overview" class="nav-btn flex flex-col items-center gap-1 p-2 text-slate-400 transition-all rounded-full">
+                <i data-lucide="bar-chart-2" class="w-6 h-6"></i>
+                <span class="text-[10px] font-bold">Resumen</span>
             </button>
         </div>
-        <button onclick="switchView('registros')" id="mobile-nav-registros" class="flex flex-col items-center gap-1 p-2 text-slate-400 hover:text-unemi-blue transition-colors">
-            <i data-lucide="users" class="w-6 h-6"></i>
-            <span class="text-[10px] font-bold">Registros</span>
-        </button>
-        <button onclick="switchView('bancos')" id="mobile-nav-bancos" class="flex flex-col items-center gap-1 p-2 text-slate-400 hover:text-unemi-blue transition-colors">
-            <i data-lucide="credit-card" class="w-6 h-6"></i>
-            <span class="text-[10px] font-bold">Bancos</span>
-        </button>
-        <button onclick="switchView('lideres')" id="mobile-nav-lideres" class="flex flex-col items-center gap-1 p-2 text-slate-400 hover:text-unemi-blue transition-colors">
-            <i data-lucide="crown" class="w-6 h-6"></i>
-            <span class="text-[10px] font-bold">Líderes</span>
-        </button>
+
+        <!-- 2. Scanner -->
+        <div class="nav-item-wrapper relative w-16 flex justify-center transition-all duration-300" data-target="scanner">
+            <button onclick="switchView('scanner')" id="mobile-nav-scanner" class="nav-btn flex flex-col items-center gap-1 p-2 text-slate-400 transition-all rounded-full">
+                <i data-lucide="scan" class="w-6 h-6"></i>
+                <span class="text-[10px] font-bold">Scanner</span>
+            </button>
+        </div>
+
+        <!-- 3. Importar (Centro original) -->
+        <div class="nav-item-wrapper relative w-16 flex justify-center transition-all duration-300" data-target="importar-exportar">
+             <button onclick="switchView('importar-exportar')" id="mobile-nav-importar-exportar" class="nav-btn flex flex-col items-center gap-1 p-2 text-slate-400 transition-all rounded-full">
+                <i data-lucide="file-spreadsheet" class="w-6 h-6"></i>
+                 <span class="text-[10px] font-bold">Importar</span>
+            </button>
+        </div>
+
+        <!-- 4. Registros -->
+        <div class="nav-item-wrapper relative w-16 flex justify-center transition-all duration-300" data-target="registros">
+            <button onclick="switchView('registros')" id="mobile-nav-registros" class="nav-btn flex flex-col items-center gap-1 p-2 text-slate-400 transition-all rounded-full">
+                <i data-lucide="users" class="w-6 h-6"></i>
+                <span class="text-[10px] font-bold">Registros</span>
+            </button>
+        </div>
+
+        <!-- 5. Bancos -->
+        <div class="nav-item-wrapper relative w-16 flex justify-center transition-all duration-300" data-target="bancos">
+            <button onclick="switchView('bancos')" id="mobile-nav-bancos" class="nav-btn flex flex-col items-center gap-1 p-2 text-slate-400 transition-all rounded-full">
+                <i data-lucide="credit-card" class="w-6 h-6"></i>
+                <span class="text-[10px] font-bold">Bancos</span>
+            </button>
+        </div>
+
+        <!-- 6. Líderes -->
+        <div class="nav-item-wrapper relative w-16 flex justify-center transition-all duration-300" data-target="lideres">
+            <button onclick="switchView('lideres')" id="mobile-nav-lideres" class="nav-btn flex flex-col items-center gap-1 p-2 text-slate-400 transition-all rounded-full">
+                <i data-lucide="crown" class="w-6 h-6"></i>
+                <span class="text-[10px] font-bold">Líderes</span>
+            </button>
+        </div>
     </nav>
     
     <!-- Mobile Header (Minimal) -->

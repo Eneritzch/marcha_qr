@@ -69,13 +69,6 @@ window.switchView = function (viewName) {
             sidebarItem.classList.remove('sidebar-item-active');
             sidebarItem.classList.add('text-slate-300');
         }
-
-        // Reset Mobile Nav Styles
-        const mobileItem = document.getElementById(`mobile-nav-${v}`);
-        if (mobileItem) {
-            mobileItem.classList.remove('text-unemi-orange');
-            mobileItem.classList.add('text-slate-400');
-        }
     });
 
     // Show selected view
@@ -89,12 +82,55 @@ window.switchView = function (viewName) {
         activeSidebar.classList.add('sidebar-item-active');
     }
 
-    // Activate Mobile Nav
-    const activeMobile = document.getElementById(`mobile-nav-${viewName}`);
-    if (activeMobile) {
-        activeMobile.classList.remove('text-slate-400');
-        activeMobile.classList.add('text-unemi-orange');
-    }
+    // Activate Mobile Nav (Dynamic Floating Button)
+    document.querySelectorAll('.nav-item-wrapper').forEach(wrapper => {
+        const btn = wrapper.querySelector('button');
+        const target = wrapper.dataset.target;
+        const label = btn.querySelector('span');
+
+        if (target === viewName) {
+            // Active State: Floating Orange Circle
+            wrapper.classList.add('-top-5');
+            
+            // Transform button to floating circle
+            btn.classList.remove('text-slate-400');
+            btn.classList.add(
+                'bg-unemi-orange', 
+                'text-white', 
+                'w-14', 
+                'h-14', 
+                'shadow-lg', 
+                'shadow-orange-500/30', 
+                'border-4', 
+                'border-white', // Matches bg-white of nav
+                'justify-center'
+            );
+            
+            // Hide label for clean look on active item
+            if(label) label.classList.add('hidden');
+            
+        } else {
+            // Inactive State: Normal Icon
+            wrapper.classList.remove('-top-5');
+            
+            // Reset button styles
+            btn.classList.add('text-slate-400');
+            btn.classList.remove(
+                'bg-unemi-orange', 
+                'text-white', 
+                'w-14', 
+                'h-14', 
+                'shadow-lg', 
+                'shadow-orange-500/30', 
+                'border-4', 
+                'border-white',
+                'justify-center'
+            );
+            
+            // Show label
+            if(label) label.classList.remove('hidden');
+        }
+    });
 
     // Header Title Update
     const titles = {
