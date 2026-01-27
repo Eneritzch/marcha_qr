@@ -20,6 +20,10 @@ SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-default-key-replace-me')
 DEBUG = os.getenv('DEBUG', 'True') == 'True'
 
 ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', '*').split(',')
+if os.getenv('RAILWAY_PUBLIC_DOMAIN'):
+    ALLOWED_HOSTS.append(os.getenv('RAILWAY_PUBLIC_DOMAIN'))
+if os.getenv('RAILWAY_STATIC_URL'):
+     ALLOWED_HOSTS.append(os.getenv('RAILWAY_STATIC_URL'))
 
 
 # Application definition
@@ -173,11 +177,14 @@ if not DEBUG:
     CSRF_COOKIE_SECURE = True
     
     # CSRF Trusted Origins
-    RAILWAY_APP_URL = os.getenv('RAILWAY_STATIC_URL') or os.getenv('ALLOWED_HOSTS')
-    if RAILWAY_APP_URL:
+    RAILWAY_APP_URL = os.getenv('RAILWAY_PUBLIC_DOMAIN') or os.getenv('RAILWAY_STATIC_URL') or os.getenv('ALLOWED_HOSTS')
+    if RAILWAY_APP_URL and RAILWAY_APP_URL != '*':
         # Properly format origins for CSRF
-        origins = [f"https://{host.strip()}" for host in RAILWAY_APP_URL.split(',')]
+        origins = [f"https://{host.strip()}" for host in RAILWAY_APP_URL.split(',') if host.strip() != '*']
         CSRF_TRUSTED_ORIGINS = origins
+    
+    # Fallback for common railway domain if not set
+    CSRF_TRUSTED_ORIGINS += ["https://marcha-unemi-25.up.railway.app"]
 
 # Caching (Redis recommended for production)
 CACHES = {
