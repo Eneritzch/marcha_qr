@@ -4,6 +4,7 @@ from django.views.generic import TemplateView
 from django.conf import settings
 from django.conf.urls.static import static
 from drf_spectacular.views import SpectacularAPIView, SpectacularRedocView, SpectacularSwaggerView
+from alumnos.excel_import_export_views import ExcelImportExportView
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -20,6 +21,7 @@ urlpatterns = [
     # Frontend Views (Clean Architecture)
     path('login/', TemplateView.as_view(template_name='lideres/login.html'), name='login'),
     path('dashboard/', TemplateView.as_view(template_name='lideres/dashboard.html'), name='dashboard'),
+    path('importar-exportar/', ExcelImportExportView.as_view(), name='importar-exportar'),
     path('registro/', TemplateView.as_view(template_name='alumnos/registro.html'), name='registro'),
     path('registro/', TemplateView.as_view(template_name='alumnos/registro.html'), name='registro'),
     path('recuperar/', TemplateView.as_view(template_name='alumnos/recuperar.html'), name='recuperar'),

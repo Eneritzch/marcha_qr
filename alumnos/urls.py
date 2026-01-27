@@ -4,15 +4,33 @@ from .views import (
     AlumnoViewSet, CredentialRecoveryView,
     QRDownloadView, ExcelUploadView, MarcarAsistenciaView, CredentialDownloadView
 )
+from .excel_import_export_views import (
+    ExcelImportExportView, ExcelAnalyzeView, 
+    ExcelProcessImportView, ExcelTemplateDownloadView,
+    export_alumnos_view, export_bancos_view
+)
 
 router = DefaultRouter()
 router.register(r'alumnos', AlumnoViewSet)
 
 urlpatterns = [
+    # Explicit Action Routing (Prioritized over DefaultRouter to avoid lookup collision)
+    path('validar-cedula/', AlumnoViewSet.as_view({'post': 'validar_cedula'}), name='alumno-validar-cedula'),
+    
     path('', include(router.urls)),
     path('recuperar/<str:cedula>/', CredentialRecoveryView.as_view(), name='recover-credential'),
     path('marcar-asistencia/', MarcarAsistenciaView.as_view(), name='marcar-asistencia'),
     path('descargar-qr/<str:cedula>/', QRDownloadView.as_view(), name='descargar-qr'),
     path('descargar-credencial/<str:cedula>/', CredentialDownloadView.as_view(), name='descargar-credencial'),
     path('upload-excel/', ExcelUploadView.as_view(), name='excel-upload'),
+    
+    # Excel Import/Export Module
+    path('importar-exportar/', ExcelImportExportView.as_view(), name='importar-exportar'),
+    path('analizar-excel/', ExcelAnalyzeView.as_view(), name='analizar-excel'),
+    path('procesar-importacion/', ExcelProcessImportView.as_view(), name='procesar-importacion'),
+    path('descargar-plantilla/', ExcelTemplateDownloadView.as_view(), name='descargar-plantilla'),
+    
+    # Export Routes (function-based views)
+    path('export/registros/', export_alumnos_view, name='export-alumnos'),
+    path('export/bancos/', export_bancos_view, name='export-bancos'),
 ]

@@ -45,7 +45,7 @@ function logout() {
 
 // === VIEW SWITCHING ===
 window.switchView = function (viewName) {
-    const views = ['overview', 'scanner', 'registros', 'bancos', 'lideres'];
+    const views = ['overview', 'scanner', 'registros', 'bancos', 'lideres', 'importar-exportar'];
 
     // Save state
     localStorage.setItem('lastView', viewName);
@@ -94,7 +94,8 @@ window.switchView = function (viewName) {
         'scanner': 'Escanear Asistencia',
         'registros': 'Base de Registros',
         'bancos': 'Información Bancaria',
-        'lideres': 'Gestión de Líderes'
+        'lideres': 'Gestión de Líderes',
+        'importar-exportar': 'Importar/Exportar Datos'
     };
     if (document.getElementById('page-title')) {
         document.getElementById('page-title').textContent = titles[viewName];
@@ -912,5 +913,580 @@ async function saveLider(e) {
     } catch (err) {
         console.error("Error saving leader", err);
         alert("Error al guardar líder. Verifique los datos.");
+    }
+}
+
+// === IMPORT/EXPORT LOGIC ===
+let importFile = null;
+let importAnalysisData = null;
+let importColumnMappings = {};
+
+// Show Import Modal
+window.showImportModal = function () {
+    document.getElementById('import-modal').classList.remove('hidden');
+    resetImportModal();
+    lucide.createIcons();
+}
+
+// Close Import Modal
+window.closeImportModal = function () {
+    document.getElementById('import-modal').classList.add('hidden');
+}
+
+// Reset Import Modal
+window.resetImportModal = function () {
+    importFile = null;
+    importAnalysisData = null;
+    importColumnMappings = {};
+
+    // Show upload section, hide others
+    document.getElementById('import-upload-section').classList.remove('hidden');
+    document.getElementById('import-mapping-section').classList.add('hidden');
+    document.getElementById('import-results-section').classList.add('hidden');
+    document.getElementById('import-loading-section').classList.add('hidden');
+
+    // Reset file input
+    document.getElementById('import-file-input').value = '';
+    document.getElementById('import-file-info').classList.add('hidden');
+    document.getElementById('btn-analyze-import').disabled = true;
+
+    // Reset steps
+    updateImportStep(1);
+    lucide.createIcons();
+}
+
+// Update Step Indicator
+function updateImportStep(step) {
+    const steps = [1, 2, 3];
+    steps.forEach(s => {
+        const stepEl = document.getElementById(`import-step-${s}`);
+        if (s < step) {
+            stepEl.className = 'flex items-center gap-2 bg-green-600 text-white px-3 py-1.5 rounded-lg font-bold text-sm';
+        } else if (s === step) {
+            stepEl.className = 'flex items-center gap-2 bg-unemi-orange text-white px-3 py-1.5 rounded-lg font-bold text-sm';
+        } else {
+            stepEl.className = 'flex items-center gap-2 bg-slate-300 text-slate-600 px-3 py-1.5 rounded-lg font-bold text-sm';
+        }
+    });
+}
+
+// File Selection
+document.addEventListener('DOMContentLoaded', () => {
+    const fileInput = document.getElementById('import-file-input');
+    const dropZone = document.getElementById('import-drop-zone');
+
+    if (fileInput) {
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                handleImportFileSelect(e.target.files[0]);
+            }
+        });
+    }
+
+    if (dropZone) {
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+            dropZone.addEventListener(eventName, (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+            }, false);
+        });
+
+        ['dragenter', 'dragover'].forEach(eventName => {
+            dropZone.addEventListener(eventName, () => {
+                dropZone.classList.add('border-unemi-orange', 'bg-orange-50');
+            }, false);
+        });
+
+        ['dragleave', 'drop'].forEach(eventName => {
+            dropZone.addEventListener(eventName, () => {
+                dropZone.classList.remove('border-unemi-orange', 'bg-orange-50');
+            }, false);
+        });
+
+        dropZone.addEventListener('drop', (e) => {
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                handleImportFileSelect(files[0]);
+            }
+        }, false);
+    }
+});
+
+function handleImportFileSelect(file) {
+    const validTypes = ['application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 'application/vnd.ms-excel'];
+    if (!validTypes.includes(file.type) && !file.name.endsWith('.xlsx') && !file.name.endsWith('.xls')) {
+        alert('Por favor selecciona un archivo Excel válido (.xlsx o .xls)');
+        return;
+    }
+
+    importFile = file;
+    document.getElementById('import-file-name').textContent = file.name;
+    document.getElementById('import-file-size').textContent = formatFileSize(file.size);
+    document.getElementById('import-file-info').classList.remove('hidden');
+    document.getElementById('btn-analyze-import').disabled = false;
+    lucide.createIcons();
+}
+
+window.clearImportFile = function () {
+    importFile = null;
+    document.getElementById('import-file-input').value = '';
+    document.getElementById('import-file-info').classList.add('hidden');
+    document.getElementById('btn-analyze-import').disabled = true;
+}
+
+// Analyze File
+window.analyzeImportFile = async function () {
+    if (!importFile) return;
+
+    showImportLoading('Analizando archivo...');
+
+    const formData = new FormData();
+    formData.append('file', importFile);
+
+    try {
+        const response = await axios.post('/api/v1/alumnos/analizar-excel/', formData, {
+            headers: {
+                'Authorization': `Token ${token}`,
+                'Content-Type': 'multipart/form-data'
+            }
+        });
+
+        if (response.data.success) {
+            importAnalysisData = response.data;
+            displayImportMapping(response.data);
+            updateImportStep(2);
+        } else {
+            alert(response.data.error || 'Error al analizar el archivo');
+            hideImportLoading();
+        }
+    } catch (error) {
+        console.error('Error analyzing file:', error);
+        alert(error.response?.data?.error || 'Error al analizar el archivo');
+        hideImportLoading();
+    }
+}
+
+// Display Mapping Interface
+function displayImportMapping(data) {
+    hideImportLoading();
+    document.getElementById('import-upload-section').classList.add('hidden');
+    document.getElementById('import-mapping-section').classList.remove('hidden');
+
+    // Display preview
+    displayImportPreview(data);
+
+    // Display mapping selectors
+    const container = document.getElementById('import-mapping-container');
+    container.innerHTML = '';
+
+    const requiredFields = data.required_fields;
+    const suggestedMappings = data.suggested_mappings || {};
+
+    importColumnMappings = {};
+
+    Object.keys(requiredFields).forEach(field => {
+        const row = document.createElement('div');
+        row.className = 'grid grid-cols-2 gap-3 items-center p-3 bg-slate-50 rounded-lg border border-slate-200';
+
+        const label = document.createElement('div');
+        label.innerHTML = `
+            <p class="font-bold text-sm text-slate-800">${requiredFields[field]}</p>
+            <p class="text-xs text-slate-500">${field.includes('Opcional') ? 'Opcional' : 'Requerido'}</p>
+        `;
+
+        const selector = document.createElement('select');
+        selector.id = `import-mapping-${field}`;
+        selector.className = 'w-full p-2 bg-white border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-unemi-blue focus:outline-none';
+
+        const emptyOption = document.createElement('option');
+        emptyOption.value = '';
+        emptyOption.textContent = '-- Seleccionar --';
+        selector.appendChild(emptyOption);
+
+        data.columns.forEach(col => {
+            const option = document.createElement('option');
+            option.value = col;
+            option.textContent = col;
+
+            if (suggestedMappings[field] === col) {
+                option.selected = true;
+                importColumnMappings[field] = col;
+            }
+
+            selector.appendChild(option);
+        });
+
+        selector.addEventListener('change', (e) => {
+            importColumnMappings[field] = e.target.value;
+        });
+
+        row.appendChild(label);
+        row.appendChild(selector);
+        container.appendChild(row);
+    });
+
+    lucide.createIcons();
+}
+
+// Display Preview
+function displayImportPreview(data) {
+    const headerRow = document.getElementById('import-preview-header');
+    const bodyTable = document.getElementById('import-preview-body');
+
+    headerRow.innerHTML = '';
+    bodyTable.innerHTML = '';
+
+    data.columns.forEach(col => {
+        const th = document.createElement('th');
+        th.className = 'px-3 py-2 text-left font-bold text-xs';
+        th.textContent = col;
+        headerRow.appendChild(th);
+    });
+
+    data.preview.slice(0, 3).forEach((row, idx) => {
+        const tr = document.createElement('tr');
+        tr.className = idx % 2 === 0 ? 'bg-white' : 'bg-slate-50';
+
+        row.forEach(cell => {
+            const td = document.createElement('td');
+            td.className = 'px-3 py-2 text-slate-700 text-xs';
+            td.textContent = cell || '-';
+            tr.appendChild(td);
+        });
+
+        bodyTable.appendChild(tr);
+    });
+
+    document.getElementById('import-file-stats').textContent =
+        `Total: ${data.total_rows} filas | ${data.columns.length} columnas | ${data.has_header ? 'Con encabezados' : 'Sin encabezados'}`;
+}
+
+// Back to Upload
+window.backToUpload = function () {
+    document.getElementById('import-mapping-section').classList.add('hidden');
+    document.getElementById('import-upload-section').classList.remove('hidden');
+    updateImportStep(1);
+}
+
+// Process Import
+window.processImportData = async function () {
+    if (!importFile || !importAnalysisData) return;
+
+    const requiredFields = ['nombre_completo', 'cedula', 'email', 'telefono'];
+    const missingFields = requiredFields.filter(field => !importColumnMappings[field]);
+
+    if (missingFields.length > 0) {
+        alert('Por favor mapea todos los campos requeridos: ' + missingFields.join(', '));
+        return;
+    }
+
+    showImportLoading('Importando registros...');
+    updateImportStep(3);
+
+    const formData = new FormData();
+    formData.append('file', importFile);
+    formData.append('mappings', JSON.stringify(importColumnMappings));
+    formData.append('has_header', importAnalysisData.has_header);
+
+    try {
+        const response = await axios.post('/api/v1/alumnos/procesar-importacion/', formData, {
+            headers: {
+                'Authorization': `Token ${token}`,
+                'Content-Type': 'multipart/form-data'
+            }
+        });
+
+        if (response.data.success) {
+            displayImportResults(response.data.results);
+        } else {
+            alert(response.data.error || 'Error al procesar la importación');
+            hideImportLoading();
+        }
+    } catch (error) {
+        console.error('Error processing import:', error);
+        alert(error.response?.data?.error || 'Error al procesar la importación');
+        hideImportLoading();
+    }
+}
+
+// Display Results
+function displayImportResults(results) {
+    hideImportLoading();
+    document.getElementById('import-mapping-section').classList.add('hidden');
+    document.getElementById('import-results-section').classList.remove('hidden');
+
+    document.getElementById('import-result-created').textContent = results.created;
+    document.getElementById('import-result-errors').textContent = results.errors.length;
+    document.getElementById('import-result-total').textContent = results.total;
+
+    if (results.errors.length > 0) {
+        document.getElementById('import-error-list').classList.remove('hidden');
+        const errorDetails = document.getElementById('import-error-details');
+        errorDetails.innerHTML = '';
+
+        results.errors.forEach(error => {
+            const p = document.createElement('p');
+            p.className = 'mb-1';
+            p.textContent = error;
+            errorDetails.appendChild(p);
+        });
+    }
+
+    lucide.createIcons();
+}
+
+// Loading States
+function showImportLoading(text = 'Procesando...') {
+    document.getElementById('import-loading-text').textContent = text;
+    document.getElementById('import-upload-section').classList.add('hidden');
+    document.getElementById('import-mapping-section').classList.add('hidden');
+    document.getElementById('import-results-section').classList.add('hidden');
+    document.getElementById('import-loading-section').classList.remove('hidden');
+}
+
+function hideImportLoading() {
+    document.getElementById('import-loading-section').classList.add('hidden');
+}
+
+// Utility
+function formatFileSize(bytes) {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
+}
+
+// === EXPORT PREVIEW LOGIC ===
+window.showExportPreview = async function (type) {
+    const modal = document.getElementById('export-preview-modal');
+    const loading = document.getElementById('export-loading');
+    const previewHeader = document.getElementById('export-preview-header');
+    const previewBody = document.getElementById('export-preview-body');
+    const downloadBtn = document.getElementById('export-download-btn');
+    const modalTitle = document.getElementById('export-modal-title');
+
+    // Show modal and loading
+    modal.classList.remove('hidden');
+    loading.classList.remove('hidden');
+    previewHeader.innerHTML = '';
+    previewBody.innerHTML = '';
+
+    // Set title and download URL
+    if (type === 'alumnos') {
+        modalTitle.textContent = 'Vista Previa - Todos los Alumnos';
+        currentExportUrl = '/api/v1/alumnos/export/registros/';
+    } else {
+        modalTitle.textContent = 'Vista Previa - Datos Bancarios';
+        currentExportUrl = '/api/v1/alumnos/export/bancos/';
+    }
+
+    try {
+        // Get data from current view
+        let data = [];
+        let columns = [];
+
+        console.log('Export type:', type);
+        console.log('All alumnos:', allAlumnos);
+
+        if (type === 'alumnos') {
+            // Use ALL alumnos data (same as Registros table)
+            data = allAlumnos.slice(0, 10); // First 10 for preview
+            const totalCount = allAlumnos.length;
+
+            console.log('Alumnos data:', data);
+
+            columns = [
+                { key: 'cedula', label: 'Cédula' },
+                { key: 'nombre_completo', label: 'Nombre Completo' },
+                { key: 'email', label: 'Email' },
+                { key: 'telefono', label: 'Teléfono' },
+                { key: 'modalidad', label: 'Modalidad' },
+                { key: 'facultad', label: 'Facultad' },
+                { key: 'carrera', label: 'Carrera' },
+                { key: 'grupo', label: 'Grupo' },
+                { key: 'asistio', label: 'Asistió' }
+            ];
+
+            document.getElementById('export-total-count').textContent = totalCount;
+            document.getElementById('export-columns-count').textContent = 11; // Total columns in Excel export
+        } else {
+            // Filter alumnos with bank accounts (same as Datos Bancarios table)
+            const alumnosWithBank = allAlumnos.filter(a => a.cuenta_bancaria && a.cuenta_bancaria.numero_cuenta);
+            data = alumnosWithBank.slice(0, 10);
+
+            console.log('Bank accounts data:', data);
+
+            columns = [
+                { key: 'cedula', label: 'Cédula' },
+                { key: 'nombre_completo', label: 'Nombre' },
+                { key: 'cuenta_bancaria.titular_nombre', label: 'Titular' },
+                { key: 'cuenta_bancaria.titular_cedula', label: 'CI Titular' },
+                { key: 'cuenta_bancaria.banco', label: 'Banco' },
+                { key: 'cuenta_bancaria.tipo_cuenta', label: 'Tipo' },
+                { key: 'cuenta_bancaria.numero_cuenta', label: 'Número Cuenta' }
+            ];
+
+            document.getElementById('export-total-count').textContent = alumnosWithBank.length;
+            document.getElementById('export-columns-count').textContent = 11; // Total columns in Excel export
+        }
+
+        // Build header
+        columns.forEach(col => {
+            const th = document.createElement('th');
+            th.className = 'px-2 py-2 text-left font-bold text-[10px] whitespace-nowrap';
+            th.textContent = col.label;
+            previewHeader.appendChild(th);
+        });
+
+        // Build rows
+        if (data.length === 0) {
+            const tr = document.createElement('tr');
+            const td = document.createElement('td');
+            td.colSpan = columns.length;
+            td.className = 'px-3 py-4 text-center text-slate-500 text-xs';
+            td.textContent = 'No hay datos para mostrar';
+            tr.appendChild(td);
+            previewBody.appendChild(tr);
+        } else {
+            data.forEach((row, idx) => {
+                const tr = document.createElement('tr');
+                tr.className = idx % 2 === 0 ? 'bg-white' : 'bg-slate-50';
+
+                columns.forEach(col => {
+                    const td = document.createElement('td');
+                    td.className = 'px-2 py-2 text-slate-700 text-[10px]';
+
+                    // Get nested value
+                    let value = row;
+                    const keys = col.key.split('.');
+                    for (const k of keys) {
+                        value = value?.[k];
+                    }
+
+                    // Format value
+                    if (col.key === 'asistio') {
+                        value = value ? 'Sí' : 'No';
+                    } else if (col.key === 'cuenta_bancaria.tipo_cuenta') {
+                        value = value ? value.charAt(0).toUpperCase() + value.slice(1).toLowerCase() : '-';
+                    } else if (value === null || value === undefined || value === '') {
+                        value = '-';
+                    }
+
+                    td.textContent = value;
+                    tr.appendChild(td);
+                });
+
+                previewBody.appendChild(tr);
+            });
+        }
+
+        loading.classList.add('hidden');
+        lucide.createIcons();
+
+    } catch (error) {
+        console.error('Error loading export preview:', error);
+        loading.classList.add('hidden');
+        previewBody.innerHTML = '<tr><td colspan="10" class="px-3 py-4 text-center text-red-500 text-xs">Error al cargar vista previa: ' + error.message + '</td></tr>';
+    }
+}
+
+window.closeExportPreview = function () {
+    document.getElementById('export-preview-modal').classList.add('hidden');
+}
+
+// Global variable to store export URL
+let currentExportUrl = '';
+
+window.downloadExport = async function () {
+    console.log('downloadExport called');
+    console.log('currentExportUrl:', currentExportUrl);
+
+    if (!currentExportUrl) {
+        alert('No se ha configurado la URL de exportación');
+        return;
+    }
+
+    try {
+        // Show loading state
+        const btn = document.getElementById('export-download-btn');
+        const originalHTML = btn.innerHTML;
+        btn.disabled = true;
+        btn.innerHTML = '<i data-lucide="loader" class="w-4 h-4 animate-spin"></i> Descargando...';
+        lucide.createIcons();
+
+        console.log('Fetching from:', currentExportUrl);
+
+        // Fetch the file
+        const response = await fetch(currentExportUrl, {
+            method: 'GET',
+            credentials: 'include',
+            headers: {
+                'Accept': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+            }
+        });
+
+        console.log('Response status:', response.status);
+        console.log('Response headers:', [...response.headers.entries()]);
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error('Error response:', errorText);
+            throw new Error(`Error ${response.status}: ${errorText}`);
+        }
+
+        // Get the blob
+        const blob = await response.blob();
+        console.log('Blob received:', blob.size, 'bytes, type:', blob.type);
+
+        // Create download link
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.style.display = 'none';
+        a.href = url;
+
+        // Get filename from Content-Disposition header or use default
+        const contentDisposition = response.headers.get('Content-Disposition');
+        console.log('Content-Disposition:', contentDisposition);
+
+        let filename = 'export.xlsx';
+        if (contentDisposition) {
+            const filenameMatch = contentDisposition.match(/filename=([^;]+)/);
+            if (filenameMatch) {
+                filename = filenameMatch[1].replace(/['"]/g, '');
+            }
+        }
+
+        console.log('Downloading as:', filename);
+
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+
+        // Cleanup
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+
+        // Restore button
+        btn.disabled = false;
+        btn.innerHTML = originalHTML;
+        lucide.createIcons();
+
+        console.log('Download completed successfully');
+
+        // Close modal after successful download
+        setTimeout(() => {
+            closeExportPreview();
+        }, 500);
+
+    } catch (error) {
+        console.error('Error downloading file:', error);
+        alert('Error al descargar el archivo:\n\n' + error.message);
+
+        // Restore button
+        const btn = document.getElementById('export-download-btn');
+        btn.disabled = false;
+        btn.innerHTML = '<i data-lucide="download" class="w-4 h-4"></i> Exportar a Excel';
+        lucide.createIcons();
     }
 }

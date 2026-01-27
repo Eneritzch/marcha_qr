@@ -98,22 +98,104 @@ class MarcarAsistenciaView(views.APIView):
                     "message": "Asistencia ya registrada previamente",
                     "alumno": {
                         "nombre": alumno.nombre_completo,
-                        "cedula": alumno.cedula,
-                        "asistio": True
+                        "codigo_qr": alumno.codigo_qr,
+                        "hora": alumno.fecha_asistencia.strftime("%H:%M:%S")
                     }
-                })
+                }, status=status.HTTP_200_OK)
 
-            # Update attendance
+            # Mark attendance
+            from django.utils import timezone
             alumno.asistio = True
+            alumno.fecha_asistencia = timezone.now()
+            # If logged in user is marking
+            if request.user.is_authenticated:
+                alumno.registrado_por = request.user.get_full_name() or request.user.username
             alumno.save()
-            
+
             return Response({
-                "message": "Asistencia registrada",
+                "message": "Asistencia registrada correctamente",
                 "alumno": {
                     "nombre": alumno.nombre_completo,
                     "cedula": alumno.cedula,
-                    "asistio": True
+                    "grupo": alumno.grupo
                 }
-            })
+            }, status=status.HTTP_200_OK)
+
         except Alumno.DoesNotExist:
-            return Response({"error": f"Estudiante no encontrado: {codigo}"}, status=status.HTTP_404_NOT_FOUND)
+             return Response({"error": "Estudiante no encontrado"}, status=status.HTTP_404_NOT_FOUND)
+
+import pandas as pd
+from datetime import datetime
+
+class ExportDataView(views.APIView):
+    """
+    Exports data (alumnos or bancos) to Excel.
+    """
+    permission_classes = [IsLeader]
+
+    def get_queryset(self):
+        user = self.request.user
+        if user.is_staff:
+            return Alumno.objects.all()
+        if hasattr(user, 'lider_profile'):
+            return Alumno.objects.filter(lider_invitador=user.lider_profile)
+        return Alumno.objects.none()
+
+    def get(self, request, data_type):
+        valid_types = ['registros', 'bancos']
+        if data_type not in valid_types:
+             return Response({"error": f"Tipo de exportación inválido. Opciones: {', '.join(valid_types)}"}, 
+                             status=status.HTTP_400_BAD_REQUEST)
+
+        queryset = self.get_queryset()
+        
+        data = []
+        if data_type == 'registros':
+            for alumno in queryset:
+                data.append({
+                    'Nombre Completo': alumno.nombre_completo,
+                    'Cédula': alumno.cedula,
+                    'Email': alumno.email,
+                    'Teléfono': alumno.telefono,
+                    'Modalidad': alumno.get_modalidad_display(),
+                    'Facultad': alumno.facultad,
+                    'Carrera': alumno.carrera,
+                    'Grupo': alumno.grupo,
+                    'Código QR': alumno.codigo_qr,
+                    'Asistió': 'SÍ' if alumno.asistio else 'NO',
+                    'Líder': alumno.lider_invitador.nombre if alumno.lider_invitador else 'N/A'
+                })
+            filename = f"Alumnos_MarchaUNEMI_{datetime.now().strftime('%Y%m%d')}.xlsx"
+
+        elif data_type == 'bancos':
+            # Filter students who have bank accounts
+            for alumno in queryset:
+                if hasattr(alumno, 'cuenta_bancaria'):
+                    cuenta = alumno.cuenta_bancaria
+                    data.append({
+                        'Alumno': alumno.nombre_completo,
+                        'Cédula Alumno': alumno.cedula,
+                        'Titular Cuenta': cuenta.titular_nombre,
+                        'Cédula Titular': cuenta.titular_cedula,
+                        'Banco': cuenta.get_banco_display(),
+                        'Tipo Cuenta': cuenta.get_tipo_cuenta_display(),
+                        'Número Cuenta': cuenta.numero_cuenta,
+                        'Es Propia': 'SÍ' if cuenta.es_propia else 'NO'
+                    })
+            filename = f"Bancos_MarchaUNEMI_{datetime.now().strftime('%Y%m%d')}.xlsx"
+
+        if not data:
+             return Response({"error": "No hay datos para exportar."}, status=status.HTTP_404_NOT_FOUND)
+
+        # Create DataFrame
+        df = pd.DataFrame(data)
+
+        # Create Http Response with Excel file
+        response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+        response['Content-Disposition'] = f'attachment; filename="{filename}"'
+
+        # Use pandas to write to the response buffer
+        with pd.ExcelWriter(response, engine='openpyxl') as writer:
+            df.to_excel(writer, index=False, sheet_name='Datos')
+        
+        return response
