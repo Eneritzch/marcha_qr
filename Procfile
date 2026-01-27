@@ -1,2 +1,2 @@
-release: python manage.py migrate
+release: python manage.py migrate --no-input --run-syncdb
 web: python manage.py collectstatic --no-input && gunicorn config.wsgi --log-file -
