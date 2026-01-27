@@ -31,20 +31,43 @@ function logout() {
 
 // === VIEW SWITCHING ===
 window.switchView = function (viewName) {
+    const views = ['overview', 'scanner', 'registros', 'bancos'];
+
     // Hide all views
-    ['overview', 'scanner', 'registros', 'bancos'].forEach(v => {
+    views.forEach(v => {
         document.getElementById(`view-${v}`).classList.add('hidden');
-        document.getElementById(`nav-${v}`).classList.remove('sidebar-item-active', 'text-white', 'bg-white/10');
-        document.getElementById(`nav-${v}`).classList.add('text-slate-300');
+
+        // Reset Sidebar Styles
+        const sidebarItem = document.getElementById(`sidebar-nav-${v}`);
+        if (sidebarItem) {
+            sidebarItem.classList.remove('sidebar-item-active');
+            sidebarItem.classList.add('text-slate-300');
+        }
+
+        // Reset Mobile Nav Styles
+        const mobileItem = document.getElementById(`mobile-nav-${v}`);
+        if (mobileItem) {
+            mobileItem.classList.remove('text-unemi-orange');
+            mobileItem.classList.add('text-slate-400');
+        }
     });
 
-    // Show selected
+    // Show selected view
     document.getElementById(`view-${viewName}`).classList.remove('hidden');
 
-    // Style active nav
-    const activeNav = document.getElementById(`nav-${viewName}`);
-    activeNav.classList.remove('text-slate-300');
-    activeNav.classList.add('sidebar-item-active', 'text-white');
+    // Activate Sidebar
+    const activeSidebar = document.getElementById(`sidebar-nav-${viewName}`);
+    if (activeSidebar) {
+        activeSidebar.classList.remove('text-slate-300');
+        activeSidebar.classList.add('sidebar-item-active');
+    }
+
+    // Activate Mobile Nav
+    const activeMobile = document.getElementById(`mobile-nav-${viewName}`);
+    if (activeMobile) {
+        activeMobile.classList.remove('text-slate-400');
+        activeMobile.classList.add('text-unemi-orange');
+    }
 
     // Header Title Update
     const titles = {
@@ -53,13 +76,17 @@ window.switchView = function (viewName) {
         'registros': 'Base de Registros',
         'bancos': 'Información Bancaria'
     };
-    document.getElementById('page-title').textContent = titles[viewName];
+    if (document.getElementById('page-title')) {
+        document.getElementById('page-title').textContent = titles[viewName];
+    }
 
     // Specialized Logic
     if (viewName === 'scanner') startScanner();
-    else stopScanner(); // Stop camera when leaving tab to save battery/privacy
+    else stopScanner();
 
     if (viewName === 'overview') updateCharts();
+
+    lucide.createIcons();
 }
 
 // === DATA FETCHING ===
@@ -262,89 +289,170 @@ function updateCharts() {
     });
 }
 
-// === QR SCANNER ===
-function startScanner() {
-    if (!document.getElementById('qr-reader')) return;
+// === QR SCANNER (PRO API) ===
+let html5QrCode = null;
+let currentCameraId = null;
+let cameras = [];
+let isScanning = false;
 
-    if (html5QrcodeScanner) {
-        // Already running
-        return;
-    }
+async function startScanner() {
+    if (isScanning) return;
 
-    const onScanSuccess = async (decodedText, decodedResult) => {
-        // Prevent double scan
-        if (document.getElementById('scan-result').classList.contains('processing')) return;
+    const statusEl = document.getElementById('scan-status');
+    const switchBtn = document.getElementById('btn-switch-camera');
+    statusEl.textContent = "Solicitando permisos...";
 
-        console.log(`Code matched = ${decodedText}`, decodedResult);
-        document.getElementById('scan-status').textContent = "¡QR Detectado! Procesando...";
-        document.getElementById('scan-result').classList.add('processing');
-
-        try {
-            // Call Backend API
-            const response = await axios.post('/api/v1/alumnos/marcar-asistencia/',
-                { cedula: decodedText },
-                { headers: { Authorization: `Token ${token}` } }
-            );
-
-            const alumno = response.data.alumno;
-
-            // Success Feedback
-            document.getElementById('scan-result').className = "mt-4 p-4 bg-green-100 text-green-800 rounded-xl font-bold block border border-green-200 shadow-sm";
-            document.getElementById('scan-result').innerHTML = `
-                <div class="flex items-center gap-3">
-                    <div class="bg-green-500 text-white rounded-full p-1"><i data-lucide="check" class="w-4 h-4"></i></div>
-                    <div>
-                        <p class="text-xs uppercase text-green-600">Asistencia Registrada</p>
-                        <p class="text-lg">${alumno.nombre}</p>
-                    </div>
-                </div>
-            `;
-
-            // Update Local Data
-            const localIndex = allAlumnos.findIndex(a => a.cedula === alumno.cedula);
-            if (localIndex !== -1) {
-                allAlumnos[localIndex].asistio = true;
-                updateKPIs();
-            }
-
-            lucide.createIcons();
-
-        } catch (err) {
-            console.error(err);
-            document.getElementById('scan-result').className = "mt-4 p-4 bg-red-50 text-red-600 rounded-xl font-bold block border border-red-100";
-            const errorMsg = err.response?.data?.error || "Error al procesar QR";
-            document.getElementById('scan-result').innerHTML = `
-                <div class="flex items-center gap-3">
-                    <div class="bg-red-500 text-white rounded-full p-1"><i data-lucide="x" class="w-4 h-4"></i></div>
-                    <div>
-                        <p class="text-xs uppercase text-red-400">Error</p>
-                        <p>${errorMsg} (${decodedText})</p>
-                    </div>
-                </div>
-             `;
-            lucide.createIcons();
-        } finally {
-            // Resume scanning after 3 seconds
-            setTimeout(() => {
-                document.getElementById('scan-result').classList.add('hidden');
-                document.getElementById('scan-status').textContent = "Escaneando...";
-                document.getElementById('scan-result').classList.remove('processing');
-            }, 3000);
+    try {
+        // 1. Get Cameras
+        cameras = await Html5Qrcode.getCameras();
+        if (!cameras || cameras.length === 0) {
+            statusEl.textContent = "No se detectaron cámaras.";
+            return;
         }
-    };
 
-    html5QrcodeScanner = new Html5QrcodeScanner(
-        "qr-reader",
-        { fps: 10, qrbox: { width: 250, height: 250 } },
-        /* verbose= */ false
-    );
-    html5QrcodeScanner.render(onScanSuccess, (err) => { /* ignore errors */ });
+        // 2. Select initial camera (Prefer Back/Environment)
+        // Usually the last camera is the back one on mobile, or check label
+        // Simple heuristic: Try the last one first (often back), or 0 if only one.
+        // Better: look for 'back' or 'environment' in label if available, else last.
+        let selectedCamera = cameras[cameras.length - 1];
+
+        // Use current if already set (for toggling)
+        if (currentCameraId) {
+            const found = cameras.find(c => c.id === currentCameraId);
+            if (found) selectedCamera = found;
+        } else {
+            currentCameraId = selectedCamera.id;
+        }
+
+        // Show switch button if multiple cameras
+        if (cameras.length > 1) {
+            switchBtn.classList.remove('hidden');
+            // Icon: Refresh-cw or similar? Camera-off is placeholder, using switch icon
+            switchBtn.innerHTML = '<i data-lucide="refresh-cw" class="w-6 h-6"></i>';
+        } else {
+            switchBtn.classList.add('hidden');
+        }
+
+        // 3. Start Scanning
+        if (!html5QrCode) {
+            html5QrCode = new Html5Qrcode("qr-reader");
+        }
+
+        statusEl.textContent = "Iniciando cámara...";
+
+        await html5QrCode.start(
+            currentCameraId,
+            {
+                fps: 10,
+                qrbox: { width: 250, height: 250 },
+                aspectRatio: 1.0
+            },
+            onScanSuccess,
+            (errorMessage) => {
+                // verbose false, ignore frame errors 
+            }
+        );
+
+        isScanning = true;
+        statusEl.textContent = "Escaneando...";
+        lucide.createIcons();
+
+    } catch (err) {
+        console.error("Error starting scanner:", err);
+        statusEl.textContent = "Error: Acceso a cámara denegado o no disponible.";
+    }
 }
 
-function stopScanner() {
-    if (html5QrcodeScanner) {
-        html5QrcodeScanner.clear().catch(error => console.error("Failed to clear html5QrcodeScanner. ", error));
-        html5QrcodeScanner = null;
+async function stopScanner() {
+    if (html5QrCode && isScanning) {
+        try {
+            await html5QrCode.stop();
+            isScanning = false;
+            document.getElementById('scan-status').textContent = "Cámara detenida";
+        } catch (err) {
+            console.error("Failed to stop scanner", err);
+        }
+    }
+}
+
+async function toggleCamera() {
+    if (!cameras || cameras.length < 2) return;
+
+    await stopScanner();
+
+    // Find current index
+    const currentIndex = cameras.findIndex(c => c.id === currentCameraId);
+    let nextIndex = currentIndex + 1;
+    if (nextIndex >= cameras.length) nextIndex = 0;
+
+    currentCameraId = cameras[nextIndex].id;
+    startScanner();
+}
+
+async function onScanSuccess(decodedText, decodedResult) {
+    if (document.getElementById('scan-result').classList.contains('processing')) return;
+
+    console.log(`Scan matched: ${decodedText}`);
+    const feedbackBox = document.getElementById('scan-result');
+    const statusEl = document.getElementById('scan-status');
+
+    statusEl.textContent = "¡Procesando!";
+    feedbackBox.classList.remove('hidden');
+    feedbackBox.classList.add('processing');
+
+    try {
+        // API Call
+        const response = await axios.post('/api/v1/alumnos/marcar-asistencia/',
+            { cedula: decodedText },
+            { headers: { Authorization: `Token ${token}` } }
+        );
+        const alumno = response.data.alumno;
+
+        // Success UI
+        feedbackBox.className = "mt-4 p-4 bg-green-100 text-green-800 rounded-xl font-bold block border border-green-200 shadow-sm animate-in fade-in slide-in-from-bottom-4";
+        feedbackBox.innerHTML = `
+            <div class="flex items-center gap-3">
+                <div class="bg-green-500 text-white rounded-full p-2"><i data-lucide="check" class="w-5 h-5"></i></div>
+                <div>
+                    <p class="text-xs uppercase text-green-600 font-bold">Asistencia Marcada</p>
+                    <p class="text-lg leading-tight">${alumno.nombre}</p>
+                </div>
+            </div>
+        `;
+
+        // Update Local State
+        const idx = allAlumnos.findIndex(a => a.cedula === alumno.cedula);
+        if (idx !== -1) {
+            allAlumnos[idx].asistio = true;
+            updateKPIs(); // Refresh counters/charts
+        }
+
+    } catch (err) {
+        console.error(err);
+        feedbackBox.className = "mt-4 p-4 bg-red-50 text-red-600 rounded-xl font-bold block border border-red-100 animate-in fade-in slide-in-from-bottom-4";
+        const errorMsg = err.response?.data?.error || "Código no reconocido";
+
+        feedbackBox.innerHTML = `
+            <div class="flex items-center gap-3">
+                <div class="bg-red-500 text-white rounded-full p-2"><i data-lucide="x" class="w-5 h-5"></i></div>
+                <div>
+                    <p class="text-xs uppercase text-red-400 font-bold">Error</p>
+                    <p class="text-sm">${errorMsg}</p>
+                    <p class="text-xs font-mono opacity-50">${decodedText}</p>
+                </div>
+            </div>
+         `;
+    } finally {
+        lucide.createIcons();
+        // Pause briefly before next scan
+        if (html5QrCode) await html5QrCode.pause();
+
+        setTimeout(async () => {
+            feedbackBox.classList.add('hidden');
+            feedbackBox.classList.remove('processing');
+            statusEl.textContent = "Escaneando...";
+            if (html5QrCode) await html5QrCode.resume();
+        }, 2500);
     }
 }
 
