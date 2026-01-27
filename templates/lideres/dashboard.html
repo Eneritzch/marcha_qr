@@ -253,8 +253,11 @@
                 <div class="max-w-2xl mx-auto">
                     <div class="bg-white rounded-3xl shadow-xl overflow-hidden border border-slate-200">
                         <div class="bg-slate-900 p-6 text-center text-white relative">
-                            <button id="btn-switch-camera" onclick="toggleCamera()" class="hidden absolute top-4 right-4 bg-white/10 hover:bg-white/20 p-2 rounded-full transition-colors">
+                            <button id="btn-switch-camera" onclick="toggleCamera()" class="hidden absolute top-4 right-4 bg-white/10 hover:bg-white/20 p-2 rounded-full transition-colors z-10">
                                 <i data-lucide="refresh-cw" class="w-5 h-5 text-white"></i>
+                            </button>
+                            <button id="btn-torch" onclick="toggleTorch()" class="hidden absolute top-4 right-16 bg-white/10 hover:bg-white/20 p-2 rounded-full transition-colors z-10">
+                                <i data-lucide="zap" class="w-5 h-5 text-white"></i>
                             </button>
                             <i data-lucide="scan" class="w-12 h-12 mx-auto mb-2 text-unemi-orange"></i>
                             <h3 class="text-xl font-bold">Escanear Credencial</h3>
@@ -497,6 +500,8 @@
             if(loader) loader.classList.add('opacity-0', 'pointer-events-none');
         }
     </script>
+    <script src="/static/js/dashboard-charts.js"></script>
+    <script src="/static/js/dashboard-scanner.js"></script>
     <script src="/static/js/dashboard.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', () => {

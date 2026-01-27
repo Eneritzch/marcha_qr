@@ -1,4 +1,5 @@
 from rest_framework import viewsets, status, views, permissions
+from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.parsers import MultiPartParser, FormParser
 from django.shortcuts import get_object_or_404
@@ -7,6 +8,7 @@ from .models import Alumno
 from .serializers import AlumnoSerializer
 from core.utils import QRGenerator
 from core.excel_processor import ExcelProcessor
+from core.validators import validar_cedula_ecuatoriana
 
 class IsLeader(permissions.BasePermission):
     """Custom permission to only allow leaders to access their own data."""
@@ -26,6 +28,23 @@ class AlumnoViewSet(viewsets.ModelViewSet):
         if hasattr(user, 'lider_profile'):
             return Alumno.objects.filter(lider_invitador=user.lider_profile)
         return Alumno.objects.none()
+
+    @action(detail=False, methods=['post'], url_path='validar-cedula')
+    def validar_cedula(self, request):
+        """Validates cedula for step transitions."""
+        cedula = request.data.get('cedula')
+        if not cedula:
+             return Response({"valid": False, "error": "Cédula requerida"}, status=status.HTTP_400_BAD_REQUEST)
+        
+        # 1. Validate Algorithm
+        if not validar_cedula_ecuatoriana(cedula):
+             return Response({"valid": False, "error": "La cédula proporcionada no es válida según el registro civil."}, status=status.HTTP_200_OK)
+
+        # 2. Check Uniqueness
+        if Alumno.objects.filter(cedula=cedula).exists():
+             return Response({"valid": False, "error": "Esta cédula ya se encuentra registrada en el sistema."}, status=status.HTTP_200_OK)
+
+        return Response({"valid": True}, status=status.HTTP_200_OK)
 
     def create(self, request, *args, **kwargs):
         # ... (keep existing create logic or simplify)

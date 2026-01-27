@@ -37,10 +37,33 @@
             <p class="text-slate-300 font-medium max-w-xl text-sm sm:text-base hidden sm:block">Únete a la celebración de los 25 años de nuestra universidad. Regístrate y obtén tu credencial digital.</p>
         </div>
         
-        <!-- Timer or Badge (Optional) -->
-        <div class="hidden md:block bg-white/10 backdrop-blur-md border border-white/20 p-4 rounded-xl text-center">
-            <p class="text-white text-xs uppercase tracking-widest mb-1">Faltan</p>
-            <div class="text-3xl font-black text-white font-mono">05 <span class="text-sm font-normal text-slate-300">días</span></div>
+        <!-- Timer Badge (Minimalist) -->
+        <div class="bg-slate-900/40 backdrop-blur-md border border-white/10 py-2 px-4 rounded-full text-center shadow-xl flex items-center gap-3 w-fit">
+            <span class="text-white/80 text-[10px] uppercase font-bold tracking-widest mr-1">Faltan:</span>
+            
+            <div class="flex items-center gap-1">
+                <!-- Days -->
+                <div class="flex flex-col items-center">
+                    <span id="timer-days" class="text-xl font-black text-unemi-orange leading-none font-mono tracking-tight">--</span>
+                    <span class="text-[7px] text-white/60 uppercase font-bold">Días</span>
+                </div>
+
+                <span class="text-white/40 font-light text-lg pb-2">:</span>
+
+                <!-- Hours -->
+                <div class="flex flex-col items-center">
+                    <span id="timer-hours" class="text-xl font-black text-unemi-orange leading-none font-mono tracking-tight">--</span>
+                    <span class="text-[7px] text-white/60 uppercase font-bold">Hrs</span>
+                </div>
+
+                <span class="text-white/40 font-light text-lg pb-2">:</span>
+
+                <!-- Mins -->
+                <div class="flex flex-col items-center">
+                    <span id="timer-min" class="text-xl font-black text-unemi-orange leading-none font-mono tracking-tight">--</span>
+                    <span class="text-[7px] text-white/60 uppercase font-bold">Min</span>
+                </div>
+            </div>
         </div>
     </div>
 </div>
@@ -154,10 +177,10 @@
 
                  <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div class="md:col-span-2">
-                        <div class="flex items-center p-4 bg-slate-50 rounded-xl border border-slate-200 cursor-pointer" onclick="document.getElementById('check-misma-cuenta').click()">
+                        <label class="flex items-center p-4 bg-slate-50 rounded-xl border border-slate-200 cursor-pointer hover:bg-slate-100 transition-colors">
                             <input type="checkbox" id="check-misma-cuenta" class="w-5 h-5 text-unemi-blue rounded border-slate-300 focus:ring-unemi-blue" checked>
-                            <label for="check-misma-cuenta" class="ml-3 text-sm font-bold text-slate-700 select-none cursor-pointer">La cuenta es personal (está a mi nombre)</label>
-                        </div>
+                            <span class="ml-3 text-sm font-bold text-slate-700 select-none">La cuenta es personal (está a mi nombre)</span>
+                        </label>
                     </div>
 
                     <div id="titular-fields" class="md:col-span-2 hidden grid grid-cols-1 md:grid-cols-2 gap-6 animate-in fade-in slide-in-from-top-4">
@@ -216,14 +239,26 @@
         </form>
 
         <!-- Final Success View with QR -->
-        <div id="success-view" class="hidden p-10 text-center animate-in zoom-in duration-500">
+        <div id="success-view" class="hidden p-6 sm:p-10 text-center animate-in zoom-in duration-500">
             <div class="w-24 h-24 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-6 shadow-xl shadow-green-500/20">
                 <i data-lucide="check" class="w-12 h-12"></i>
             </div>
             <h2 class="text-3xl font-black text-unemi-blue mb-2">¡REGISTRO CONFIRMADO!</h2>
-            <p class="text-slate-500 mb-8 max-w-md mx-auto">Bienvenido a la Marcha UNEMI. Hemos generado tu credencial digital.</p>
+            <p class="text-slate-500 mb-6 max-w-lg mx-auto text-lg">
+                Te esperamos este <span class="font-bold text-unemi-orange">6 de febrero</span>. 
+                Recuerda llevar tu código QR.
+            </p>
             
-            <div class="bg-slate-50 p-8 rounded-3xl border border-dashed border-slate-300 max-w-sm mx-auto mb-8 relative group cursor-pointer hover:border-unemi-blue transition-colors">
+            <div class="bg-blue-50 border border-blue-100 p-4 rounded-2xl mb-8 max-w-lg mx-auto">
+                <p class="text-sm text-blue-800 font-medium mb-3">
+                    Mantente informado de noticias y logística en nuestro grupo oficial:
+                </p>
+                <a href="https://chat.whatsapp.com/" target="_blank" class="flex items-center justify-center gap-2 bg-[#25D366] hover:bg-[#128C7E] text-white font-bold py-3 px-6 rounded-xl transition-all shadow-lg shadow-green-500/20">
+                    <i data-lucide="message-circle" class="w-5 h-5"></i> Unirme al Grupo de WhatsApp
+                </a>
+            </div>
+
+            <div class="bg-slate-50 p-8 rounded-3xl border border-dashed border-slate-300 max-w-sm mx-auto mb-8 relative group hover:border-unemi-blue transition-colors">
                  <div class="absolute top-4 right-4 text-slate-300 group-hover:text-unemi-blue transition-colors">
                     <i data-lucide="scan-line" class="w-6 h-6"></i>
                  </div>
@@ -238,20 +273,173 @@
                  <p class="font-mono text-lg font-bold text-slate-700 tracking-widest" id="success-cedula">0000000000</p>
             </div>
 
-            <div class="flex flex-col sm:flex-row gap-4 justify-center">
-                 <a id="download-trigger-pdf" href="#" target="_blank" class="bg-unemi-blue text-white font-bold py-3 px-8 rounded-xl hover:bg-slate-800 transition-colors shadow-lg shadow-blue-500/20 flex items-center justify-center gap-2">
-                    <i data-lucide="file-text" class="w-4 h-4"></i> Descargar Credencial (PDF)
-                 </a>
-                 <a id="download-trigger-qr" href="#" target="_blank" class="bg-orange-50 text-unemi-orange border border-orange-200 font-bold py-3 px-8 rounded-xl hover:bg-orange-100 transition-colors shadow-sm flex items-center justify-center gap-2">
-                    <i data-lucide="image" class="w-4 h-4"></i> Descargar QR (Imagen)
-                 </a>
+            <!-- BUTTONS GRID -->
+            <div class="grid gap-4 max-w-lg mx-auto">
+                <div class="flex flex-col sm:flex-row gap-4">
+                     <a id="download-trigger-pdf" href="#" target="_blank" class="flex-1 bg-unemi-blue text-white font-bold py-3 px-4 rounded-xl hover:bg-slate-800 transition-colors shadow-lg shadow-blue-500/20 flex items-center justify-center gap-2">
+                        <i data-lucide="file-text" class="w-4 h-4"></i> Descargar PDF
+                     </a>
+                     <a id="download-trigger-qr" href="#" target="_blank" class="flex-1 bg-orange-50 text-unemi-orange border border-orange-200 font-bold py-3 px-4 rounded-xl hover:bg-orange-100 transition-colors shadow-sm flex items-center justify-center gap-2">
+                        <i data-lucide="image" class="w-4 h-4"></i> Descargar Imagen
+                     </a>
+                </div>
+                
+                <!-- SECRET CARD -->
+                <div class="mt-4 bg-slate-900 rounded-2xl p-6 relative overflow-hidden group cursor-pointer shadow-xl shadow-slate-900/40 transform transition-all hover:scale-[1.02]" onclick="openSecretModal()">
+                    <div class="absolute inset-0 bg-gradient-to-r from-violet-600/20 to-indigo-600/20 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                    <div class="relative z-10 flex items-center justify-between">
+                        <div class="flex items-center gap-4">
+                            <div class="w-12 h-12 bg-white/10 rounded-full flex items-center justify-center backdrop-blur-sm text-yellow-400">
+                                <i data-lucide="lock" class="w-6 h-6"></i>
+                            </div>
+                            <div class="text-left">
+                                <h3 class="text-white font-black uppercase text-sm tracking-widest">Información Confidencial</h3>
+                                <p class="text-slate-400 text-xs font-medium">Solo para invitados confirmados</p>
+                            </div>
+                        </div>
+                        <div class="text-white/50 group-hover:text-white transition-colors">
+                            <i data-lucide="chevron-right" class="w-6 h-6"></i>
+                        </div>
+                    </div>
+                </div>
             </div>
-            <div class="mt-6 flex justify-center">
+
+            <div class="mt-8 flex justify-center">
                  <button onclick="window.location.reload()" class="text-slate-400 font-bold hover:text-unemi-blue transition-colors text-sm flex items-center gap-1">
                     <i data-lucide="refresh-cw" class="w-3 h-3"></i> Nuevo Registro
                  </button>
             </div>
         </div>
+
+        <!-- SECRET MODAL PROTECTED -->
+        <div id="secret-modal" class="hidden fixed inset-0 z-[60] flex items-center justify-center bg-black transition-all duration-300">
+            <!-- Security Overlay (Active when focus lost) -->
+            <div id="security-curtain" class="absolute inset-0 bg-black z-[70] hidden flex-col items-center justify-center text-center p-8">
+                <i data-lucide="eye-off" class="w-16 h-16 text-slate-600 mb-4"></i>
+                <p class="text-slate-500 font-bold uppercase tracking-widest">Contenido Oculto por Seguridad</p>
+            </div>
+
+            <div class="w-full max-w-lg h-full max-h-screen flex flex-col relative p-4" id="modal-content">
+                <button onclick="closeSecretModal()" class="absolute top-4 right-4 text-white/50 hover:text-white z-50 p-2">
+                    <i data-lucide="x" class="w-8 h-8"></i>
+                </button>
+                
+                <div class="flex-1 flex flex-col items-center justify-center relative select-none">
+                    <!-- HOLD TRIGGER ZONE -->
+                    <div id="hold-zone" class="relative group cursor-grab active:cursor-grabbing">
+                        <div class="absolute inset-0 bg-slate-900 border-2 border-slate-700 rounded-xl flex flex-col items-center justify-center text-center p-8 z-20 transition-opacity duration-200" id="cover-layer">
+                            <div class="w-20 h-20 rounded-full bg-slate-800 flex items-center justify-center mb-4 text-slate-400 group-hover:text-white group-hover:bg-indigo-600 transition-colors shadow-2xl shadow-indigo-500/20">
+                                <i data-lucide="fingerprint" class="w-10 h-10"></i>
+                            </div>
+                            <h3 class="text-white font-bold uppercase tracking-widest mb-2">Mantén presionado</h3>
+                            <p class="text-slate-500 text-xs max-w-[200px]">Debes mantener pulsado en esta área para revelar la información secreta.</p>
+                            <p class="mt-8 text-[10px] text-red-500 font-mono uppercase border border-red-900/30 bg-red-900/10 px-3 py-1 rounded">No capturas de pantalla</p>
+                        </div>
+
+                        <!-- HIDDEN IMAGE -->
+                        <img id="secret-img" src="/media/secreto.jpeg" 
+                             class="w-full h-auto max-h-[70vh] object-contain rounded-xl opacity-0 transition-opacity duration-100 pointer-events-none filter blur-xl" 
+                             oncontextmenu="return false;" 
+                             ondragstart="return false;"
+                             alt="Secret">
+                    </div>
+                </div>
+                
+                <p class="text-white/20 text-[10px] text-center mt-4 uppercase tracking-widest">
+                    ID Transacción: <span id="secure-id">...</span> • IP Segura
+                </p>
+            </div>
+        </div>
+
+        <script>
+            function openSecretModal() {
+                document.getElementById('secret-modal').classList.remove('hidden');
+                document.body.style.overflow = 'hidden';
+                document.getElementById('secure-id').innerText = Math.random().toString(36).substr(2, 9).toUpperCase();
+            }
+
+            function closeSecretModal() {
+                document.getElementById('secret-modal').classList.add('hidden');
+                document.body.style.overflow = 'auto';
+            }
+
+            // --- SECURITY LOGIC ---
+            const holdZone = document.getElementById('hold-zone');
+            const coverLayer = document.getElementById('cover-layer');
+            const secretImg = document.getElementById('secret-img');
+            const securityCurtain = document.getElementById('security-curtain');
+
+            let isHolding = false;
+
+            function reveal() {
+                isHolding = true;
+                coverLayer.classList.add('opacity-0', 'pointer-events-none');
+                secretImg.classList.remove('opacity-0', 'blur-xl');
+            }
+
+            function hide() {
+                isHolding = false;
+                coverLayer.classList.remove('opacity-0', 'pointer-events-none');
+                secretImg.classList.add('opacity-0', 'blur-xl');
+            }
+
+            // Mouse Events
+            holdZone.addEventListener('mousedown', reveal);
+            window.addEventListener('mouseup', hide);
+
+            // Touch Events
+            holdZone.addEventListener('touchstart', (e) => { e.preventDefault(); reveal(); });
+            window.addEventListener('touchend', hide);
+
+            // Window Blur (Anti-Screenshot Attempt)
+            window.addEventListener('blur', () => {
+                if(!document.getElementById('secret-modal').classList.contains('hidden')) {
+                    hide();
+                    securityCurtain.classList.remove('hidden');
+                    securityCurtain.classList.add('flex');
+                }
+            });
+
+            window.addEventListener('focus', () => {
+                securityCurtain.classList.add('hidden');
+                securityCurtain.classList.remove('flex');
+            });
+
+            // Prevent shortcuts (PrintScreen) - aggressive
+            document.addEventListener('keydown', (e) => {
+                if (e.key == 'PrintScreen' || (e.ctrlKey && e.key == 'p') || (e.metaKey && e.shiftKey)) {
+                    // 1. Immediate Visual Block (Nuclear)
+                    hide();
+                    document.body.style.display = 'none'; 
+                    document.body.innerHTML = ''; // Temporarily destroy content to be sure? No, just display none is faster to restore.
+                    
+                    // 2. Clipboard Clear
+                    try { navigator.clipboard.writeText('Captura Bloqueada por Seguridad'); } catch(e){}
+
+                    // 3. Show Curtain Logic (state update)
+                    securityCurtain.classList.remove('hidden');
+                    securityCurtain.classList.add('flex');
+                    
+                    // 4. Wait 3 Seconds (User requested delay)
+                    setTimeout(() => {
+                        document.body.style.display = 'block';
+                        // Optional: Show a warning message here if desired, but user hated the alert.
+                    }, 3000);
+
+                    e.preventDefault();
+                    return false;
+                }
+            });
+
+            // CSS Print Block
+            const style = document.createElement('style');
+            style.innerHTML = `
+                @media print {
+                    body { display: none !important; }
+                }
+            `;
+            document.head.appendChild(style);
+        </script>
 
     </div>
     
@@ -297,5 +485,35 @@
         slides[currentSlide].classList.remove('opacity-0');
         slides[currentSlide].classList.add('opacity-100');
     }, 5000); // 5 seconds
+
+    // === COUNTDOWN LOGIC ===
+    const targetDate = new Date("Feb 6, 2026 08:30:00").getTime(); // Adjust Year as needed
+
+    function updateTimer() {
+        const now = new Date().getTime();
+        const distance = targetDate - now;
+
+        if (distance < 0) {
+            // Event Started
+            document.getElementById("timer-days").innerText = "00";
+            document.getElementById("timer-hours").innerText = "00";
+            document.getElementById("timer-min").innerText = "00";
+            document.getElementById("timer-sec").innerText = "00";
+            return;
+        }
+
+        const days = Math.floor(distance / (1000 * 60 * 60 * 24));
+        const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+        const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+        const seconds = Math.floor((distance % (1000 * 60)) / 1000);
+
+        document.getElementById("timer-days").innerText = days.toString().padStart(2, '0');
+        document.getElementById("timer-hours").innerText = hours.toString().padStart(2, '0');
+        document.getElementById("timer-min").innerText = minutes.toString().padStart(2, '0');
+    }
+
+    setInterval(updateTimer, 60000); // 1 minute update is enough now, but 1000 is safer to be accurate to minute change
+    updateTimer(); // Initial call
+
 </script>
 {% endblock %}

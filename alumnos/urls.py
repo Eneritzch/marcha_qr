@@ -9,6 +9,9 @@ router = DefaultRouter()
 router.register(r'alumnos', AlumnoViewSet)
 
 urlpatterns = [
+    # Explicit Action Routing (Prioritized over DefaultRouter to avoid lookup collision)
+    path('validar-cedula/', AlumnoViewSet.as_view({'post': 'validar_cedula'}), name='alumno-validar-cedula'),
+    
     path('', include(router.urls)),
     path('recuperar/<str:cedula>/', CredentialRecoveryView.as_view(), name='recover-credential'),
     path('marcar-asistencia/', MarcarAsistenciaView.as_view(), name='marcar-asistencia'),

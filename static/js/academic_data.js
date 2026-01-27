@@ -33,7 +33,7 @@ export const ACADEMIC_DATA = {
             "ECONOMIA"
         ]
     },
-    "VIRTUAL": {
+    "EN_LINEA": {
         "FACULTAD CIENCIAS E INGENIERIA": [
             "INGENIERIA EN TI"
         ],
