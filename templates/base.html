@@ -41,15 +41,16 @@
         body { font-family: 'Inter', sans-serif; }
     </style>
 
+    <link rel="icon" type="image/svg+xml" href="/media/icono.svg">
     {% block extra_head %}{% endblock %}
 </head>
 <body class="bg-unemi-bg text-unemi-text min-h-screen flex flex-col">
 
     <!-- Global Loader -->
-    <div id="global-loader" class="fixed inset-0 z-50 flex items-center justify-center bg-white/90 transition-opacity duration-300">
+    <div id="global-loader" class="fixed inset-0 z-[100] flex items-center justify-center bg-transparent transition-opacity duration-300">
         <div class="flex flex-col items-center">
-            <img src="/media/TIGRILLO_LOAD_3.gif" alt="Cargando..." class="w-24 h-24 mb-4 object-contain">
-            <p class="text-unemi-blue font-bold text-sm tracking-widest animate-pulse">Cargando...</p>
+            <img src="/media/TIGRILLO_LOAD_3.gif" class="w-48 h-auto object-contain" alt="Cargando">
+             <p class="mt-[-10px] text-unemi-blue font-bold text-lg animate-pulse">Cargando...</p>
         </div>
     </div>
 
@@ -57,10 +58,8 @@
     {% block header %}
     <header class="bg-white border-b border-slate-200 h-16 flex items-center justify-between px-6 sticky top-0 z-30 shadow-sm">
         <div class="flex items-center space-x-3">
-            <div class="w-10 h-10 bg-unemi-blue rounded-lg flex items-center justify-center font-bold text-white text-xl">
-                U
-            </div>
-            <span class="font-bold tracking-widest text-unemi-blue">MARCHA UNEMI</span>
+            <img src="/media/icono.svg" alt="UNEMI Logo" class="w-12 h-12 object-contain">
+            <span class="font-bold tracking-widest text-unemi-blue text-lg">MARCHA UNEMI</span>
         </div>
         
         <div id="user-info" class="hidden flex items-center space-x-4">

@@ -2,7 +2,7 @@ from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from .views import (
     AlumnoViewSet, CredentialRecoveryView,
-    QRDownloadView, ExcelUploadView, MarcarAsistenciaView
+    QRDownloadView, ExcelUploadView, MarcarAsistenciaView, CredentialDownloadView
 )
 
 router = DefaultRouter()
@@ -13,5 +13,6 @@ urlpatterns = [
     path('recuperar/<str:cedula>/', CredentialRecoveryView.as_view(), name='recover-credential'),
     path('marcar-asistencia/', MarcarAsistenciaView.as_view(), name='marcar-asistencia'),
     path('descargar-qr/<str:cedula>/', QRDownloadView.as_view(), name='descargar-qr'),
+    path('descargar-credencial/<str:cedula>/', CredentialDownloadView.as_view(), name='descargar-credencial'),
     path('upload-excel/', ExcelUploadView.as_view(), name='excel-upload'),
 ]
