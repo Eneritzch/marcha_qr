@@ -8,43 +8,72 @@ let allLideres = [];
 if (!token) window.location.href = '/login';
 
 // Initialize
+// Safe Event Binding Helper
+function safeBind(id, event, handler) {
+    const el = document.getElementById(id);
+    if (el) el.addEventListener(event, handler);
+}
+
 document.addEventListener('DOMContentLoaded', async () => {
     // User Info
-    document.getElementById('user-name').textContent = user.nombre || 'Líder';
-    document.getElementById('user-group').textContent = `Grupo ${user.grupo || '?'}`;
+    const userNameEl = document.getElementById('user-name');
+    const userGroupEl = document.getElementById('user-group');
+    if (userNameEl) userNameEl.textContent = user.nombre || 'Líder';
+    if (userGroupEl) userGroupEl.textContent = `Grupo ${user.grupo || '?'}`;
 
-    // Initial Fetch
-    // Restore View IMMEDIATELY (Before Fetch)
+    // Initial Fetch & View Restore
     const lastView = localStorage.getItem('lastView') || 'overview';
-    console.log("Restoring view:", lastView);
-
-    // DEBUG CHECKS
-    console.log("DashboardCharts available:", !!window.DashboardCharts);
-    console.log("DashboardScanner available:", !!window.DashboardScanner);
-
     switchView(lastView);
 
-    // Event Listeners
-    document.getElementById('search-registros').addEventListener('input', (e) => filterRegistros(e.target.value));
-    document.getElementById('filter-estado').addEventListener('change', () => filterRegistros(document.getElementById('search-registros').value));
-    document.getElementById('filter-banco').addEventListener('change', filterBancos);
-    document.getElementById('excel-form').addEventListener('submit', handleExcelUpload);
+    // Safe Event Listeners for other modules
+    safeBind('search-registros', 'input', (e) => filterRegistros(e.target.value));
+    safeBind('filter-estado', 'change', () => {
+        const el = document.getElementById('search-registros');
+        filterRegistros(el ? el.value : '');
+    });
+    safeBind('filter-banco', 'change', filterBancos);
+    safeBind('excel-form', 'submit', handleExcelUpload);
 
-    // This tool call is actually invalid because I haven't read the file yet. I will switch to view_file.
-    // Leaders Events
-    document.getElementById('search-lideres').addEventListener('input', (e) => filterLideres(e.target.value));
-    document.getElementById('filter-lider-grupo').addEventListener('change', () => filterLideres(document.getElementById('search-lideres').value));
-    document.getElementById('lider-form').addEventListener('submit', saveLider);
+    // Leaders Events (Safe Binding)
+    safeBind('search-lideres', 'input', (e) => filterLideres(e.target.value));
+    safeBind('filter-lider-grupo', 'change', () => {
+        const inputBox = document.getElementById('search-lideres');
+        filterLideres(inputBox ? inputBox.value : '');
+    });
+    safeBind('lider-form', 'submit', saveLider);
 
-    // Chart Controls (Scattter Filter)
-    if (document.getElementById('chart-main-filter')) {
-        document.getElementById('chart-main-filter').addEventListener('change', () => {
-            if (window.DashboardCharts) {
-                DashboardCharts.render(allAlumnos, allLideres);
-            }
-        });
-    }
+    // Chart Controls
+    safeBind('chart-main-filter', 'change', () => {
+        if (window.DashboardCharts) {
+            DashboardCharts.render(allAlumnos, allLideres);
+        }
+    });
+
+    // Cleanup: Remove any old comments or duplicate definitions if present
 });
+
+// ... inside filterLideres ...
+function filterLideres(query) {
+    const normalize = (str) => String(str || '').normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+
+    const q = normalize(query);
+    const groupElement = document.getElementById('filter-lider-grupo');
+    const group = groupElement ? groupElement.value : 'all';
+
+    if (!allLideres) return;
+
+    const filtered = allLideres.filter(l => {
+        const nameNorm = normalize(l.nombre_completo);
+        const emailNorm = normalize(l.email);
+        const grupoStr = String(l.grupo || '');
+
+        const matchesSearch = nameNorm.includes(q) || emailNorm.includes(q);
+        const matchesGroup = group === 'all' || grupoStr === group;
+
+        return matchesSearch && matchesGroup;
+    });
+    renderLideresTable(filtered);
+}
 
 function logout() {
     localStorage.clear();
@@ -91,44 +120,44 @@ window.switchView = function (viewName) {
         if (target === viewName) {
             // Active State: Floating Orange Circle
             wrapper.classList.add('-top-5');
-            
+
             // Transform button to floating circle
             btn.classList.remove('text-slate-400');
             btn.classList.add(
-                'bg-unemi-orange', 
-                'text-white', 
-                'w-14', 
-                'h-14', 
-                'shadow-lg', 
-                'shadow-orange-500/30', 
-                'border-4', 
+                'bg-unemi-orange',
+                'text-white',
+                'w-14',
+                'h-14',
+                'shadow-lg',
+                'shadow-orange-500/30',
+                'border-4',
                 'border-white', // Matches bg-white of nav
                 'justify-center'
             );
-            
+
             // Hide label for clean look on active item
-            if(label) label.classList.add('hidden');
-            
+            if (label) label.classList.add('hidden');
+
         } else {
             // Inactive State: Normal Icon
             wrapper.classList.remove('-top-5');
-            
+
             // Reset button styles
             btn.classList.add('text-slate-400');
             btn.classList.remove(
-                'bg-unemi-orange', 
-                'text-white', 
-                'w-14', 
-                'h-14', 
-                'shadow-lg', 
-                'shadow-orange-500/30', 
-                'border-4', 
+                'bg-unemi-orange',
+                'text-white',
+                'w-14',
+                'h-14',
+                'shadow-lg',
+                'shadow-orange-500/30',
+                'border-4',
                 'border-white',
                 'justify-center'
             );
-            
+
             // Show label
-            if(label) label.classList.remove('hidden');
+            if (label) label.classList.remove('hidden');
         }
     });
 
@@ -467,7 +496,21 @@ window.updateLeaderGroup = async function (id, newGroup) {
         await axios.patch(`/api/v1/lideres/lideres/${id}/`, { grupo: parseInt(newGroup) }, {
             headers: { Authorization: `Token ${token}` }
         });
-        // Optional: show toast, but select update is instant feedback
+        // Success feedback
+        const Toast = Swal.mixin({
+            toast: true,
+            position: 'top-end',
+            showConfirmButton: false,
+            timer: 2000,
+            timerProgressBar: true
+        });
+        Toast.fire({
+            icon: 'success',
+            title: 'Grupo actualizado'
+        });
+
+        // Refresh data so filters work on updated values
+        fetchLideres();
     } catch (e) {
         Swal.fire({
             icon: 'error',
@@ -479,12 +522,20 @@ window.updateLeaderGroup = async function (id, newGroup) {
 }
 
 function filterLideres(query) {
-    const q = query.toLowerCase();
-    const group = document.getElementById('filter-lider-grupo').value;
+    // Helper for accent-insensitive comparison
+    const normalize = (str) => (str || '').normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+
+    const q = normalize(query);
+    const groupElement = document.getElementById('filter-lider-grupo');
+    const group = groupElement ? groupElement.value : 'all';
 
     const filtered = allLideres.filter(l => {
-        const matchesSearch = l.nombre_completo.toLowerCase().includes(q) || (l.email && l.email.toLowerCase().includes(q));
+        const nameNorm = normalize(l.nombre_completo);
+        const emailNorm = normalize(l.email);
+
+        const matchesSearch = nameNorm.includes(q) || emailNorm.includes(q);
         const matchesGroup = group === 'all' || l.grupo.toString() === group;
+
         return matchesSearch && matchesGroup;
     });
     renderLideresTable(filtered);
@@ -521,10 +572,10 @@ async function saveLider(e) {
     const id = document.getElementById('lider-id').value;
     const data = {
         nombre_completo: document.getElementById('lider-nombre').value,
-        cedula: document.getElementById('lider-cedula').value,
+        cedula: document.getElementById('lider-cedula').value || null,
         grupo: parseInt(document.getElementById('lider-grupo').value),
-        telefono: document.getElementById('lider-telefono').value,
-        email: document.getElementById('lider-email').value,
+        telefono: document.getElementById('lider-telefono').value || null,
+        email: document.getElementById('lider-email').value || null,
         activo: document.getElementById('lider-activo').checked,
         visible_en_registro: document.getElementById('lider-visible').checked
     };

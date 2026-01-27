@@ -173,7 +173,7 @@ window.DashboardCharts = {
                             value: { fontSize: '16px', color: '#64748b' },
                             total: {
                                 show: true,
-                                label: 'Total',
+                                label: '',
                                 color: '#64748b',
                                 formatter: function (w) {
                                     return total;
@@ -194,7 +194,7 @@ window.DashboardCharts = {
                         },
                     }
                 },
-                labels: ['Asistieron', 'Pendientes'],
+                labels: [],
                 colors: ['#22C55E', '#F97316'], // Green, Orange
                 fill: {
                     type: 'solid',
@@ -203,7 +203,7 @@ window.DashboardCharts = {
                 },
                 stroke: { lineCap: 'round' },
                 legend: {
-                    show: true,
+                    show: false,
                     position: 'bottom',
                     fontSize: '12px',
                     markers: { radius: 12 },
