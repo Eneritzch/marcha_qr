@@ -132,8 +132,8 @@ STATICFILES_DIRS = [BASE_DIR / 'static']
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 
-MEDIA_URL = 'media/'
-MEDIA_ROOT = BASE_DIR / 'media'
+# Storage for WhiteNoise
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.0/ref/settings/#default-auto-field
@@ -146,8 +146,8 @@ REST_FRAMEWORK = {
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
     'PAGE_SIZE': 50,
     'DEFAULT_AUTHENTICATION_CLASSES': [
-        'rest_framework.authentication.SessionAuthentication',
         'rest_framework.authentication.TokenAuthentication',
+        'rest_framework.authentication.SessionAuthentication',
     ],
     'EXCEPTION_HANDLER': 'core.exceptions.custom_exception_handler',
 }
@@ -157,9 +157,22 @@ REST_FRAMEWORK = {
 SESSION_ENGINE = "django.contrib.sessions.backends.cache"
 SESSION_CACHE_ALIAS = "default"
 
-# CORS Settings
-
+# Security & CORS Settings
 CORS_ALLOW_ALL_ORIGINS = True  # Adjusted for development, restrict in production
+
+# Railway / Production Security
+if not DEBUG:
+    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+    SECURE_SSL_REDIRECT = True
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+    
+    # CSRF Trusted Origins
+    RAILWAY_APP_URL = os.getenv('RAILWAY_STATIC_URL') or os.getenv('ALLOWED_HOSTS')
+    if RAILWAY_APP_URL:
+        # Properly format origins for CSRF
+        origins = [f"https://{host.strip()}" for host in RAILWAY_APP_URL.split(',')]
+        CSRF_TRUSTED_ORIGINS = origins
 
 # Caching (Redis recommended for production)
 CACHES = {
