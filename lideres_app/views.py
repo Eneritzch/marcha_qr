@@ -1,6 +1,10 @@
+import os
+import pandas as pd
 from rest_framework import viewsets, views, permissions, status
 from rest_framework.response import Response
+from rest_framework.parsers import MultiPartParser
 from django.db.models import Count, Q
+from django.contrib.auth.models import User
 from .models import Lider
 from .serializers import LiderSerializer, LiderPublicSerializer
 from alumnos.models import Alumno
@@ -95,3 +99,55 @@ class DashboardStatsView(views.APIView):
             'total_asistieron': total_asistieron,
             'stats_grupos': stats_grupos
         })
+
+class LeaderExcelUploadView(views.APIView):
+    """Processes manual Excel uploads to import new leaders."""
+    parser_classes = [MultiPartParser]
+
+    def post(self, request):
+        file_obj = request.data.get('file')
+        if not file_obj:
+            return Response({"error": "No se subió ningún archivo"}, status=status.HTTP_400_BAD_REQUEST)
+        
+        try:
+            df = pd.read_excel(file_obj)
+            count_new = 0
+            
+            for index, row in df.iterrows():
+                # Format: Name (Col 1), Email (Col 2)
+                # Note: iloc[1] is Name, iloc[2] is Email based on previous script observations
+                try:
+                    name = str(row.iloc[1]).strip()
+                    email = str(row.iloc[2]).strip().lower() # Normalize to lowercase
+                except:
+                    continue
+                
+                if not name or not email or '@' not in email:
+                    continue
+                    
+                # Skip if leader with this email already exists
+                if Lider.objects.filter(email=email).exists() or User.objects.filter(username=email).exists():
+                    continue
+                    
+                # Create user
+                user = User.objects.create_user(
+                    username=email,
+                    email=email,
+                    password='mucunemi25'
+                )
+                
+                # Create leader
+                Lider.objects.create(
+                    user=user,
+                    nombre_completo=name,
+                    email=email,
+                    grupo=1,
+                    activo=True,
+                    visible_en_registro=True
+                )
+                count_new += 1
+                
+            return Response({"message": f"Importación completada. {count_new} nuevos líderes agregados."}, status=status.HTTP_201_CREATED)
+            
+        except Exception as e:
+            return Response({"error": f"Error al procesar el archivo: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

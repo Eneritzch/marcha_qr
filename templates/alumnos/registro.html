@@ -4,15 +4,17 @@
 
 {% block header %}
 <nav class="bg-white border-b border-slate-200 h-16 flex items-center justify-between px-4 sm:px-8 sticky top-0 z-40 bg-opacity-90 backdrop-blur-md">
-    <div class="flex items-center space-x-3">
-        <img src="/media/icono.png" alt="UNEMI Logo" class="w-10 h-10 object-contain">
-        <span class="font-black tracking-tighter text-unemi-blue text-lg uppercase hidden sm:inline">Marcha UNEMI</span>
+    <div class="flex items-center space-x-2 sm:space-x-3">
+        <img src="/media/icono.png" alt="UNEMI Logo" class="w-8 h-8 sm:w-10 sm:h-10 object-contain">
+        <span class="font-black tracking-tighter text-unemi-blue text-base sm:text-lg uppercase">Marcha UNEMI</span>
     </div>
     
-    <a href="/recuperar" class="flex items-center space-x-2 text-slate-500 hover:text-unemi-orange transition-colors font-bold text-sm bg-slate-50 px-4 py-2 rounded-full border border-slate-200 hover:border-unemi-orange">
-        <i data-lucide="qr-code" class="w-4 h-4"></i>
-        <span>Mis Credenciales</span>
+    <a href="/recuperar" class="flex items-center space-x-2 text-slate-500 hover:text-unemi-orange transition-colors font-bold text-xs sm:text-sm bg-slate-50 px-3 sm:px-4 py-2 rounded-full border border-slate-200 hover:border-unemi-orange whitespace-nowrap">
+        <i data-lucide="qr-code" class="w-3.5 h-3.5 sm:w-4 sm:h-4"></i>
+        <span class="hidden sm:inline">Mis Credenciales</span>
+        <span class="sm:hidden text-[10px]">Credenciales</span>
     </a>
+    <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
 </nav>
 {% endblock %}
 
@@ -30,17 +32,33 @@
     <div class="absolute inset-0 bg-gradient-to-t from-unemi-blue via-unemi-blue/60 to-transparent"></div>
     
     <!-- Text Content -->
-    <div class="absolute bottom-0 left-0 right-0 p-8 sm:p-12 text-center sm:text-left max-w-7xl mx-auto flex flex-col sm:flex-row items-end sm:items-center justify-between gap-6">
-        <div>
-            <span class="bg-unemi-orange text-white text-xs font-black px-3 py-1 rounded-full uppercase tracking-widest mb-2 inline-block shadow-lg">Evento Oficial</span>
-            <h1 class="text-3xl sm:text-5xl font-black text-white uppercase tracking-tighter leading-none mb-2">Gran Marcha <br/><span class="text-transparent bg-clip-text bg-gradient-to-r from-orange-400 to-yellow-200">Universitaria</span></h1>
+    <div class="absolute bottom-0 left-0 right-0 p-6 sm:p-12 text-center sm:text-left max-w-7xl mx-auto flex flex-col sm:flex-row items-center sm:items-center justify-between gap-4 sm:gap-6">
+        <div class="flex flex-col items-center sm:items-start">
+            <span class="bg-unemi-orange text-white text-[10px] sm:text-xs font-black px-3 py-1 rounded-full uppercase tracking-widest mb-2 inline-block shadow-lg">Evento Oficial</span>
+            <h1 class="text-2xl sm:text-5xl font-black text-white uppercase tracking-tighter leading-tight sm:leading-none mb-2">Gran Marcha <br/><span class="text-transparent bg-clip-text bg-gradient-to-r from-orange-400 to-yellow-200">Universitaria</span></h1>
             <p class="text-slate-300 font-medium max-w-xl text-sm sm:text-base hidden sm:block">Únete a la celebración de los 25 años de nuestra universidad. Regístrate y obtén tu credencial digital.</p>
         </div>
         
-        <!-- Timer or Badge (Optional) -->
-        <div class="hidden md:block bg-white/10 backdrop-blur-md border border-white/20 p-4 rounded-xl text-center">
-            <p class="text-white text-xs uppercase tracking-widest mb-1">Faltan</p>
-            <div class="text-3xl font-black text-white font-mono">05 <span class="text-sm font-normal text-slate-300">días</span></div>
+        <!-- Timer Badge (Minimalist) -->
+        <div class="bg-slate-900/40 backdrop-blur-md border border-white/10 py-2 px-4 rounded-full text-center shadow-xl flex items-center gap-2 sm:gap-3 w-fit mb-4 sm:mb-0">
+            <span class="text-white/80 text-[10px] uppercase font-bold tracking-widest mr-1">Faltan:</span>
+            
+            <div class="flex items-center gap-1">
+                <div class="flex flex-col items-center">
+                    <span id="timer-days" class="text-lg sm:text-xl font-black text-unemi-orange leading-none font-mono tracking-tight">--</span>
+                    <span class="text-[7px] text-white/60 uppercase font-bold">Días</span>
+                </div>
+                <span class="text-white/40 font-light text-lg pb-1 sm:pb-2">:</span>
+                <div class="flex flex-col items-center">
+                    <span id="timer-hours" class="text-lg sm:text-xl font-black text-unemi-orange leading-none font-mono tracking-tight">--</span>
+                    <span class="text-[7px] text-white/60 uppercase font-bold">Hrs</span>
+                </div>
+                <span class="text-white/40 font-light text-lg pb-1 sm:pb-2">:</span>
+                <div class="flex flex-col items-center">
+                    <span id="timer-min" class="text-lg sm:text-xl font-black text-unemi-orange leading-none font-mono tracking-tight">--</span>
+                    <span class="text-[7px] text-white/60 uppercase font-bold">Min</span>
+                </div>
+            </div>
         </div>
     </div>
 </div>
@@ -50,75 +68,75 @@
     <div class="bg-white rounded-3xl shadow-xl shadow-slate-200/50 border border-slate-100 overflow-hidden">
         
         <!-- Stepper Header -->
-        <div class="bg-slate-50 border-b border-slate-200 p-6">
-            <div class="flex items-center justify-between max-w-2xl mx-auto relative">
+        <div class="bg-slate-50 border-b border-slate-200 p-4 sm:p-6">
+            <div class="flex items-center justify-between max-w-2xl mx-auto relative px-2">
                 <!-- Progress Bar Background -->
-                <div class="absolute top-1/2 left-0 w-full h-1 bg-slate-200 -z-0 rounded-full"></div>
+                <div class="absolute top-[16px] sm:top-1/2 left-0 w-full h-1 bg-slate-200 -z-0 rounded-full"></div>
                 <!-- Active Progress -->
-                <div id="progress-bar" class="absolute top-1/2 left-0 h-1 bg-unemi-orange -z-0 rounded-full transition-all duration-500 ease-out" style="width: 0%"></div>
+                <div id="progress-bar" class="absolute top-[16px] sm:top-1/2 left-0 h-1 bg-unemi-orange -z-0 rounded-full transition-all duration-500 ease-out" style="width: 0%"></div>
 
                 <!-- Steps -->
                 <div class="relative z-10 flex flex-col items-center step-item active" data-step="1">
                     <div class="w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm border-2 transition-all bg-unemi-blue border-unemi-blue text-white shadow-lg shadow-blue-500/30">1</div>
-                    <span class="text-[10px] font-bold uppercase mt-2 text-unemi-blue tracking-tighter">Datos</span>
+                    <span class="text-[9px] sm:text-[10px] font-bold uppercase mt-2 text-unemi-blue tracking-tighter">Datos</span>
                 </div>
                 <div class="relative z-10 flex flex-col items-center step-item" data-step="2">
                     <div class="w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm border-2 bg-white border-slate-300 text-slate-400 transition-all">2</div>
-                    <span class="text-[10px] font-bold uppercase mt-2 text-slate-400 tracking-tighter">Líder</span>
+                    <span class="text-[9px] sm:text-[10px] font-bold uppercase mt-2 text-slate-400 tracking-tighter">Líder</span>
                 </div>
                 <div class="relative z-10 flex flex-col items-center step-item" data-step="3">
                     <div class="w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm border-2 bg-white border-slate-300 text-slate-400 transition-all">3</div>
-                    <span class="text-[10px] font-bold uppercase mt-2 text-slate-400 tracking-tighter">Banco</span>
+                    <span class="text-[9px] sm:text-[10px] font-bold uppercase mt-2 text-slate-400 tracking-tighter">Banco</span>
                 </div>
                 <div class="relative z-10 flex flex-col items-center step-item" data-step="4">
                     <div class="w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm border-2 bg-white border-slate-300 text-slate-400 transition-all">4</div>
-                    <span class="text-[10px] font-bold uppercase mt-2 text-slate-400 tracking-tighter">QR</span>
+                    <span class="text-[9px] sm:text-[10px] font-bold uppercase mt-2 text-slate-400 tracking-tighter">QR</span>
                 </div>
             </div>
         </div>
 
-        <form id="registro-form" class="p-6 sm:p-10">
+        <form id="registro-form" class="p-5 sm:p-10">
             
             <!-- STEP 1: Personal Info -->
             <div id="step-1" class="step-content animate-fade-in-up">
-                <h2 class="text-2xl font-black text-unemi-blue mb-6 flex items-center gap-2">
-                    <i data-lucide="user-circle" class="text-unemi-orange"></i> Información Personal
+                <h2 class="text-xl sm:text-2xl font-black text-unemi-blue mb-6 flex items-center gap-2">
+                    <i data-lucide="user-circle" class="text-unemi-orange w-6 h-6 sm:w-8 sm:h-8"></i> Información Personal
                 </h2>
                 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div class="md:col-span-2">
-                        <label class="block text-xs font-bold text-slate-400 uppercase mb-2 ml-1">Cédula de Identidad</label>
-                        <input required id="input-cedula" name="cedula" type="text" maxlength="10" placeholder="Ej: 0912345678" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-unemi-blue outline-none transition-all font-mono text-lg tracking-widest app-input" />
+                        <label class="block text-[10px] sm:text-xs font-bold text-slate-400 uppercase mb-1.5 sm:mb-2 ml-1">Cédula de Identidad</label>
+                        <input required id="input-cedula" name="cedula" type="text" maxlength="10" placeholder="Ej: 0912345678" class="w-full px-4 py-2.5 sm:py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-unemi-blue outline-none transition-all font-mono text-base sm:text-lg tracking-widest app-input" />
                     </div>
                     <div class="md:col-span-2">
-                        <label class="block text-xs font-bold text-slate-400 uppercase mb-2 ml-1">Nombre Completo</label>
-                        <input required id="input-nombre" name="nombre_completo" type="text" placeholder="Como aparece en tu cédula" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-unemi-blue outline-none transition-all uppercase app-input" />
+                        <label class="block text-[10px] sm:text-xs font-bold text-slate-400 uppercase mb-1.5 sm:mb-2 ml-1">Nombre Completo</label>
+                        <input required id="input-nombre" name="nombre_completo" type="text" placeholder="Como aparece en tu cédula" class="w-full px-4 py-2.5 sm:py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-unemi-blue outline-none transition-all uppercase text-sm sm:text-base app-input" />
                     </div>
                     <div>
-                        <label class="block text-xs font-bold text-slate-400 uppercase mb-2 ml-1">Correo Institucional</label>
-                        <input required name="email" type="email" placeholder="usuario@unemi.edu.ec" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-unemi-blue outline-none transition-all app-input" />
+                        <label class="block text-[10px] sm:text-xs font-bold text-slate-400 uppercase mb-1.5 sm:mb-2 ml-1">Correo Institucional</label>
+                        <input required name="email" type="email" placeholder="usuario@unemi.edu.ec" class="w-full px-4 py-2.5 sm:py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-unemi-blue outline-none transition-all text-sm sm:text-base app-input" />
                     </div>
                     <div>
-                        <label class="block text-xs font-bold text-slate-400 uppercase mb-2 ml-1">Celular / WhatsApp</label>
-                        <input required name="telefono" type="tel" placeholder="099..." class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-unemi-blue outline-none transition-all app-input" />
+                        <label class="block text-[10px] sm:text-xs font-bold text-slate-400 uppercase mb-1.5 sm:mb-2 ml-1">Celular / WhatsApp</label>
+                        <input required name="telefono" type="tel" placeholder="099..." class="w-full px-4 py-2.5 sm:py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-unemi-blue outline-none transition-all text-sm sm:text-base app-input" />
                     </div>
                     
                     <!-- Dynamic Filters -->
                     <div>
-                         <label class="block text-xs font-bold text-slate-400 uppercase mb-2 ml-1">Modalidad de Estudios</label>
-                         <select required id="modalidad-select" name="modalidad" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-unemi-blue outline-none transition-all cursor-pointer app-input">
+                         <label class="block text-[10px] sm:text-xs font-bold text-slate-400 uppercase mb-1.5 sm:mb-2 ml-1">Modalidad de Estudios</label>
+                         <select required id="modalidad-select" name="modalidad" class="w-full px-4 py-2.5 sm:py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-unemi-blue outline-none transition-all cursor-pointer text-sm sm:text-base app-input">
                             <option value="">Seleccione Modalidad...</option>
                          </select>
                     </div>
                     <div>
-                        <label class="block text-xs font-bold text-slate-400 uppercase mb-2 ml-1">Facultad</label>
-                        <select required id="facultad-select" name="facultad" disabled class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-unemi-blue outline-none transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed app-input">
+                        <label class="block text-[10px] sm:text-xs font-bold text-slate-400 uppercase mb-1.5 sm:mb-2 ml-1">Facultad</label>
+                        <select required id="facultad-select" name="facultad" disabled class="w-full px-4 py-2.5 sm:py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-unemi-blue outline-none transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed text-sm sm:text-base app-input">
                             <option value="">Primero seleccione Modalidad...</option>
                         </select>
                     </div>
                     <div class="md:col-span-2">
-                        <label class="block text-xs font-bold text-slate-400 uppercase mb-2 ml-1">Carrera</label>
-                        <select required id="carrera-select" name="carrera" disabled class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-unemi-blue outline-none transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed app-input">
+                        <label class="block text-[10px] sm:text-xs font-bold text-slate-400 uppercase mb-1.5 sm:mb-2 ml-1">Carrera</label>
+                        <select required id="carrera-select" name="carrera" disabled class="w-full px-4 py-2.5 sm:py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-unemi-blue outline-none transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed text-sm sm:text-base app-input">
                             <option value="">Primero seleccione Facultad...</option>
                         </select>
                     </div>
@@ -127,37 +145,48 @@
 
             <!-- STEP 2: Leader Selection -->
             <div id="step-2" class="step-content hidden animate-fade-in-up">
-                <h2 class="text-2xl font-black text-unemi-blue mb-2 flex items-center gap-2">
-                    <i data-lucide="users" class="text-unemi-orange"></i> Selección de Líder
+                <h2 class="text-xl sm:text-2xl font-black text-unemi-blue mb-2 flex items-center gap-2">
+                    <i data-lucide="users" class="text-unemi-orange w-6 h-6 sm:w-8 sm:h-8"></i> Selección de Líder
                 </h2>
-                <p class="text-slate-500 mb-8 text-sm">Indica quién te invitó a participar en la marcha. Serás asignado a su grupo.</p>
+                <p class="text-slate-500 mb-6 sm:mb-8 text-xs sm:text-sm">Indica quién te invitó a participar en la marcha. Serás asignado a su grupo.</p>
 
-                <div class="bg-blue-50 border border-blue-100 p-6 rounded-2xl mb-6">
-                    <label class="block text-xs font-bold text-blue-800 uppercase mb-2 ml-1">Busca a tu Líder</label>
-                    <select required id="lider-select" name="lider_invitador" class="w-full px-4 py-4 bg-white border border-blue-200 rounded-xl focus:ring-2 focus:ring-unemi-blue outline-none transition-all text-lg cursor-pointer app-input">
-                        <option value="">Cargando lista de líderes...</option>
-                    </select>
+                <div class="bg-blue-50 border border-blue-100 p-4 sm:p-6 rounded-2xl mb-6 relative">
+                    <label class="block text-[10px] sm:text-xs font-bold text-blue-800 uppercase mb-2 ml-1">Busca a tu Líder</label>
+                    <div class="relative">
+                        <i data-lucide="search" class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 w-5 h-5"></i>
+                        <input type="text" id="lider-search" placeholder="Nombre de tu líder..." class="w-full pl-11 sm:pl-12 pr-10 py-3 sm:py-4 bg-white border border-blue-200 rounded-xl focus:ring-2 focus:ring-unemi-blue outline-none transition-all text-sm sm:text-lg app-input shadow-sm" autocomplete="off">
+                        <button type="button" id="clear-search" class="hidden absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-red-500">
+                            <i data-lucide="x" class="w-5 h-5"></i>
+                        </button>
+                    </div>
+                    <input type="hidden" id="lider-select" name="lider_invitador" required>
+                    
+                    <!-- Result Dropdown -->
+                    <div id="lider-dropdown" class="absolute left-4 right-4 sm:left-6 sm:right-6 top-[75px] sm:top-[85px] bg-white border border-slate-200 rounded-xl shadow-2xl max-h-60 overflow-y-auto hidden z-50 divide-y divide-slate-100">
+                        <!-- Items injected by JS -->
+                    </div>
+                    <p class="text-[10px] text-blue-400 mt-2 ml-1">Escribe al menos 3 letras para buscar.</p>
                 </div>
                 
                 <div class="text-center p-4 bg-slate-50 rounded-xl border border-slate-100">
-                    <p class="text-xs text-slate-400 uppercase tracking-widest font-bold mb-1">Tu grupo asignado será</p>
-                    <div id="grupo-preview" class="text-3xl font-black text-slate-300">--</div>
+                    <p class="text-[10px] text-slate-400 uppercase tracking-widest font-bold mb-1">Tu grupo asignado será</p>
+                    <div id="grupo-preview" class="text-2xl sm:text-3xl font-black text-slate-300">--</div>
                 </div>
             </div>
 
              <!-- STEP 3: Bank Info -->
             <div id="step-3" class="step-content hidden animate-fade-in-up">
-                <h2 class="text-2xl font-black text-unemi-blue mb-2 flex items-center gap-2">
-                    <i data-lucide="credit-card" class="text-unemi-orange"></i> Datos Bancarios
+                <h2 class="text-xl sm:text-2xl font-black text-unemi-blue mb-2 flex items-center gap-2">
+                    <i data-lucide="credit-card" class="text-unemi-orange w-6 h-6 sm:w-8 sm:h-8"></i> Datos Bancarios
                 </h2>
-                <p class="text-slate-500 mb-8 text-sm">Información necesaria para la gestión de logística y viáticos.</p>
+                <p class="text-slate-500 mb-6 sm:mb-8 text-xs sm:text-sm">Información necesaria para la gestión de logística y viáticos.</p>
 
                  <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div class="md:col-span-2">
-                        <div class="flex items-center p-4 bg-slate-50 rounded-xl border border-slate-200 cursor-pointer" onclick="document.getElementById('check-misma-cuenta').click()">
+                        <label class="flex items-center p-4 bg-slate-50 rounded-xl border border-slate-200 cursor-pointer hover:bg-slate-100 transition-colors">
                             <input type="checkbox" id="check-misma-cuenta" class="w-5 h-5 text-unemi-blue rounded border-slate-300 focus:ring-unemi-blue" checked>
-                            <label for="check-misma-cuenta" class="ml-3 text-sm font-bold text-slate-700 select-none cursor-pointer">La cuenta es personal (está a mi nombre)</label>
-                        </div>
+                            <span class="ml-3 text-sm font-bold text-slate-700 select-none">La cuenta es personal (está a mi nombre)</span>
+                        </label>
                     </div>
 
                     <div id="titular-fields" class="md:col-span-2 hidden grid grid-cols-1 md:grid-cols-2 gap-6 animate-in fade-in slide-in-from-top-4">
@@ -216,19 +245,38 @@
         </form>
 
         <!-- Final Success View with QR -->
-        <div id="success-view" class="hidden p-10 text-center animate-in zoom-in duration-500">
+        <div id="success-view" class="hidden p-6 sm:p-10 text-center animate-in zoom-in duration-500">
             <div class="w-24 h-24 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-6 shadow-xl shadow-green-500/20">
                 <i data-lucide="check" class="w-12 h-12"></i>
             </div>
             <h2 class="text-3xl font-black text-unemi-blue mb-2">¡REGISTRO CONFIRMADO!</h2>
-            <p class="text-slate-500 mb-8 max-w-md mx-auto">Bienvenido a la Marcha UNEMI. Hemos generado tu credencial digital.</p>
+            <p class="text-slate-500 mb-6 max-w-lg mx-auto text-lg">
+                Te esperamos este <span class="font-bold text-unemi-orange">6 de febrero</span>. 
+                Recuerda llevar tu código QR.
+            </p>
             
-            <div class="bg-slate-50 p-8 rounded-3xl border border-dashed border-slate-300 max-w-sm mx-auto mb-8 relative group cursor-pointer hover:border-unemi-blue transition-colors">
+            <div class="bg-blue-50 border border-blue-100 p-4 rounded-2xl mb-8 max-w-lg mx-auto">
+                <p class="text-sm text-blue-800 font-medium mb-3">
+                    Mantente informado de noticias y logística en nuestro grupo oficial:
+                </p>
+                <a href="https://chat.whatsapp.com/L12G1H1I1J1K1L1M1N1O1" target="_blank" class="flex items-center justify-center gap-2 bg-[#25D366] hover:bg-[#128C7E] text-white font-bold py-3 px-6 rounded-xl transition-all shadow-lg shadow-green-500/20 active:scale-95">
+                    <svg class="w-6 h-6 fill-current" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/>
+                    </svg>
+                    <span>Unirme al Grupo de WhatsApp</span>
+                </a>
+            </div>
+
+            <div class="bg-slate-50 p-8 rounded-3xl border border-dashed border-slate-300 max-w-sm mx-auto mb-8 relative group hover:border-unemi-blue transition-colors">
                  <div class="absolute top-4 right-4 text-slate-300 group-hover:text-unemi-blue transition-colors">
                     <i data-lucide="scan-line" class="w-6 h-6"></i>
                  </div>
                  <h3 class="font-bold text-unemi-blue uppercase mb-1" id="success-name">Nombre Estudiante</h3>
-                 <p class="text-xs text-slate-500 uppercase tracking-widest mb-6">Invitado Oficial</p>
+                 <div class="flex items-center justify-center gap-2 mb-6">
+                    <span class="text-xs text-slate-500 uppercase tracking-widest">Invitado Oficial</span>
+                    <span class="w-1 h-1 bg-slate-300 rounded-full"></span>
+                    <span class="text-xs font-black text-unemi-orange uppercase tracking-widest" id="success-group">GRUPO --</span>
+                 </div>
                  
                  <!-- QR Placeholders -->
                  <div class="bg-white p-4 rounded-xl shadow-sm inline-block mb-4">
@@ -238,20 +286,260 @@
                  <p class="font-mono text-lg font-bold text-slate-700 tracking-widest" id="success-cedula">0000000000</p>
             </div>
 
-            <div class="flex flex-col sm:flex-row gap-4 justify-center">
-                 <a id="download-trigger-pdf" href="#" target="_blank" class="bg-unemi-blue text-white font-bold py-3 px-8 rounded-xl hover:bg-slate-800 transition-colors shadow-lg shadow-blue-500/20 flex items-center justify-center gap-2">
-                    <i data-lucide="file-text" class="w-4 h-4"></i> Descargar Credencial (PDF)
-                 </a>
-                 <a id="download-trigger-qr" href="#" target="_blank" class="bg-orange-50 text-unemi-orange border border-orange-200 font-bold py-3 px-8 rounded-xl hover:bg-orange-100 transition-colors shadow-sm flex items-center justify-center gap-2">
-                    <i data-lucide="image" class="w-4 h-4"></i> Descargar QR (Imagen)
-                 </a>
+            <!-- BUTTONS GRID -->
+            <div class="grid gap-3 max-w-lg mx-auto px-2">
+                <div class="flex flex-col sm:flex-row gap-3">
+                     <a id="download-trigger-pdf" href="#" target="_blank" class="flex-1 bg-unemi-blue text-white font-bold py-3 px-4 rounded-xl hover:bg-slate-800 transition-colors shadow-lg shadow-blue-500/20 flex items-center justify-center gap-2 text-sm">
+                        <i data-lucide="file-text" class="w-4 h-4"></i> Descargar PDF
+                     </a>
+                     <a id="download-trigger-qr" href="#" target="_blank" class="flex-1 bg-orange-50 text-unemi-orange border border-orange-200 font-bold py-3 px-4 rounded-xl hover:bg-orange-100 transition-colors shadow-sm flex items-center justify-center gap-2 text-sm">
+                        <i data-lucide="image" class="w-4 h-4"></i> Descargar Imagen
+                     </a>
+                </div>
+                
+                <!-- SECRET CARD -->
+                <div class="mt-2 bg-slate-900 rounded-2xl p-4 sm:p-6 relative overflow-hidden group cursor-pointer shadow-xl shadow-slate-900/40 transform transition-all hover:scale-[1.02]" onclick="openSecretModal()">
+                    <div class="absolute inset-0 bg-gradient-to-r from-violet-600/20 to-indigo-600/20 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                    <div class="relative z-10 flex items-center justify-between">
+                        <div class="flex items-center gap-3 sm:gap-4">
+                            <div class="w-10 h-10 sm:w-12 sm:h-12 bg-white/10 rounded-full flex items-center justify-center backdrop-blur-sm text-yellow-400">
+                                <i data-lucide="lock" class="w-5 h-5 sm:w-6 sm:h-6"></i>
+                            </div>
+                            <div class="text-left">
+                                <h3 class="text-white font-black uppercase text-[10px] sm:text-sm tracking-widest">Información Confidencial</h3>
+                                <p class="text-slate-400 text-[8px] sm:text-xs font-medium">Solo para invitados confirmados</p>
+                            </div>
+                        </div>
+                        <div class="text-white/50 group-hover:text-white transition-colors">
+                            <i data-lucide="chevron-right" class="w-5 h-5 sm:w-6 sm:h-6"></i>
+                        </div>
+                    </div>
+                </div>
             </div>
-            <div class="mt-6 flex justify-center">
+
+            <div class="mt-8 flex justify-center">
                  <button onclick="window.location.reload()" class="text-slate-400 font-bold hover:text-unemi-blue transition-colors text-sm flex items-center gap-1">
                     <i data-lucide="refresh-cw" class="w-3 h-3"></i> Nuevo Registro
                  </button>
             </div>
         </div>
+
+        <!-- SECRET MODAL PROTECTED -->
+        <div id="secret-modal" class="hidden fixed inset-0 z-[60] flex items-center justify-center bg-black transition-all duration-300">
+            <!-- Security Overlay (Active when focus lost) -->
+            <div id="security-curtain" class="absolute inset-0 bg-slate-950 z-[70] hidden flex-col items-center justify-center text-center p-8">
+                <i data-lucide="eye-off" class="w-16 h-16 text-slate-600 mb-4"></i>
+                <p class="text-slate-500 font-bold uppercase tracking-widest">Contenido Oculto por Seguridad</p>
+                <p class="text-slate-600 text-xs mt-2">Haz clic para volver al contenido</p>
+                <button onclick="hideSecurityCurtain()" class="mt-6 px-6 py-2 bg-unemi-blue text-white rounded-full text-xs font-bold uppercase tracking-widest">Desbloquear</button>
+            </div>
+
+            <div class="w-full max-w-lg h-full max-h-screen flex flex-col relative p-4" id="modal-content">
+            <div class="flex justify-end p-2 mb-2">
+                <button onclick="closeSecretModal()" class="bg-white/10 hover:bg-white/20 text-white p-2 sm:p-3 rounded-full backdrop-blur-md transition-all border border-white/10 shadow-2xl flex items-center gap-2 group">
+                    <span class="text-[10px] font-bold uppercase tracking-widest hidden sm:inline ml-2">Cerrar</span>
+                    <i data-lucide="x" class="w-6 h-6 sm:w-8 sm:h-8"></i>
+                </button>
+            </div>
+                
+                <div class="flex-1 flex flex-col items-center justify-center relative select-none">
+                    <!-- DISPLAY ZONE -->
+                    <div id="capture-zone" class="relative bg-slate-900 border border-slate-800 rounded-3xl overflow-hidden p-2 shadow-2xl">
+                        
+                        <!-- COVER LAYER -->
+                        <div id="cover-layer" class="absolute inset-0 bg-slate-950/90 backdrop-blur-md z-20 flex flex-col items-center justify-center text-center p-6 sm:p-10 transition-all duration-500">
+                            <div class="w-16 h-16 sm:w-24 sm:h-24 rounded-full bg-slate-900 border-2 border-slate-800 flex items-center justify-center mb-4 sm:mb-6 text-unemi-orange shadow-2xl shadow-orange-500/10">
+                                <i data-lucide="key-round" class="w-8 h-8 sm:w-10 sm:h-10 animate-bounce"></i>
+                            </div>
+                            <h3 class="text-white font-black text-lg sm:text-xl uppercase tracking-tighter mb-3 sm:mb-4">Información Protegida</h3>
+                            <p class="text-slate-400 text-xs sm:text-sm max-w-[220px] mb-6 sm:mb-8 font-medium">Solo tú puedes ver esta información. No la compartas con nadie.</p>
+                            
+                            <button onclick="revealSecret()" class="bg-unemi-orange text-white px-6 sm:px-8 py-3 sm:py-4 rounded-xl sm:rounded-2xl font-black uppercase tracking-widest text-xs sm:text-sm shadow-xl shadow-orange-500/30 hover:bg-unemi_hover-orange transition-all active:scale-95 flex items-center gap-2">
+                                <i data-lucide="eye" class="w-5 h-5"></i> Revelar Ahora
+                            </button>
+                            
+                            <button onclick="closeSecretModal()" class="mt-6 sm:mt-8 text-slate-500 hover:text-white text-[10px] sm:text-xs font-bold uppercase tracking-widest transition-colors flex items-center gap-2">
+                                <i data-lucide="arrow-left" class="w-4 h-4"></i> Volver a Credenciales
+                            </button>
+                        </div>
+
+                        <!-- HIDDEN CONTENT -->
+                        <div id="secret-content" class="relative opacity-0 scale-95 blur-xl transition-all duration-700 pointer-events-none">
+                            <img id="secret-img" src="/media/secreto.jpeg" 
+                                 class="w-full h-auto max-h-[65vh] object-contain rounded-2xl" 
+                                 oncontextmenu="return false;" 
+                                 ondragstart="return false;"
+                                 alt="Secret">
+                            
+                            <!-- WATERMARK -->
+                            <div class="absolute inset-0 pointer-events-none flex items-center justify-center opacity-[0.03] select-none rotate-45">
+                                <span class="text-6xl font-black text-white whitespace-nowrap uppercase tracking-[2rem]">MARCHA UNEMI 2025</span>
+                            </div>
+
+                            <!-- OVERLAY DATA -->
+                            <div class="absolute bottom-4 left-0 right-0 px-6 py-4 bg-gradient-to-t from-slate-950 to-transparent flex justify-between items-end">
+                                <div class="text-left">
+                                    <p class="text-[8px] text-slate-500 font-black uppercase tracking-[0.2em]">ID Transacción</p>
+                                    <p class="text-xs text-white font-mono opacity-60" id="secure-id-visible">...</p>
+                                </div>
+                                <img src="/media/icono.svg" class="w-8 h-8 opacity-20" alt="Logo">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ACTION BUTTONS -->
+                    <div id="reveal-actions" class="mt-8 flex flex-col items-center gap-4 w-full opacity-0 pointer-events-none transition-all duration-500">
+                        <button onclick="captureSecret()" class="w-full max-w-xs bg-emerald-600 hover:bg-emerald-700 text-white font-black py-4 px-6 rounded-2xl shadow-xl shadow-emerald-500/20 transition-all active:scale-95 flex items-center justify-center gap-3">
+                            <i data-lucide="download" class="w-6 h-6"></i>
+                            <span>DESCARGAR COMPROBANTE</span>
+                        </button>
+                        <button onclick="closeSecretModal()" class="mt-4 text-slate-500 font-bold text-xs uppercase tracking-widest hover:text-white transition-colors flex items-center gap-2">
+                             <i data-lucide="log-out" class="w-4 h-4"></i> SALIR DE SECCIÓN SEGURA
+                        </button>
+                    </div>
+                </div>
+                
+                <p class="text-white/10 text-[8px] text-center mt-4 uppercase tracking-[0.5em] font-black">
+                     SEGURIDAD DE GRADO BANCARIO • CIFRADO AES-256
+                </p>
+            </div>
+        </div>
+
+        <script>
+            function openSecretModal() {
+                document.getElementById('secret-modal').classList.remove('hidden');
+                document.body.style.overflow = 'hidden';
+                const id = Math.random().toString(36).substr(2, 9).toUpperCase();
+                document.getElementById('secure-id-visible').innerText = id;
+                hideSecret(); // Ensure starts hidden
+                lucide.createIcons();
+            }
+
+            function closeSecretModal() {
+                document.getElementById('secret-modal').classList.add('hidden');
+                document.body.style.overflow = 'auto';
+                hideSecret();
+            }
+
+            function revealSecret() {
+                const content = document.getElementById('secret-content');
+                const cover = document.getElementById('cover-layer');
+                const actions = document.getElementById('reveal-actions');
+
+                cover.classList.add('opacity-0', 'pointer-events-none', 'scale-110');
+                content.classList.remove('opacity-0', 'blur-xl', 'scale-95');
+                content.classList.add('opacity-100', 'scale-100');
+                actions.classList.remove('opacity-0', 'pointer-events-none');
+                actions.classList.add('opacity-100');
+            }
+
+            function hideSecret() {
+                const content = document.getElementById('secret-content');
+                const cover = document.getElementById('cover-layer');
+                const actions = document.getElementById('reveal-actions');
+
+                cover.classList.remove('opacity-0', 'pointer-events-none', 'scale-110');
+                content.classList.add('opacity-0', 'blur-xl', 'scale-95');
+                content.classList.remove('opacity-100', 'scale-100');
+                actions.classList.add('opacity-0', 'pointer-events-none');
+                actions.classList.remove('opacity-100');
+            }
+
+            async function captureSecret() {
+                const zone = document.getElementById('capture-zone');
+                const actions = document.getElementById('reveal-actions');
+                
+                try {
+                    // Temporarily hide buttons for capture
+                    actions.style.opacity = '0';
+                    
+                    // Show a toast or loader
+                    Swal.fire({
+                        title: 'Generando Imagen...',
+                        text: 'Estamos preparando tu comprobante seguro.',
+                        timerProgressBar: true,
+                        didOpen: () => { Swal.showLoading(); }
+                    });
+
+                    const canvas = await html2canvas(zone, {
+                        backgroundColor: '#020617', // Match slate-950
+                        scale: 2, // High quality
+                        logging: false,
+                        useCORS: true
+                    });
+
+                    const link = document.createElement('a');
+                    link.download = `Comprobante_UNEMI_${new Date().getTime()}.png`;
+                    link.href = canvas.toDataURL('image/png');
+                    link.click();
+
+                    Swal.fire({
+                        icon: 'success',
+                        title: '¡Captura Guardada!',
+                        text: 'Tu comprobante se ha descargado correctamente.',
+                        confirmButtonColor: '#0F1E4B'
+                    });
+
+                } catch (err) {
+                    console.error("Capture Error:", err);
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error de Captura',
+                        text: 'No pudimos generar la imagen. Inténtalo de nuevo.',
+                        confirmButtonColor: '#0F1E4B'
+                    });
+                } finally {
+                    actions.style.opacity = '1';
+                }
+            }
+
+            function hideSecurityCurtain() {
+                const curtain = document.getElementById('security-curtain');
+                curtain.classList.add('hidden');
+                curtain.classList.remove('flex');
+            }
+
+            // --- IMPROVED SECURITY LOGIC ---
+            const securityCurtain = document.getElementById('security-curtain');
+
+            window.addEventListener('blur', () => {
+                const modal = document.getElementById('secret-modal');
+                if(!modal.classList.contains('hidden')) {
+                    hideSecret();
+                    securityCurtain.classList.remove('hidden');
+                    securityCurtain.classList.add('flex');
+                }
+            });
+
+            // Prevent PrintScreen/Keyboard Shortcuts (Soft Block)
+            document.addEventListener('keydown', (e) => {
+                const modal = document.getElementById('secret-modal');
+                if (modal.classList.contains('hidden')) return;
+
+                if (e.key == 'PrintScreen' || (e.ctrlKey && e.key == 'p') || (e.metaKey && e.shiftKey)) {
+                    hideSecret();
+                    e.preventDefault();
+                    
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'Captura Bloqueada',
+                        text: 'Por seguridad, usa el botón "DESCARGAR COMPROBANTE" para guardar la información.',
+                        confirmButtonColor: '#EF7D00'
+                    });
+                    
+                    return false;
+                }
+            });
+
+            // CSS Print Block (Keep it)
+            const style = document.createElement('style');
+            style.innerHTML = `
+                @media print {
+                    body { display: none !important; }
+                }
+            `;
+            document.head.appendChild(style);
+        </script>
 
     </div>
     
@@ -297,5 +585,35 @@
         slides[currentSlide].classList.remove('opacity-0');
         slides[currentSlide].classList.add('opacity-100');
     }, 5000); // 5 seconds
+
+    // === COUNTDOWN LOGIC ===
+    const targetDate = new Date("Feb 6, 2026 08:30:00").getTime(); // Adjust Year as needed
+
+    function updateTimer() {
+        const now = new Date().getTime();
+        const distance = targetDate - now;
+
+        if (distance < 0) {
+            // Event Started
+            document.getElementById("timer-days").innerText = "00";
+            document.getElementById("timer-hours").innerText = "00";
+            document.getElementById("timer-min").innerText = "00";
+            document.getElementById("timer-sec").innerText = "00";
+            return;
+        }
+
+        const days = Math.floor(distance / (1000 * 60 * 60 * 24));
+        const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+        const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+        const seconds = Math.floor((distance % (1000 * 60)) / 1000);
+
+        document.getElementById("timer-days").innerText = days.toString().padStart(2, '0');
+        document.getElementById("timer-hours").innerText = hours.toString().padStart(2, '0');
+        document.getElementById("timer-min").innerText = minutes.toString().padStart(2, '0');
+    }
+
+    setInterval(updateTimer, 60000); // 1 minute update is enough now, but 1000 is safer to be accurate to minute change
+    updateTimer(); // Initial call
+
 </script>
 {% endblock %}

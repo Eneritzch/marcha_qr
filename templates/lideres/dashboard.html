@@ -42,6 +42,8 @@
     
     <!-- HTML5-QRCode -->
     <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
 
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;900&display=swap');
@@ -192,7 +194,7 @@
                                 <p class="text-slate-500 text-sm">Comparativa: Invitados vs Asistentes</p>
                             </div>
                             <div class="flex gap-2">
-                                <select id="chart-main-filter" class="bg-slate-50 border border-slate-200 text-sm rounded-lg p-2 focus:ring-unemi-blue focus:border-unemi-blue">
+                                <select id="chart-main-filter" class="appearance-none bg-white border border-slate-200 text-slate-700 text-sm font-bold py-2 px-4 pr-10 rounded-xl focus:ring-4 focus:ring-unemi-blue/10 focus:border-unemi-blue focus:outline-none transition-all hover:border-unemi-blue/50 shadow-sm bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20fill%3D%22none%22%20viewBox%3D%220%200%2024%2024%22%20stroke%3D%22%230F1E4B%22%20stroke-width%3D%222%22%3E%3Cpath%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%20d%3D%22m19.5%208.25-7.5%207.5-7.5-7.5%22%2F%3E%3C%2Fsvg%3E')] bg-[length:1.1rem_1.1rem] bg-[right_0.75rem_center] bg-no-repeat cursor-pointer">
                                     <option value="all">Todos los Grupos</option>
                                     <option value="1">Grupo 1</option>
                                     <option value="2">Grupo 2</option>
@@ -235,9 +237,9 @@
                                 <tr>
                                     <th class="px-4 py-3 rounded-l-lg">#</th>
                                     <th class="px-4 py-3">Líder</th>
-                                    <th class="px-4 py-3">Grupo</th>
-                                    <th class="px-4 py-3 text-center">Invitados</th>
-                                    <th class="px-4 py-3 text-center">Asistieron</th>
+                                    <th class="px-4 py-3 hidden md:table-cell">Grupo</th>
+                                    <th class="px-4 py-3 text-center hidden md:table-cell">Invitados</th>
+                                    <th class="px-4 py-3 text-center hidden md:table-cell text-xs">Asistieron</th>
                                     <th class="px-4 py-3 text-right rounded-r-lg">Efectividad</th>
                                 </tr>
                             </thead>
@@ -254,9 +256,14 @@
                 <div class="max-w-2xl mx-auto">
                     <div class="bg-white rounded-3xl shadow-xl overflow-hidden border border-slate-200">
                         <div class="bg-slate-900 p-6 text-center text-white relative">
-                            <button id="btn-switch-camera" onclick="toggleCamera()" class="hidden absolute top-4 right-4 bg-white/10 hover:bg-white/20 p-2 rounded-full transition-colors">
-                                <i data-lucide="refresh-cw" class="w-5 h-5 text-white"></i>
-                            </button>
+                            <div class="absolute top-4 right-4 flex gap-2 z-10">
+                                <button id="btn-torch" onclick="toggleTorch()" class="hidden bg-white/10 hover:bg-white/20 p-3 rounded-full transition-all border border-white/10 backdrop-blur-md" title="Linterna">
+                                    <i data-lucide="zap" class="w-5 h-5 text-white"></i>
+                                </button>
+                                <button id="btn-switch-camera" onclick="toggleCamera()" class="hidden bg-white/10 hover:bg-white/20 p-3 rounded-full transition-all border border-white/10 backdrop-blur-md" title="Cambiar Cámara">
+                                    <i data-lucide="refresh-ccw" class="w-5 h-5 text-white"></i>
+                                </button>
+                            </div>
                             <i data-lucide="scan" class="w-12 h-12 mx-auto mb-2 text-unemi-orange"></i>
                             <h3 class="text-xl font-bold">Escanear Credencial</h3>
                             <p class="text-slate-400 text-sm">Apunta la cámara al código QR del estudiante</p>
@@ -283,7 +290,7 @@
                             <input type="text" id="search-registros" placeholder="Buscar por nombre o cédula..." class="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-unemi-blue">
                         </div>
                         <div class="flex gap-2">
-                             <select id="filter-estado" class="bg-slate-50 border border-slate-200 text-sm rounded-lg p-2.5 focus:ring-unemi-blue focus:border-unemi-blue">
+                             <select id="filter-estado" class="appearance-none bg-white border border-slate-200 text-slate-700 text-sm font-bold py-2 px-4 pr-10 rounded-xl focus:ring-4 focus:ring-unemi-blue/10 focus:border-unemi-blue focus:outline-none transition-all hover:border-unemi-blue/50 shadow-sm bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20fill%3D%22none%22%20viewBox%3D%220%200%2024%2024%22%20stroke%3D%22%230F1E4B%22%20stroke-width%3D%222%22%3E%3Cpath%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%20d%3D%22m19.5%208.25-7.5%207.5-7.5-7.5%22%2F%3E%3C%2Fsvg%3E')] bg-[length:1.1rem_1.1rem] bg-[right_0.75rem_center] bg-no-repeat cursor-pointer">
                                 <option value="all">Todos los Estados</option>
                                 <option value="present">Asistió</option>
                                 <option value="absent">Pendiente</option>
@@ -320,7 +327,7 @@
                             <h3 class="font-bold text-unemi-blue">Detalle Bancario</h3>
                          </div>
                         <div class="flex gap-2 w-full md:w-auto">
-                             <select id="filter-banco" class="w-full md:w-64 bg-white border border-slate-200 text-sm rounded-lg p-2.5 focus:ring-unemi-blue focus:border-unemi-blue shadow-sm">
+                             <select id="filter-banco" class="appearance-none w-full md:w-72 bg-white border border-slate-200 text-unemi-blue text-sm font-bold py-2 px-4 pr-10 rounded-xl focus:ring-4 focus:ring-unemi-blue/10 focus:border-unemi-blue focus:outline-none transition-all hover:border-unemi-blue/50 shadow-sm bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20fill%3D%22none%22%20viewBox%3D%220%200%2024%2024%22%20stroke%3D%22%230F1E4B%22%20stroke-width%3D%222%22%3E%3Cpath%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%20d%3D%22m19.5%208.25-7.5%207.5-7.5-7.5%22%2F%3E%3C%2Fsvg%3E')] bg-[length:1.1rem_1.1rem] bg-[right_0.75rem_center] bg-no-repeat cursor-pointer">
                                 <option value="all">Filtrar por Banco (Todos)</option>
                                 <!-- Populated dynamically -->
                             </select>
@@ -354,6 +361,12 @@
                             <h3 class="font-bold text-unemi-orange">Gestión de Líderes</h3>
                          </div>
                         <div class="flex gap-2 w-full md:w-auto">
+                            <button onclick="openLeaderImportModal()" class="bg-emerald-500 text-white px-4 py-2 rounded-lg text-sm font-bold shadow hover:bg-emerald-600 transition-all flex items-center gap-2">
+                                <i data-lucide="file-up" class="w-4 h-4"></i> Importar Líderes
+                            </button>
+                            <button onclick="smartShuffleLeaders()" class="bg-indigo-500 text-white px-4 py-2 rounded-lg text-sm font-bold shadow hover:bg-indigo-600 transition-all flex items-center gap-2">
+                                <i data-lucide="shuffle" class="w-4 h-4"></i> Sorteo Inteligente
+                            </button>
                             <button onclick="openLiderModal()" class="bg-unemi-blue text-white px-4 py-2 rounded-lg text-sm font-bold shadow hover:bg-slate-800 transition-all flex items-center gap-2">
                                 <i data-lucide="plus" class="w-4 h-4"></i> Nuevo Líder
                             </button>
@@ -362,10 +375,10 @@
                     <div class="p-4 bg-slate-50 border-b border-slate-100 grid md:grid-cols-3 gap-4">
                         <div class="relative">
                             <i data-lucide="search" class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4"></i>
-                            <input type="text" id="search-lideres" placeholder="Buscar líder..." class="w-full pl-10 pr-4 py-2 bg-white border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-unemi-blue">
+                            <input type="text" id="search-lideres" placeholder="Buscar por nombre o correo..." class="w-full pl-10 pr-4 py-2 bg-white border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-unemi-blue">
                         </div>
                         <div class="flex gap-2">
-                            <select id="filter-lider-grupo" class="bg-white border border-slate-200 text-sm rounded-lg p-2.5 focus:ring-unemi-blue focus:border-unemi-blue w-full">
+                            <select id="filter-lider-grupo" class="appearance-none bg-white border border-slate-200 text-unemi-orange text-sm font-bold py-2 px-4 pr-10 rounded-xl focus:ring-4 focus:ring-unemi-orange/10 focus:border-unemi-orange focus:outline-none transition-all hover:border-unemi-orange/50 shadow-sm bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20fill%3D%22none%22%20viewBox%3D%220%200%2024%2024%22%20stroke%3D%22%23EF7D00%22%20stroke-width%3D%222%22%3E%3Cpath%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%20d%3D%22m19.5%208.25-7.5%207.5-7.5-7.5%22%2F%3E%3C%2Fsvg%3E')] bg-[length:1.1rem_1.1rem] bg-[right_0.75rem_center] bg-no-repeat w-full cursor-pointer">
                                 <option value="all">Todos los grupos</option>
                                 <option value="1">Grupo 1</option>
                                 <option value="2">Grupo 2</option>
@@ -380,7 +393,7 @@
                                 <tr>
                                     <th class="px-6 py-3 rounded-tl-lg">No.</th>
                                     <th class="px-6 py-3">Nombre Completo</th>
-                                    <th class="px-6 py-3">Cédula</th>
+                                    <th class="px-6 py-3">Correo</th>
                                     <th class="px-6 py-3">Grupo</th>
                                     <th class="px-6 py-3">Stats</th>
                                     <th class="px-6 py-3 text-center">Estado</th>
@@ -717,7 +730,12 @@
                     <div class="grid md:grid-cols-2 gap-4">
                         <div>
                             <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Grupo</label>
-                            <input type="number" id="lider-grupo" required min="1" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-unemi-blue focus:outline-none">
+                            <select id="lider-grupo" required class="w-full p-4 bg-white border border-slate-200 rounded-2xl focus:ring-4 focus:ring-unemi-orange/20 focus:border-unemi-orange focus:outline-none font-bold text-slate-700 shadow-sm appearance-none bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20fill%3D%22none%22%20viewBox%3D%220%200%2024%2024%22%20stroke%3D%22%23EF7D00%22%20stroke-width%3D%222%22%3E%3Cpath%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%20d%3D%22m19.5%208.25-7.5%207.5-7.5-7.5%22%2F%3E%3C%2Fsvg%3E')] bg-[length:1.25rem_1.25rem] bg-[right_1rem_center] bg-no-repeat transition-all hover:border-unemi-orange/50">
+                                <option value="1">Grupo 1</option>
+                                <option value="2">Grupo 2</option>
+                                <option value="3">Grupo 3</option>
+                                <option value="4">Grupo 4</option>
+                            </select>
                         </div>
                          <div>
                             <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Teléfono</label>
@@ -755,6 +773,32 @@
         </div>
     </div>
 
+    <!-- Modal: Importar Líderes Excel -->
+    <div id="leader-import-modal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-3xl w-full max-w-md overflow-hidden shadow-2xl">
+            <div class="p-6 border-b border-slate-100 flex justify-between items-center">
+                <h2 class="text-xl font-black text-unemi-blue">Importar Líderes (Excel)</h2>
+                <button onclick="closeLeaderImportModal()" class="text-slate-400 hover:text-slate-600">
+                    <i data-lucide="x" class="w-6 h-6"></i>
+                </button>
+            </div>
+            <form onsubmit="handleLeaderExcelUpload(event)" class="p-6 space-y-4">
+                <div class="p-8 border-2 border-dashed border-slate-200 rounded-2xl text-center hover:border-unemi-blue transition-colors cursor-pointer relative">
+                    <input type="file" id="leader-excel-file" accept=".xlsx, .xls" class="absolute inset-0 opacity-0 cursor-pointer" required onchange="updateLeaderFileName(this)">
+                    <div id="leader-file-info">
+                        <i data-lucide="upload-cloud" class="w-12 h-12 text-slate-300 mx-auto mb-4"></i>
+                        <p class="text-sm text-slate-500 font-bold">Arrastra o selecciona tu archivo Excel</p>
+                        <p class="text-xs text-slate-400 mt-1">Formato: Nombres (Col 1), Correo (Col 2)</p>
+                    </div>
+                </div>
+                <div id="leader-upload-status" class="hidden text-sm font-bold text-center p-2 rounded-lg"></div>
+                <button type="submit" class="w-full bg-emerald-600 text-white p-4 rounded-2xl font-black text-lg shadow-lg hover:shadow-emerald-200 transition-all active:scale-95">
+                    Subir y Procesar
+                </button>
+            </form>
+        </div>
+    </div>
+
     <!-- GLOBAL LOADER -->
     <div id="global-loader" class="fixed inset-0 z-[100] flex items-center justify-center bg-transparent transition-opacity duration-300">
         <!-- Backdrop is transparent as requested, blocking clicks is handled by inset-0 -->
@@ -776,6 +820,8 @@
             if(loader) loader.classList.add('opacity-0', 'pointer-events-none');
         }
     </script>
+    <script src="/static/js/dashboard-charts.js"></script>
+    <script src="/static/js/dashboard-scanner.js"></script>
     <script src="/static/js/dashboard.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', () => {
