@@ -31,6 +31,7 @@ from rest_framework.authtoken.models import Token
 class LeaderLoginView(views.APIView):
     """Custom login for leaders using their generated usernames."""
     permission_classes = [permissions.AllowAny]
+    authentication_classes = [] # Disable Auth checks (CSRF) for login endpoint
 
     def post(self, request):
         username = request.data.get('username')
