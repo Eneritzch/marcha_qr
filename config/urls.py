@@ -25,6 +25,10 @@ urlpatterns = [
     path('registro/', TemplateView.as_view(template_name='alumnos/registro.html'), name='registro'),
     path('recuperar/', TemplateView.as_view(template_name='alumnos/recuperar.html'), name='recuperar'),
     path('', TemplateView.as_view(template_name='alumnos/landing.html'), name='home'),
+    
+    # PWA Service Worker & Manifest served from root
+    path('sw.js', TemplateView.as_view(template_name='sw.js', content_type='application/javascript'), name='sw.js'),
+    path('manifest.json', TemplateView.as_view(template_name='manifest.json', content_type='application/json'), name='manifest.json'),
 ]
 
 
