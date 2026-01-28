@@ -297,8 +297,17 @@
                             <div id="qr-reader" class="rounded-xl overflow-hidden w-full"></div>
                         </div>
 
-                        <div class="p-6 text-center">
+                        <div class="p-6 text-center space-y-4">
                             <p id="scan-status" class="text-sm font-bold text-slate-500 animate-pulse">Esperando cámara...</p>
+                            
+                            <div class="flex flex-col items-center justify-center gap-4">
+                                <button onclick="document.getElementById('qr-file-input').click()" class="w-full max-w-xs flex items-center justify-center gap-2 bg-slate-100 hover:bg-slate-200 text-slate-700 py-3 rounded-2xl transition-all font-bold border border-slate-200 shadow-sm group">
+                                    <i data-lucide="image" class="w-5 h-5 text-unemi-orange group-hover:scale-110 transition-transform"></i>
+                                    Cargar desde Galería
+                                </button>
+                                <input type="file" id="qr-file-input" accept="image/*" class="hidden" onchange="handleQRFileSelect(this)">
+                            </div>
+
                             <div id="scan-result" class="hidden mt-4 p-4 bg-green-50 text-green-700 rounded-xl font-bold"></div>
                         </div>
                     </div>
@@ -846,9 +855,9 @@
             if(loader) loader.classList.add('opacity-0', 'pointer-events-none');
         }
     </script>
-    <script src="/static/js/dashboard-charts.js"></script>
-    <script src="/static/js/dashboard-scanner.js"></script>
-    <script src="/static/js/dashboard.js"></script>
+    <script src="/static/js/dashboard-charts.js?v=1.4"></script>
+    <script src="/static/js/dashboard-scanner.js?v=1.4"></script>
+    <script src="/static/js/dashboard.js?v=1.4"></script>
     <script>
         document.addEventListener('DOMContentLoaded', () => {
            lucide.createIcons();

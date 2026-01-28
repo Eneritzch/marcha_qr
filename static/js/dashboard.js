@@ -1411,3 +1411,15 @@ window.handleLeaderExcelUpload = async function (e) {
         window.hideLoader && window.hideLoader();
     }
 };
+// Global handle for QR Image Upload
+window.handleQRFileSelect = function (input) {
+    if (input.files && input.files.length > 0) {
+        if (window.DashboardScanner) {
+            window.DashboardScanner.scanImage(input.files[0]);
+            // Clear input so same file can be selected again
+            input.value = '';
+        } else {
+            console.error("Scanner module not found");
+        }
+    }
+};

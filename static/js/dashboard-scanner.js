@@ -176,70 +176,145 @@ window.DashboardScanner = {
         this.start(this.dataProcessor);
     },
 
-    onScanSuccess: async function (decodedText) {
-        if (document.getElementById('scan-result').classList.contains('processing')) return;
+    onScanSuccess: async function (decodedText, isImage = false) {
+        if (document.getElementById('scan-result').classList.contains('processing') && !isImage) return;
 
-        console.log(`Scan matched: ${decodedText}`);
+        console.log(`Scan matched: ${decodedText} (isImage: ${isImage})`);
         const feedbackBox = document.getElementById('scan-result');
         const statusEl = document.getElementById('scan-status');
 
-        // UI Feedback (Quick Overlay)
+        // UI Feedback
         statusEl.textContent = "¡Procesando!";
         statusEl.classList.add('text-unemi-orange');
-        feedbackBox.classList.add('processing'); // Lock scanning
+        feedbackBox.classList.add('processing');
 
         try {
-            // DELEGATE TO CALLBACK
-            if (!this.dataProcessor) throw new Error("No data processor defined");
+            if (!this.dataProcessor) throw new Error("No data processor definido");
 
             const alumno = await this.dataProcessor(decodedText);
-
-            // Success Pop-up (Non-blocking visual)
-            feedbackBox.className = "absolute bottom-16 left-4 right-4 p-4 bg-green-500/90 backdrop-blur-md text-white rounded-2xl shadow-xl flex items-center gap-4 animate-in slide-in-from-bottom-10 z-30 border border-white/20";
-            feedbackBox.classList.remove('hidden');
-            feedbackBox.innerHTML = `
-                <div class="bg-white text-green-500 rounded-full p-2 shadow-sm"><i data-lucide="check" class="w-6 h-6"></i></div>
-                <div>
-                    <p class="text-xs font-bold uppercase opacity-80">Asistencia Ok</p>
-                    <p class="text-lg font-bold">${alumno.nombre}</p>
-                </div>
-            `;
+            this.showSuccessUI(alumno.nombre);
 
         } catch (err) {
             console.error("Scanner Processing Error:", err);
-            // Error Pop-up
-            feedbackBox.className = "absolute bottom-16 left-4 right-4 p-4 bg-red-500/90 backdrop-blur-md text-white rounded-2xl shadow-xl flex items-center gap-4 animate-in slide-in-from-bottom-10 z-30 border border-white/20";
-            feedbackBox.classList.remove('hidden');
-
             let errorMsg = "Error desconocido";
             if (err.response && err.response.data) {
                 errorMsg = err.response.data.error || err.response.data.detail || JSON.stringify(err.response.data);
             } else {
                 errorMsg = err.message || "Código no compatible";
             }
-            // Clean up error message
-            if (errorMsg.length > 80) errorMsg = errorMsg.substring(0, 80) + "...";
-
-            feedbackBox.innerHTML = `
-                <div class="bg-white text-red-500 rounded-full p-2 shadow-sm"><i data-lucide="x" class="w-6 h-6"></i></div>
-                <div>
-                    <p class="text-xs font-bold uppercase opacity-80">Error</p>
-                    <p class="text-sm font-medium leading-tight">${errorMsg}</p>
-                </div>
-            `;
+            this.showErrorUI(errorMsg);
         } finally {
             if (window.lucide) window.lucide.createIcons();
 
-            // Pause briefly (1.5s) then clear for next scan
-            if (this.html5QrCode) await this.html5QrCode.pause();
+            // When from camera, we pause. When from image, it's already stopped.
+            if (this.html5QrCode && this.isScanning) {
+                try { await this.html5QrCode.pause(); } catch (e) { }
+            }
+
+            // Duration for result display
+            const displayTime = isImage ? 4000 : 2000;
 
             setTimeout(async () => {
                 feedbackBox.classList.add('hidden');
                 feedbackBox.classList.remove('processing');
-                statusEl.textContent = "Escaneando...";
                 statusEl.classList.remove('text-unemi-orange');
-                if (this.html5QrCode) await this.html5QrCode.resume();
-            }, 1500);
+
+                if (this.isScanning && this.html5QrCode) {
+                    statusEl.textContent = "Escaneando...";
+                    try { await this.html5QrCode.resume(); } catch (e) { }
+                } else {
+                    statusEl.textContent = "Esperando cámara...";
+                    // Auto-restart camera if we are still in the scanner view
+                    const scannerView = document.getElementById('view-scanner');
+                    if (isImage && scannerView && !scannerView.classList.contains('hidden')) {
+                        console.log("Reiniciando cámara automáticamente...");
+                        this.start(this.dataProcessor);
+                    }
+                }
+            }, displayTime);
+        }
+    },
+
+    showSuccessUI: function (nombre) {
+        const feedbackBox = document.getElementById('scan-result');
+        feedbackBox.className = "absolute bottom-16 left-4 right-4 p-4 bg-green-500/90 backdrop-blur-md text-white rounded-2xl shadow-xl flex items-center gap-4 animate-in slide-in-from-bottom-10 z-30 border border-white/20";
+        feedbackBox.classList.remove('hidden');
+        feedbackBox.innerHTML = `
+            <div class="bg-white text-green-500 rounded-full p-2 shadow-sm"><i data-lucide="check" class="w-6 h-6"></i></div>
+            <div class="flex-1">
+                <p class="text-xs font-bold uppercase opacity-80">Asistencia Ok</p>
+                <p class="text-lg font-bold leading-tight">${nombre}</p>
+            </div>
+        `;
+        if (window.lucide) window.lucide.createIcons();
+    },
+
+    showErrorUI: function (message) {
+        const feedbackBox = document.getElementById('scan-result');
+        feedbackBox.className = "absolute bottom-16 left-4 right-4 p-4 bg-red-500/90 backdrop-blur-md text-white rounded-2xl shadow-xl flex items-center gap-4 animate-in slide-in-from-bottom-10 z-30 border border-white/20";
+        feedbackBox.classList.remove('hidden');
+
+        let displayMsg = message;
+        if (displayMsg.length > 100) displayMsg = displayMsg.substring(0, 100) + "...";
+
+        feedbackBox.innerHTML = `
+            <div class="bg-white text-red-500 rounded-full p-2 shadow-sm"><i data-lucide="x" class="w-6 h-6"></i></div>
+            <div class="flex-1">
+                <p class="text-xs font-bold uppercase opacity-80">Error</p>
+                <p class="text-sm font-medium leading-tight">${displayMsg}</p>
+            </div>
+        `;
+        if (window.lucide) window.lucide.createIcons();
+    },
+
+    scanImage: async function (file) {
+        if (!file) return;
+
+        const feedbackBox = document.getElementById('scan-result');
+        const statusEl = document.getElementById('scan-status');
+
+        if (feedbackBox.classList.contains('processing')) return;
+
+        console.log("Iniciando análisis de imagen:", file.name);
+
+        // 1. Force stop camera to avoid conflicts
+        let wasScanning = this.isScanning;
+        if (wasScanning) {
+            console.log("Deteniendo cámara para analizar imagen...");
+            await this.stop();
+        }
+
+        statusEl.textContent = "Analizando imagen de galería...";
+        feedbackBox.classList.add('processing');
+
+        // 2. Ensure we have a scanner instance
+        if (!this.html5QrCode) {
+            this.html5QrCode = new Html5Qrcode("qr-reader");
+        }
+
+        try {
+            const decodedText = await this.html5QrCode.scanFile(file, true);
+            console.log("QR decodificado de imagen:", decodedText);
+
+            // 3. Process the decoded text
+            await this.onScanSuccess(decodedText, true);
+
+        } catch (err) {
+            console.error("Error al escanear imagen:", err);
+            const errorMsg = (typeof err === 'string' && err.includes("No QR code found"))
+                ? "No se encontró un código QR en la imagen seleccionada."
+                : "No se pudo leer el código QR. Intenta con otra foto.";
+
+            this.showErrorUI(errorMsg);
+
+            setTimeout(() => {
+                feedbackBox.classList.add('hidden');
+                feedbackBox.classList.remove('processing');
+                statusEl.textContent = "Esperando cámara...";
+            }, 3000);
+        } finally {
+            // we don't auto-resume here because onScanSuccess has its own timer
+            // and we might want to stay stopped on the result view.
         }
     }
 };
