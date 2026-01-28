@@ -9,10 +9,10 @@
         <span class="font-black tracking-tighter text-unemi-blue text-base sm:text-lg uppercase">Marcha UNEMI</span>
     </div>
     
-    <a href="/recuperar" class="flex items-center space-x-2 text-slate-500 hover:text-unemi-orange transition-colors font-bold text-xs sm:text-sm bg-slate-50 px-3 sm:px-4 py-2 rounded-full border border-slate-200 hover:border-unemi-orange whitespace-nowrap">
-        <i data-lucide="qr-code" class="w-3.5 h-3.5 sm:w-4 sm:h-4"></i>
-        <span class="hidden sm:inline">Mis Credenciales</span>
-        <span class="sm:hidden text-[10px]">Credenciales</span>
+    <a href="/recuperar" class="flex items-center space-x-2 text-unemi-orange border-2 border-unemi-orange transition-all font-black text-[10px] sm:text-xs bg-white px-3 sm:px-5 py-2 sm:py-2.5 rounded-full hover:bg-unemi-orange hover:text-white group active:scale-95 whitespace-nowrap shadow-sm">
+        <i data-lucide="qr-code" class="w-3.5 h-3.5 sm:w-4 sm:h-4 text-unemi-orange group-hover:text-white transition-colors"></i>
+        <span class="hidden sm:inline">MIS CREDENCIALES</span>
+        <span class="sm:hidden">CREDENCIALES</span>
     </a>
     <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
 </nav>
@@ -129,13 +129,13 @@
                             <option value="">Seleccione Modalidad...</option>
                          </select>
                     </div>
-                    <div>
+                    <div id="facultad-container">
                         <label class="block text-[10px] sm:text-xs font-bold text-slate-400 uppercase mb-1.5 sm:mb-2 ml-1">Facultad</label>
                         <select required id="facultad-select" name="facultad" disabled class="w-full px-4 py-2.5 sm:py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-unemi-blue outline-none transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed text-sm sm:text-base app-input">
                             <option value="">Primero seleccione Modalidad...</option>
                         </select>
                     </div>
-                    <div class="md:col-span-2">
+                    <div id="carrera-container" class="md:col-span-2">
                         <label class="block text-[10px] sm:text-xs font-bold text-slate-400 uppercase mb-1.5 sm:mb-2 ml-1">Carrera</label>
                         <select required id="carrera-select" name="carrera" disabled class="w-full px-4 py-2.5 sm:py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-unemi-blue outline-none transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed text-sm sm:text-base app-input">
                             <option value="">Primero seleccione Facultad...</option>
@@ -556,6 +556,34 @@
         background-color: #0F1E4B !important; /* Blue */
         border-color: #0F1E4B !important;
         color: white !important;
+    }
+
+    /* Enhanced Inputs */
+    .app-input {
+        background-color: #ffffff !important;
+        border: 2px solid #cbd5e1 !important; /* Shaded slate border by default */
+        border-right: 4px solid #cbd5e1 !important;
+        transition: all 0.3s ease !important;
+    }
+
+    .app-input:hover {
+        background-color: #f8fafc !important;
+        border-color: #94a3b8 !important;
+    }
+
+    .app-input:focus {
+        background-color: #ffffff !important;
+        border-color: #0F1E4B !important; /* Blue */
+        border-right-color: #EF7D00 !important; /* Orange accent on right */
+        box-shadow: 0 4px 6px -1px rgb(15 30 75 / 0.1), 0 2px 4px -2px rgb(15 30 75 / 0.1) !important;
+        outline: none !important;
+        transform: translateY(-1px);
+    }
+
+    .app-input::placeholder {
+        color: #94a3b8 !important;
+        font-weight: 500;
+        opacity: 0.7;
     }
 </style>
 {% endblock %}

@@ -56,6 +56,12 @@
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;900&display=swap');
         body { font-family: 'Inter', sans-serif; }
+
+        input::placeholder {
+            color: #94a3b8 !important;
+            font-weight: 500;
+            opacity: 0.7;
+        }
     </style>
 </head>
 <body class="bg-white min-h-screen">
@@ -125,7 +131,7 @@
                                 type="text"
                                 required
                                 placeholder="ej: rpezer"
-                                class="w-full pl-12 pr-4 py-4 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-unemi-blue focus:bg-white outline-none transition-all font-medium text-slate-700"
+                                class="w-full pl-12 pr-4 py-4 bg-white border-2 border-slate-300 border-r-4 border-r-slate-300 rounded-xl focus:border-unemi-blue focus:border-r-unemi-orange focus:bg-white outline-none transition-all font-medium text-slate-700 shadow-inner"
                             />
                         </div>
                     </div>
@@ -142,7 +148,7 @@
                                 type="password"
                                 required
                                 placeholder="••••••••"
-                                class="w-full pl-12 pr-4 py-4 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-unemi-blue focus:bg-white outline-none transition-all font-medium text-slate-700"
+                                class="w-full pl-12 pr-4 py-4 bg-white border-2 border-slate-300 border-r-4 border-r-slate-300 rounded-xl focus:border-unemi-blue focus:border-r-unemi-orange focus:bg-white outline-none transition-all font-medium text-slate-700 shadow-inner"
                             />
                             <button type="button" onclick="togglePassword()" class="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 cursor-pointer">
                                 <i data-lucide="eye" class="w-5 h-5"></i>

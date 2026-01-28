@@ -54,5 +54,6 @@ export const ACADEMIC_DATA = {
         "FACULTAD CIENCIAS SOCIALES": [
             "DERECHO"
         ]
-    }
+    },
+    "EGRESADO": {}
 };

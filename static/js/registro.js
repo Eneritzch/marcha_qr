@@ -263,10 +263,26 @@ document.addEventListener('DOMContentLoaded', async () => {
         // Modalidad Change
         selModalidad.addEventListener('change', () => {
             const mod = selModalidad.value;
+            const facContainer = document.getElementById('facultad-container');
+            const carContainer = document.getElementById('carrera-container');
+
             selFacultad.innerHTML = '<option value="">Seleccione Facultad...</option>';
             selCarrera.innerHTML = '<option value="">Primero seleccione Facultad...</option>';
             selFacultad.disabled = true;
             selCarrera.disabled = true;
+
+            if (mod === 'EGRESADO') {
+                if (facContainer) facContainer.classList.add('hidden');
+                if (carContainer) carContainer.classList.add('hidden');
+                selFacultad.innerHTML = '<option value="EGRESADO">EGRESADO</option>';
+                selCarrera.innerHTML = '<option value="EGRESADO">EGRESADO</option>';
+                selFacultad.value = 'EGRESADO';
+                selCarrera.value = 'EGRESADO';
+                return;
+            } else {
+                if (facContainer) facContainer.classList.remove('hidden');
+                if (carContainer) carContainer.classList.remove('hidden');
+            }
 
             if (mod && data[mod]) {
                 selFacultad.disabled = false;

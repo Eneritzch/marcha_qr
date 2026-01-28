@@ -7,6 +7,7 @@ class Alumno(models.Model):
         ('PRESENCIAL', 'Presencial'),
         ('EN_LINEA', 'En Línea'),
         ('SEMIPRESENCIAL', 'Semipresencial'),
+        ('EGRESADO', 'Egresado'),
     ]
 
     # Información Personal y Académica
@@ -17,7 +18,7 @@ class Alumno(models.Model):
 
     modalidad = models.CharField(max_length=20, choices=MODALIDADES, verbose_name="Modalidad")
     facultad = models.CharField(max_length=100, null=True, blank=True, verbose_name="Facultad")
-    carrera = models.CharField(max_length=150, verbose_name="Carrera")
+    carrera = models.CharField(max_length=150, null=True, blank=True, verbose_name="Carrera")
     
     # Código QR y Seguimiento
     codigo_qr = models.CharField(max_length=20, unique=True, editable=False, verbose_name="Código QR")
