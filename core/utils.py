@@ -76,7 +76,7 @@ class QRGenerator:
         img_qr = img
         
         # 3. Embed Logo
-        logo_path = os.path.join(settings.MEDIA_ROOT, 'icono.png')
+        logo_path = os.path.join(settings.BASE_DIR, 'static', 'img', 'icono.png')
         
         if os.path.exists(logo_path):
             try:
