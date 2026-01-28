@@ -2,7 +2,7 @@
     "name": "Marcha UNEMI 2026",
     "short_name": "Marcha UNEMI",
     "description": "Sistema de registro y asistencia para la Gran Marcha Universitaria UNEMI 2026.",
-    "start_url": "/dashboard/",
+    "start_url": "/login/",
     "display": "standalone",
     "background_color": "#0F1E4B",
     "theme_color": "#0F1E4B",

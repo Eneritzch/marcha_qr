@@ -51,10 +51,19 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Initial UI Update for Offline Mode
     updateOfflineUI();
 
-    // Check for online status to auto-sync
+    // Check for online/offline status to update UI and auto-sync
     window.addEventListener('online', () => {
-        console.log("Conexión recuperada, intentando sincronizar...");
-        syncOfflineScans();
+        console.log("Conexión recuperada, sincronizando en 2s...");
+        // Delay to ensure navigator.onLine is true and network is stable
+        setTimeout(() => {
+            updateOfflineUI();
+            if (navigator.onLine) syncOfflineScans();
+        }, 2000);
+    });
+
+    window.addEventListener('offline', () => {
+        console.log("Conexión perdida, activando modo offline...");
+        updateOfflineUI();
     });
 
     // Safe Event Listeners for other modules
@@ -379,18 +388,26 @@ window.refreshData = async function () {
         renderRegistrosTable(allAlumnos);
         renderBancosTable(allAlumnos);
         populateBankFilter();
+        // Render charts from cache
+        if (window.DashboardCharts && allLideres.length > 0) {
+            DashboardCharts.render(allAlumnos, allLideres);
+        }
     }
 
     // Si entramos por bypass offline y no hay token, no intentamos fetch
     if (offlineMode && !token) {
         console.log("Modo Offline Detectado: Usando únicamente base local.");
+        if (window.DashboardCharts && allAlumnos.length > 0 && allLideres.length > 0) {
+            DashboardCharts.render(allAlumnos, allLideres);
+        }
         window.hideLoader && window.hideLoader(); // Asegurar que el loader se oculte
         return;
     }
 
     try {
         window.showLoader && window.showLoader();
-        const response = await axios.get('/api/v1/alumnos/alumnos/', {
+        // Use nopaginate=true to get ALL students for offline storage
+        const response = await axios.get('/api/v1/alumnos/alumnos/?nopaginate=true', {
             headers: { Authorization: `Token ${token}` }
         });
         allAlumnos = response.data.results || response.data;
@@ -454,18 +471,24 @@ async function fetchLideres() {
     // Render immediately from cache for instant UI
     if (allLideres && allLideres.length > 0) {
         renderLideresTable(allLideres);
+        if (window.DashboardCharts && allAlumnos.length > 0) {
+            DashboardCharts.render(allAlumnos, allLideres);
+        }
     }
 
     // Skip network if offline bypass is active and no token
     if (offlineMode && !token) {
         console.log("Offline Mode: Using cached leaders.");
+        if (window.DashboardCharts && allAlumnos.length > 0 && allLideres.length > 0) {
+            DashboardCharts.render(allAlumnos, allLideres);
+        }
         window.hideLoader && window.hideLoader();
         return;
     }
 
     try {
         window.showLoader && window.showLoader();
-        const response = await axios.get('/api/v1/lideres/lideres/', {
+        const response = await axios.get('/api/v1/lideres/lideres/?nopaginate=true', {
             headers: { Authorization: `Token ${token}` }
         });
         allLideres = response.data.results || response.data;
@@ -1496,6 +1519,7 @@ window.startCameraManual = function () {
 
     window.DashboardScanner.start(async (cedula) => {
         // --- LOGICA HIBRIDA OFFLINE ---
+        // Forced fallback if already known offline or no network detector
         if (!navigator.onLine) {
             return await handleOfflineScan(cedula);
         }
@@ -1557,19 +1581,26 @@ window.handleQRFileSelect = function (input) {
                         return await handleOfflineScan(cedula);
                     }
 
-                    const headers = { Authorization: `Token ${token}` };
-                    const response = await axios.post('/api/v1/alumnos/marcar-asistencia/',
-                        { cedula: cedula },
-                        { headers: headers }
-                    );
-                    const alumno = response.data.alumno;
-                    const idx = allAlumnos.findIndex(a => a.cedula === alumno.cedula);
-                    if (idx !== -1) {
-                        allAlumnos[idx].asistio = true;
-                        localStorage.setItem('allAlumnos', JSON.stringify(allAlumnos));
-                        updateKPIs();
+                    try {
+                        const headers = { Authorization: `Token ${token}` };
+                        const response = await axios.post('/api/v1/alumnos/marcar-asistencia/',
+                            { cedula: cedula },
+                            { headers: headers }
+                        );
+
+                        const alumno = response.data.alumno;
+                        const idx = allAlumnos.findIndex(a => a.cedula === alumno.cedula);
+                        if (idx !== -1) {
+                            allAlumnos[idx].asistio = true;
+                            localStorage.setItem('allAlumnos', JSON.stringify(allAlumnos));
+                            updateKPIs();
+                        }
+                        return alumno;
+                    } catch (e) {
+                        console.warn("Online scan failed, falling back to offline logic:", e);
+                        // FALLBACK TO OFFLINE SCAN
+                        return await handleOfflineScan(cedula);
                     }
-                    return alumno;
                 };
             }
             window.DashboardScanner.scanImage(input.files[0]);
@@ -1717,15 +1748,19 @@ window.updateOfflineUI = function () {
 
         if (isOffline) {
             if (syncBox) syncBox.className = "bg-orange-50 border border-orange-200 rounded-2xl p-4 flex items-center justify-between gap-4";
-            if (statusLabel) statusLabel.textContent = 'MODO OFFLINE ACTIVADO';
+            if (statusLabel) {
+                statusLabel.textContent = 'MODO OFFLINE ACTIVADO';
+                statusLabel.className = "text-[10px] font-black text-unemi-orange uppercase tracking-widest";
+            }
             btnSync.classList.add('hidden');
         } else {
             if (syncBox) syncBox.className = "bg-green-50 border border-green-200 rounded-2xl p-4 flex items-center justify-between gap-4";
             if (statusLabel) {
                 statusLabel.textContent = 'SINCRONIZACIÓN PENDIENTE';
-                statusLabel.className = statusLabel.className.replace('text-unemi-orange', 'text-emerald-500');
+                statusLabel.className = "text-[10px] font-black text-emerald-500 uppercase tracking-widest";
             }
             btnSync.classList.remove('hidden');
+            // ... (rest of the sync button logic remains same)
 
             if (offlineMode && !token) {
                 btnSync.innerHTML = '<i data-lucide="log-in" class="w-3 h-3"></i> Login para Sinc';
