@@ -1,13 +1,13 @@
-const CACHE_NAME = 'marcha-unemi-v8';
+const CACHE_NAME = 'marcha-unemi-v9';
 const STATIC_ASSETS = [
     '/',
     '/login/',
     '/dashboard/',
     '/sw.js',
     '/manifest.json',
-    '/static/js/dashboard.js?v=2.0',
-    '/static/js/dashboard-charts.js?v=2.0',
-    '/static/js/dashboard-scanner.js?v=2.0',
+    '/static/js/dashboard.js?v=2.1',
+    '/static/js/dashboard-charts.js?v=2.1',
+    '/static/js/dashboard-scanner.js?v=2.1',
     '/static/img/icono.svg',
     '/static/img/icono.webp',
     '/static/img/TIGRILLO_LOAD_3.gif',

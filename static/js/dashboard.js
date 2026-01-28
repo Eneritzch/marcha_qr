@@ -313,14 +313,14 @@ function renderRegistrosTable(data) {
                     ${a.asistio ? 'Presente' : 'Pendiente'}
                  </span>
             </td>
-            <td class="px-6 py-4 text-center">
+             <td class="px-6 py-4 text-center">
                  <div class="flex items-center justify-center gap-2">
-                     <a href="/api/v1/alumnos/descargar-qr/${a.cedula}/" target="_blank" class="flex items-center gap-1 px-2 py-1 bg-blue-50 text-unemi-blue rounded hover:bg-unemi-blue hover:text-white transition-colors text-xs font-bold border border-blue-100">
+                     <button onclick="downloadFile('/api/v1/alumnos/descargar-qr/${a.cedula}/', 'qr_${a.cedula}.png')" class="flex items-center gap-1 px-2 py-1 bg-blue-50 text-unemi-blue rounded hover:bg-unemi-blue hover:text-white transition-colors text-xs font-bold border border-blue-100">
                         <i data-lucide="qr-code" class="w-3 h-3"></i> QR
-                     </a>
-                     <a href="/api/v1/alumnos/descargar-credencial/${a.cedula}/" target="_blank" class="flex items-center gap-1 px-2 py-1 bg-orange-50 text-unemi-orange rounded hover:bg-unemi-orange hover:text-white transition-colors text-xs font-bold border border-orange-100">
+                     </button>
+                     <button onclick="downloadFile('/api/v1/alumnos/descargar-credencial/${a.cedula}/', 'credencial_${a.cedula}.pdf')" class="flex items-center gap-1 px-2 py-1 bg-orange-50 text-unemi-orange rounded hover:bg-unemi-orange hover:text-white transition-colors text-xs font-bold border border-orange-100">
                         <i data-lucide="file-text" class="w-3 h-3"></i> PDF
-                     </a>
+                     </button>
                      ${(user.is_superuser === true || user.is_superuser === 'true') ? `
                     <button onclick="eliminarEntidad('alumno', '${a.cedula}', '${a.nombre_completo}')" class="flex items-center gap-1 px-2 py-1 bg-red-50 text-red-600 rounded hover:bg-red-600 hover:text-white transition-colors text-xs font-bold border border-red-100">
                         <i data-lucide="trash-2" class="w-3 h-3"></i>
@@ -1732,6 +1732,65 @@ window.syncOfflineScans = async function () {
         btn.disabled = false;
         btn.innerHTML = originalText;
         lucide.createIcons();
+    }
+};
+
+// --- HELPER: Descarga Segura para PWA (Blob + Web Share) ---
+window.downloadFile = async function (url, filename) {
+    if (!token) {
+        showErrorAlert("Se requiere sesión activa para descargar.");
+        return;
+    }
+
+    const btn = event.currentTarget;
+    const originalHTML = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<i class="animate-spin" data-lucide="loader-2"></i>';
+    if (window.lucide) lucide.createIcons();
+
+    try {
+        const response = await axios.get(url, {
+            headers: { Authorization: `Token ${token}` },
+            responseType: 'blob'
+        });
+
+        const contentType = response.headers['content-type'] || (filename.endsWith('.pdf') ? 'application/pdf' : 'image/png');
+        const blob = new Blob([response.data], { type: contentType });
+
+        // Si es móvil y soporta Web Share API (Modo App ideal)
+        if (navigator.share && navigator.canShare && navigator.canShare({ files: [new File([blob], filename, { type: contentType })] })) {
+            const file = new File([blob], filename, { type: contentType });
+            await navigator.share({
+                files: [file],
+                title: 'Descargar ' + filename,
+                text: 'Credencial Marcha UNEMI 2026'
+            });
+        } else {
+            // Fallback: A.click() (Funciona en PC y navegadores móviles estándar)
+            const downloadUrl = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = downloadUrl;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            setTimeout(() => {
+                window.URL.revokeObjectURL(downloadUrl);
+                document.body.removeChild(a);
+            }, 150);
+        }
+
+        const Toast = Swal.mixin({ toast: true, position: 'top-end', showConfirmButton: false, timer: 2000 });
+        Toast.fire({ icon: 'success', title: 'Archivo procesado' });
+
+    } catch (e) {
+        console.error("Error en descarga:", e);
+        if (e.name !== 'AbortError' && e.name !== 'NotAllowedError') { // Ignorar cancelación del usuario en Share API
+            showErrorAlert("No se pudo descargar el archivo. Verifica tu conexión.");
+        }
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = originalHTML;
+        if (window.lucide) lucide.createIcons();
     }
 };
 
