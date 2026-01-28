@@ -5,6 +5,18 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard Líder - Marcha UNEMI</title>
     <link rel="icon" type="image/webp" href="/static/img/icono.webp">
+    <link rel="manifest" href="/static/manifest.json">
+    
+    <!-- PWA Service Worker Registration -->
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/static/js/sw.js')
+                    .then(reg => console.log('Service Worker registrado', reg))
+                    .catch(err => console.log('Error al registrar SW', err));
+            });
+        }
+    </script>
     
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -33,16 +45,16 @@
     </script>
     
     <!-- Icons & Utils -->
-    <script src="https://unpkg.com/lucide@latest"></script>
-    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/lucide@0.474.0/dist/umd/lucide.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/axios@1.7.9/dist/axios.min.js"></script>
     
     <!-- Chart.js -->
     <!-- ApexCharts -->
-    <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+    <script src="https://cdn.jsdelivr.net/npm/apexcharts@4.3.0/dist/apexcharts.min.js"></script>
     
     <!-- HTML5-QRCode -->
-    <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/html5-qrcode.min.js" type="text/javascript"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11.15.10/dist/sweetalert2.all.min.js"></script>
 
 
     <style>
@@ -278,8 +290,60 @@
             <!-- VIEW: SCANNER -->
             <section id="view-scanner" class="hidden space-y-6 fade-in">
                 <div class="max-w-2xl mx-auto">
-                    <div class="bg-white rounded-3xl shadow-xl overflow-hidden border border-slate-200">
+                    <!-- 1. SELECTION UI -->
+                    <div id="scanner-selection-ui" class="bg-white rounded-3xl shadow-xl p-8 border border-slate-200 text-center space-y-6">
+                        <div class="bg-unemi-blue/5 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <i data-lucide="scan" class="w-10 h-10 text-unemi-blue"></i>
+                        </div>
+                        <h3 class="text-2xl font-black text-slate-800">Validar Asistencia</h3>
+                        <p class="text-slate-500">Selecciona el método de validación para continuar</p>
+                        
+                        <!-- Offline Sync Indicator -->
+                        <div id="offline-sync-container" class="hidden animate-in fade-in slide-in-from-top-4">
+                            <div class="bg-orange-50 border border-orange-200 rounded-2xl p-4 flex items-center justify-between gap-4">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-10 h-10 bg-unemi-orange/20 rounded-full flex items-center justify-center text-unemi-orange">
+                                        <i data-lucide="cloud-off" class="w-5 h-5"></i>
+                                    </div>
+                                    <div class="text-left">
+                                        <p id="offline-status-label" class="text-[10px] font-black text-unemi-orange uppercase tracking-widest">Modo Offline Detectado</p>
+                                        <p class="text-sm font-bold text-slate-700 leading-tight"><span id="offline-count">0</span> registros pendientes</p>
+                                    </div>
+                                </div>
+                                <button onclick="syncOfflineScans()" id="btn-sync-manual" class="bg-unemi-orange hover:bg-unemi_hover-orange text-white px-4 py-2 rounded-xl text-xs font-black uppercase transition-all shadow-lg shadow-orange-500/30 flex items-center gap-2">
+                                    <i data-lucide="refresh-ccw" class="w-3 h-3"></i> Sincronizar
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div class="grid gap-4 pt-4">
+                            <button onclick="startCameraManual()" class="flex items-center justify-center gap-3 bg-unemi-blue hover:bg-slate-800 text-white p-5 rounded-2xl transition-all shadow-lg font-bold group">
+                                <i data-lucide="camera" class="w-6 h-6 group-hover:scale-110 transition-transform"></i>
+                                <div class="text-left">
+                                    <p class="text-lg">Usar Cámara</p>
+                                    <p class="text-xs opacity-70 font-normal">Escaneo en tiempo real</p>
+                                </div>
+                            </button>
+                            
+                            <button onclick="document.getElementById('qr-file-input').click()" class="flex items-center justify-center gap-3 bg-white border-2 border-slate-100 hover:border-unemi-orange hover:bg-orange-50 text-slate-700 p-5 rounded-2xl transition-all shadow-sm font-bold group">
+                                <i data-lucide="image" class="w-6 h-6 text-unemi-orange group-hover:scale-110 transition-transform"></i>
+                                <div class="text-left">
+                                    <p class="text-lg">Cargar desde Galería</p>
+                                    <p class="text-xs text-slate-400 font-normal">Subir foto o captura con QR</p>
+                                </div>
+                            </button>
+                            <input type="file" id="qr-file-input" accept="image/*" class="hidden" onchange="handleQRFileSelect(this)">
+                        </div>
+                    </div>
+
+                    <!-- 2. CAMERA INTERFACE (Initially Hidden) -->
+                    <div id="scanner-camera-ui" class="hidden bg-white rounded-3xl shadow-xl overflow-hidden border border-slate-200">
                         <div class="bg-slate-900 p-6 text-center text-white relative">
+                            <div class="absolute top-4 left-4 z-10">
+                                <button onclick="stopCameraAndReturn()" class="bg-white/10 hover:bg-white/20 p-2 rounded-lg transition-all border border-white/10 backdrop-blur-md flex items-center gap-1 text-xs">
+                                     <i data-lucide="arrow-left" class="w-4 h-4"></i> Volver
+                                </button>
+                            </div>
                             <div class="absolute top-4 right-4 flex gap-2 z-10">
                                 <button id="btn-torch" onclick="toggleTorch()" class="hidden bg-white/10 hover:bg-white/20 p-3 rounded-full transition-all border border-white/10 backdrop-blur-md" title="Linterna">
                                     <i data-lucide="zap" class="w-5 h-5 text-white"></i>
@@ -290,7 +354,7 @@
                             </div>
                             <i data-lucide="scan" class="w-12 h-12 mx-auto mb-2 text-unemi-orange"></i>
                             <h3 class="text-xl font-bold">Escanear Credencial</h3>
-                            <p class="text-slate-400 text-sm">Apunta la cámara al código QR del estudiante</p>
+                            <p class="text-slate-400 text-sm">Apunta la cámara al código QR</p>
                         </div>
                         
                         <div class="p-4 bg-black relative">
@@ -298,19 +362,17 @@
                         </div>
 
                         <div class="p-6 text-center space-y-4">
-                            <p id="scan-status" class="text-sm font-bold text-slate-500 animate-pulse">Esperando cámara...</p>
+                            <p id="scan-status" class="text-sm font-bold text-slate-500 animate-pulse">Iniciando...</p>
                             
-                            <div class="flex flex-col items-center justify-center gap-4">
-                                <button onclick="document.getElementById('qr-file-input').click()" class="w-full max-w-xs flex items-center justify-center gap-2 bg-slate-100 hover:bg-slate-200 text-slate-700 py-3 rounded-2xl transition-all font-bold border border-slate-200 shadow-sm group">
-                                    <i data-lucide="image" class="w-5 h-5 text-unemi-orange group-hover:scale-110 transition-transform"></i>
-                                    Cargar desde Galería
-                                </button>
-                                <input type="file" id="qr-file-input" accept="image/*" class="hidden" onchange="handleQRFileSelect(this)">
-                            </div>
-
-                            <div id="scan-result" class="hidden mt-4 p-4 bg-green-50 text-green-700 rounded-xl font-bold"></div>
+                            <button onclick="document.getElementById('qr-file-input').click()" class="mx-auto flex items-center justify-center gap-2 bg-slate-50 hover:bg-slate-100 text-slate-600 px-6 py-3 rounded-2xl transition-all font-bold border border-slate-200 shadow-sm group">
+                                <i data-lucide="image" class="w-5 h-5 text-unemi-orange group-hover:scale-110 transition-transform"></i>
+                                Cargar desde Galería
+                            </button>
                         </div>
                     </div>
+
+                    <!-- 3. FEEDBACK OVERLAY (Compatible with both) -->
+                    <div id="scan-result" class="hidden mt-4 p-4 rounded-xl font-bold"></div>
                 </div>
             </section>
 
@@ -855,15 +917,23 @@
             if(loader) loader.classList.add('opacity-0', 'pointer-events-none');
         }
     </script>
-    <script src="/static/js/dashboard-charts.js?v=1.4"></script>
-    <script src="/static/js/dashboard-scanner.js?v=1.4"></script>
-    <script src="/static/js/dashboard.js?v=1.4"></script>
+    <script src="/static/js/dashboard-charts.js?v=1.8"></script>
+    <script src="/static/js/dashboard-scanner.js?v=1.8"></script>
+    <script src="/static/js/dashboard.js?v=1.8"></script>
     <script>
         document.addEventListener('DOMContentLoaded', () => {
-           lucide.createIcons();
+           try {
+               lucide.createIcons();
+           } catch(e) { console.error("Lucide failed", e); }
            // Fast dismiss on load
-           setTimeout(window.hideLoader, 600);
+           setTimeout(window.hideLoader, 500);
         });
+
+        // Fallback: Si DOMContentLoaded tarda mucho, ocultar con window.load
+        window.addEventListener('load', () => {
+            setTimeout(window.hideLoader, 1000);
+        });
+
         function toggleMobileMenu() {
             document.getElementById('mobile-menu').classList.toggle('hidden');
         }

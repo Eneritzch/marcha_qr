@@ -20,7 +20,7 @@ class AlumnoSerializer(serializers.ModelSerializer):
         model = Alumno
         fields = [
             'id', 'nombre_completo', 'cedula', 'email', 'telefono',
-            'modalidad', 'facultad', 'carrera', 'codigo_qr',
+            'modalidad', 'facultad', 'carrera', 'es_externo', 'codigo_qr',
             'asistio', 'fecha_registro', 'lider_invitador', 
             'lider_nombre', 'grupo', 'cuenta_bancaria', 'whatsapp_link'
         ]

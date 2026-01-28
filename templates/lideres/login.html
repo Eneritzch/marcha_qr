@@ -5,6 +5,18 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Acceso Líderes - Marcha UNEMI</title>
     <link rel="icon" type="image/x-icon" href="/static/img/icono.webp">
+    <link rel="manifest" href="/static/manifest.json">
+    
+    <!-- PWA Service Worker Registration -->
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/static/js/sw.js')
+                    .then(reg => console.log('Service Worker registrado', reg))
+                    .catch(err => console.log('Error al registrar SW', err));
+            });
+        }
+    </script>
     
     <!-- Tailwind CSS (CDN) -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -49,9 +61,9 @@
     </script>
     
     <!-- Lucide Icons -->
-    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/lucide@0.474.0/dist/umd/lucide.min.js"></script>
     <!-- Axios -->
-    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/axios@1.7.9/dist/axios.min.js"></script>
 
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;900&display=swap');
@@ -72,8 +84,8 @@
              <img src="/static/img/icono.webp" alt="UNEMI Logo" class="w-10 h-10 object-contain drop-shadow-md">
             <span class="font-black tracking-widest text-white text-lg hidden sm:inline shadow-black drop-shadow-md">MARCHA UNEMI</span>
         </div>
-        <a href="/registro" class="text-white hover:text-unemi-orange font-bold text-sm bg-white/20 backdrop-blur-md px-4 py-2 rounded-full border border-white/30 hover:bg-white/30 transition-all">
-            ← Volver al Registro
+        <a href="/" class="text-white hover:text-unemi-orange font-bold text-sm bg-white/20 backdrop-blur-md px-4 py-2 rounded-full border border-white/30 hover:bg-white/30 transition-all">
+            ← Volver al Inicio
         </a>
     </nav>
 
@@ -157,14 +169,6 @@
                     </div>
                 </div>
 
-                <div class="flex items-center justify-between text-sm">
-                    <label class="flex items-center space-x-2 cursor-pointer text-slate-500 hover:text-slate-700">
-                        <input type="checkbox" class="w-4 h-4 rounded text-unemi-blue focus:ring-unemi-blue border-slate-300">
-                        <span>Recordarme</span>
-                    </label>
-                    <a href="#" class="font-bold text-unemi-blue hover:text-unemi-orange transition-colors">¿Olvidaste tu contraseña?</a>
-                </div>
-
                 <button
                     type="submit"
                     id="submit-btn"
@@ -175,6 +179,19 @@
                     <div id="btn-spinner" class="hidden w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
                 </button>
 
+                <!-- Status message (Replacement for offline-login-zone) -->
+                <div id="offline-status-text" class="hidden animate-in fade-in slide-in-from-top-2 pt-4 border-t border-slate-100 mt-4">
+                    <div class="bg-orange-50 text-unemi-orange border border-dashed border-unemi-orange/30 p-4 rounded-xl flex items-center gap-3">
+                        <div class="w-8 h-8 bg-unemi-orange/10 rounded-full flex items-center justify-center">
+                            <i data-lucide="wifi-off" class="w-4 h-4"></i>
+                        </div>
+                        <div class="flex-1">
+                            <p class="text-[10px] font-black uppercase tracking-widest leading-none">Sin conexión</p>
+                            <p class="text-[11px] font-bold mt-1">Ingresando a Base Local...</p>
+                        </div>
+                    </div>
+                </div>
+
             </form>
         </div>
         
@@ -182,25 +199,21 @@
     </div>
 
     <script>
-        lucide.createIcons();
+        try {
+            lucide.createIcons();
+        } catch(e) { console.error("Lucide icons failed to load:", e); }
 
         // === CAROUSEL LOGIC ===
         const slides = [document.getElementById('slide-1'), document.getElementById('slide-2')];
         let currentSlide = 0;
 
-        // Apply Ken Burns Effect (Zoom & Fade)
         setInterval(() => {
-            // Fade out current
             slides[currentSlide].classList.remove('opacity-100', 'scale-110');
             slides[currentSlide].classList.add('opacity-0', 'scale-100');
-            
-            // Next slide
             currentSlide = (currentSlide + 1) % slides.length;
-            
-            // Fade in next
             slides[currentSlide].classList.remove('opacity-0', 'scale-100');
             slides[currentSlide].classList.add('opacity-100', 'scale-110');
-        }, 6000); // 6 seconds per slide
+        }, 6000);
 
         // === PASSWORD TOGGLE ===
         function togglePassword() {
@@ -208,67 +221,125 @@
             input.type = input.type === 'password' ? 'text' : 'password';
         }
 
+        // === CRYPTO HELPER (SHA-256) ===
+        async function hashValue(value) {
+            const msgBuffer = new TextEncoder().encode(value);
+            const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
+            const hashArray = Array.from(new Uint8Array(hashBuffer));
+            return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+        }
+
         // === LOGIN LOGIC ===
-        document.getElementById('login-form').addEventListener('submit', async function(e) {
-            e.preventDefault();
-            
-            const usernameInput = document.getElementById('username');
-            const passwordInput = document.getElementById('password');
-            const errorDiv = document.getElementById('error-message');
-            const errorText = document.getElementById('error-text');
-            const btnText = document.getElementById('btn-text');
-            const btnSpinner = document.getElementById('btn-spinner');
-            const submitBtn = document.querySelector('button[type="submit"]');
-
-            // Reset UI
-            errorDiv.classList.add('hidden');
-            submitBtn.classList.add('opacity-80', 'cursor-not-allowed');
-            btnText.classList.add('hidden');
-            document.querySelector('.lucide-arrow-right')?.classList.add('hidden');
-            btnSpinner.classList.remove('hidden');
-
-            try {
-                const response = await axios.post('/api/v1/lideres/login/', {
-                    username: usernameInput.value,
-                    password: passwordInput.value
-                });
+        const loginForm = document.getElementById('login-form');
+        if (loginForm) {
+            loginForm.addEventListener('submit', async function(e) {
+                e.preventDefault();
                 
-                // Success
-                localStorage.setItem('token', response.data.token);
-                localStorage.setItem('user', JSON.stringify(response.data));
-                
-                // Allow animation to be seen briefly
-                setTimeout(() => {
-                    window.location.href = '/dashboard';
-                }, 500);
+                const usernameInput = document.getElementById('username');
+                const passwordInput = document.getElementById('password');
+                const errorDiv = document.getElementById('error-message');
+                const errorText = document.getElementById('error-text');
+                const btnText = document.getElementById('btn-text');
+                const btnSpinner = document.getElementById('btn-spinner');
+                const submitBtn = document.querySelector('button[type="submit"]');
 
-            } catch (error) {
-                console.error(error);
-                errorDiv.classList.remove('hidden');
-                let msg = 'Credenciales incorrectas o problema de conexión.';
-                
-                if (error.response) {
-                    if (error.response.data.error) msg = error.response.data.error;
-                    if (error.response.status === 401) msg = "Usuario o contraseña inválidos.";
+                // Reset UI
+                errorDiv.classList.add('hidden');
+                submitBtn.classList.add('opacity-80', 'cursor-not-allowed');
+                btnText.classList.add('hidden');
+                document.querySelector('.lucide-arrow-right')?.classList.add('hidden');
+                btnSpinner.classList.remove('hidden');
+
+                const username = usernameInput.value.trim().toLowerCase();
+                const password = passwordInput.value;
+
+                if (navigator.onLine) {
+                    try {
+                        const response = await axios.post('/api/v1/lideres/login/', {
+                            username: username,
+                            password: password
+                        });
+                        
+                        // Success - Store Token & User Profile
+                        localStorage.setItem('token', response.data.token);
+                        localStorage.setItem('user', JSON.stringify(response.data));
+                        
+                        // CACHE CREDENTIALS FOR OFFLINE
+                        const credHash = await hashValue(username + ":" + password);
+                        const offlineCreds = JSON.parse(localStorage.getItem('offlineCreds') || '{}');
+                        offlineCreds[username] = {
+                            hash: credHash,
+                            profile: response.data // Keep profile for offline state
+                        };
+                        localStorage.setItem('offlineCreds', JSON.stringify(offlineCreds));
+
+                        setTimeout(() => {
+                            window.location.href = '/dashboard/';
+                        }, 500);
+
+                    } catch (error) {
+                        handleLoginError(error, errorDiv, errorText, submitBtn, btnText, btnSpinner);
+                    }
+                } else {
+                    // OFFLINE LOGIN VERIFICATION
+                    const offlineCreds = JSON.parse(localStorage.getItem('offlineCreds') || '{}');
+                    const stored = offlineCreds[username];
+                    
+                    if (stored) {
+                        const inputHash = await hashValue(username + ":" + password);
+                        if (inputHash === stored.hash) {
+                            // Offline Auth Success
+                            localStorage.setItem('offline_mode', 'true');
+                            localStorage.setItem('user', JSON.stringify(stored.profile));
+                            // Token stays empty, dashboard will handle it
+                            
+                            setTimeout(() => {
+                                window.location.href = '/dashboard/';
+                            }, 500);
+                            return;
+                        }
+                    }
+                    
+                    // Offline Auth Failure
+                    handleLoginError({ message: "Credenciales offline no reconocidas o usuario nunca ingresó con red." }, errorDiv, errorText, submitBtn, btnText, btnSpinner);
                 }
-                
-                errorText.textContent = msg;
-                
-                // Reset Button
-                submitBtn.classList.remove('opacity-80', 'cursor-not-allowed');
-                btnText.classList.remove('hidden');
-                 document.querySelector('.lucide-arrow-right')?.classList.remove('hidden');
-                btnSpinner.classList.add('hidden');
-                
-                // Shake animation on error div
-                errorDiv.classList.add('animate-shake');
-                setTimeout(() => errorDiv.classList.remove('animate-shake'), 500);
-            }
-        });
+            });
+        }
 
-        // === SESSION CHECK ===
+        function handleLoginError(error, errorDiv, errorText, submitBtn, btnText, btnSpinner) {
+            console.error(error);
+            errorDiv.classList.remove('hidden');
+            let msg = error.message || 'Credenciales incorrectas o problema de conexión.';
+            
+            if (error.response) {
+                if (error.response.data.error) msg = error.response.data.error;
+                if (error.response.status === 401) msg = "Usuario o contraseña inválidos.";
+            }
+            
+            errorText.textContent = msg;
+            submitBtn.classList.remove('opacity-80', 'cursor-not-allowed');
+            btnText.classList.remove('hidden');
+            document.querySelector('.lucide-arrow-right')?.classList.remove('hidden');
+            btnSpinner.classList.add('hidden');
+            errorDiv.classList.add('animate-shake');
+            setTimeout(() => errorDiv.classList.remove('animate-shake'), 500);
+        }
+
+        function checkOfflineStatus() {
+            const statusBox = document.getElementById('offline-status-text');
+            if (!navigator.onLine) {
+                statusBox.classList.remove('hidden');
+            } else {
+                statusBox.classList.add('hidden');
+            }
+        }
+
+        window.addEventListener('online', checkOfflineStatus);
+        window.addEventListener('offline', checkOfflineStatus);
+        checkOfflineStatus();
+
         if (localStorage.getItem('token')) {
-            window.location.href = '/dashboard';
+            window.location.href = '/dashboard/';
         }
     </script>
 </body>

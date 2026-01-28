@@ -1,11 +1,19 @@
 // Dashboard Logic
 const token = localStorage.getItem('token');
 const user = JSON.parse(localStorage.getItem('user') || '{}');
-let allAlumnos = [];
-let allLideres = [];
+
+// Persistencia Híbrida: Cargar desde local si existe
+let allAlumnos = JSON.parse(localStorage.getItem('allAlumnos') || '[]');
+let allLideres = JSON.parse(localStorage.getItem('allLideres') || '[]');
+let offlineQueue = JSON.parse(localStorage.getItem('offlineQueue') || '[]');
 
 // Auth Check
-if (!token) window.location.href = '/login';
+// Auth Check
+const offlineMode = localStorage.getItem('offline_mode');
+if (!token && !offlineMode) {
+    console.log("No token or offline mode - Redirecting to login");
+    window.location.href = '/login/';
+}
 
 // Initialize
 // Safe Event Binding Helper
@@ -19,16 +27,35 @@ document.addEventListener('DOMContentLoaded', async () => {
     const userNameEl = document.getElementById('user-name');
     const userGroupEl = document.getElementById('user-group');
     if (userNameEl) {
-        userNameEl.textContent = user.nombre || 'Líder';
-        if (user.is_superuser) {
-            userNameEl.innerHTML = `<span class="flex items-center gap-1">👑 ${user.nombre || 'Admin'} <span class="bg-orange-500 text-[8px] px-1 rounded text-white">ADMIN</span></span>`;
+        if (offlineMode) {
+            userNameEl.innerHTML = `<span class="flex items-center gap-1">📡 Sin Conexión</span>`;
+        } else {
+            userNameEl.textContent = user.nombre || 'Líder';
+            if (user.is_superuser) {
+                userNameEl.innerHTML = `<span class="flex items-center gap-1">👑 ${user.nombre || 'Admin'} <span class="bg-orange-500 text-[8px] px-1 rounded text-white">ADMIN</span></span>`;
+            }
         }
     }
-    if (userGroupEl) userGroupEl.textContent = user.is_superuser ? 'Superusuario' : `Grupo ${user.grupo || '?'}`;
+    if (userGroupEl) {
+        if (offlineMode) {
+            userGroupEl.textContent = "Consulta Local";
+        } else {
+            userGroupEl.textContent = user.is_superuser ? 'Superusuario' : `Grupo ${user.grupo || '?'}`;
+        }
+    }
 
     // Initial Fetch & View Restore
     const lastView = localStorage.getItem('lastView') || 'overview';
     switchView(lastView);
+
+    // Initial UI Update for Offline Mode
+    updateOfflineUI();
+
+    // Check for online status to auto-sync
+    window.addEventListener('online', () => {
+        console.log("Conexión recuperada, intentando sincronizar...");
+        syncOfflineScans();
+    });
 
     // Safe Event Listeners for other modules
     safeBind('search-registros', 'input', (e) => filterRegistros(e.target.value));
@@ -81,8 +108,14 @@ function filterLideres(query) {
 }
 
 function logout() {
-    localStorage.clear();
-    window.location.href = '/login';
+    // Clear session but NOT the data cache (to allow offline login later)
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    localStorage.removeItem('offline_mode');
+    localStorage.removeItem('lastView');
+
+    // We keep allAlumnos, allLideres, offlineQueue for hybrid support
+    window.location.href = '/login/';
 }
 
 // === VIEW SWITCHING ===
@@ -181,54 +214,13 @@ window.switchView = function (viewName) {
 
     // Specialized Logic
     if (viewName === 'scanner') {
-        if (window.DashboardScanner) {
-            window.DashboardScanner.start(async (cedula) => {
-                // Helper to get CSRF token
-                function getCookie(name) {
-                    let cookieValue = null;
-                    if (document.cookie && document.cookie !== '') {
-                        const cookies = document.cookie.split(';');
-                        for (let i = 0; i < cookies.length; i++) {
-                            const cookie = cookies[i].trim();
-                            if (cookie.substring(0, name.length + 1) === (name + '=')) {
-                                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-                                break;
-                            }
-                        }
-                    }
-                    return cookieValue;
-                }
-                const csrftoken = getCookie('csrftoken');
-
-                // 1. Send Request
-                // Include token AND CSRF to handle mixed Session/Token auth scenarios
-                const headers = {
-                    Authorization: `Token ${token}`
-                };
-                if (csrftoken) {
-                    headers['X-CSRFToken'] = csrftoken;
-                }
-
-                const response = await axios.post('/api/v1/alumnos/marcar-asistencia/',
-                    { cedula: cedula },
-                    { headers: headers }
-                );
-
-                const alumno = response.data.alumno;
-
-                // 2. Update Local State (Fresh Reference)
-                const idx = allAlumnos.findIndex(a => a.cedula === alumno.cedula);
-                if (idx !== -1) {
-                    allAlumnos[idx].asistio = true;
-                    updateKPIs();
-                }
-
-                return alumno; // Return to Scanner for UI display
-            });
-        } else {
-            console.error("Scanner module not loaded");
-        }
+        // RESET SCANNER UI TO SELECTION
+        document.getElementById('scanner-selection-ui').classList.remove('hidden');
+        document.getElementById('scanner-camera-ui').classList.add('hidden');
+        document.getElementById('scan-result').classList.add('hidden');
+        // Manual start handled by buttons
     } else {
+        // Stop camera if navigating away
         if (window.DashboardScanner) {
             DashboardScanner.stop();
         }
@@ -294,9 +286,14 @@ function renderRegistrosTable(data) {
         const tr = document.createElement('tr');
         tr.className = 'bg-white border-b hover:bg-slate-50 transition-colors';
         tr.innerHTML = `
-            <td class="px-6 py-4 font-medium text-slate-900">${a.nombre_completo}</td>
+            <td class="px-6 py-4 font-medium text-slate-900">
+                <div class="flex flex-col">
+                    <span>${a.nombre_completo}</span>
+                    ${a.es_externo ? '<span class="text-[9px] font-black text-orange-500 uppercase tracking-tighter">● Externo</span>' : ''}
+                </div>
+            </td>
             <td class="px-6 py-4 font-mono text-xs">${a.cedula}</td>
-            <td class="px-6 py-4 text-xs">${a.carrera || '-'}</td>
+            <td class="px-6 py-4 text-xs">${a.carrera || (a.es_externo ? '<span class="text-slate-400 italic">No aplica</span>' : '-')}</td>
             <td class="px-6 py-4 text-center">
                  <span class="px-2 py-1 rounded text-[10px] font-bold uppercase ${a.asistio ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-400'}">
                     ${a.asistio ? 'Presente' : 'Pendiente'}
@@ -376,12 +373,30 @@ function filterBancos() {
 
 // === DATA FETCHING ===
 window.refreshData = async function () {
+    // Renderización inmediata desde caché para UX instantánea y modo offline
+    if (allAlumnos && allAlumnos.length > 0) {
+        updateKPIs();
+        renderRegistrosTable(allAlumnos);
+        renderBancosTable(allAlumnos);
+        populateBankFilter();
+    }
+
+    // Si entramos por bypass offline y no hay token, no intentamos fetch
+    if (offlineMode && !token) {
+        console.log("Modo Offline Detectado: Usando únicamente base local.");
+        window.hideLoader && window.hideLoader(); // Asegurar que el loader se oculte
+        return;
+    }
+
     try {
         window.showLoader && window.showLoader();
         const response = await axios.get('/api/v1/alumnos/alumnos/', {
             headers: { Authorization: `Token ${token}` }
         });
         allAlumnos = response.data.results || response.data;
+
+        // Persistir en local para modo offline
+        localStorage.setItem('allAlumnos', JSON.stringify(allAlumnos));
 
         // Initial Render
         updateKPIs();
@@ -397,8 +412,6 @@ window.refreshData = async function () {
                 DashboardCharts.render(allAlumnos, allLideres);
             }
         }
-
-        // View restoration is now handled in DOMContentLoaded
 
     } catch (err) {
         console.error("Fetch error:", err);
@@ -438,12 +451,27 @@ async function handleExcelUpload(e) {
 
 // === LIDERES LOGIC ===
 async function fetchLideres() {
+    // Render immediately from cache for instant UI
+    if (allLideres && allLideres.length > 0) {
+        renderLideresTable(allLideres);
+    }
+
+    // Skip network if offline bypass is active and no token
+    if (offlineMode && !token) {
+        console.log("Offline Mode: Using cached leaders.");
+        window.hideLoader && window.hideLoader();
+        return;
+    }
+
     try {
         window.showLoader && window.showLoader();
         const response = await axios.get('/api/v1/lideres/lideres/', {
             headers: { Authorization: `Token ${token}` }
         });
         allLideres = response.data.results || response.data;
+
+        // Persist leaders
+        localStorage.setItem('allLideres', JSON.stringify(allLideres));
         renderLideresTable(allLideres);
 
         if (window.DashboardCharts) {
@@ -451,6 +479,10 @@ async function fetchLideres() {
         }
     } catch (err) {
         console.error("Error fetching leaders", err);
+        // If 401, they need to re-auth
+        if (err.response && err.response.status === 401) {
+            logout();
+        }
     } finally {
         window.hideLoader && window.hideLoader();
     }
@@ -504,32 +536,33 @@ function renderLideresTable(data) {
 }
 
 window.updateLeaderGroup = async function (id, newGroup) {
+    const numGroup = parseInt(newGroup);
+
+    // Optimistic local update
+    const idx = allLideres.findIndex(l => l.id == id);
+    if (idx !== -1) {
+        allLideres[idx].grupo = numGroup;
+        localStorage.setItem('allLideres', JSON.stringify(allLideres));
+        renderLideresTable(allLideres);
+    }
+
+    if (offlineMode && !token) {
+        showOfflineToast("Cambio guardado localmente. Se sincronizará al recuperar conexión.");
+        return;
+    }
+
     try {
-        await axios.patch(`/api/v1/lideres/lideres/${id}/`, { grupo: parseInt(newGroup) }, {
+        await axios.patch(`/api/v1/lideres/lideres/${id}/`, { grupo: numGroup }, {
             headers: { Authorization: `Token ${token}` }
         });
-        // Success feedback
-        const Toast = Swal.mixin({
-            toast: true,
-            position: 'top-end',
-            showConfirmButton: false,
-            timer: 2000,
-            timerProgressBar: true
-        });
-        Toast.fire({
-            icon: 'success',
-            title: 'Grupo actualizado'
-        });
-
-        // Refresh data so filters work on updated values
-        fetchLideres();
+        showSuccessToast('Grupo actualizado');
     } catch (e) {
-        Swal.fire({
-            icon: 'error',
-            title: 'Error al actualizar grupo',
-            text: 'No se pudo guardar el cambio del grupo.',
-            confirmButtonColor: '#0F1E4B'
-        });
+        console.error("Error updating leader group", e);
+        if (!navigator.onLine) {
+            showOfflineToast("Sin conexión. El cambio se mantiene localmente.");
+        } else {
+            showErrorAlert('No se pudo guardar el cambio del grupo.');
+        }
     }
 }
 
@@ -592,8 +625,28 @@ async function saveLider(e) {
         visible_en_registro: document.getElementById('lider-visible').checked
     };
 
+    // Optimistic local update/create for offline
+    if (id) {
+        const idx = allLideres.findIndex(l => l.id == id);
+        if (idx !== -1) {
+            allLideres[idx] = { ...allLideres[idx], ...data };
+        }
+    } else {
+        // Temporary ID for local-only entry
+        const tempLider = { ...data, id: 'temp_' + Date.now(), total_invitados: 0, total_asistencias: 0 };
+        allLideres.push(tempLider);
+    }
+    localStorage.setItem('allLideres', JSON.stringify(allLideres));
+    renderLideresTable(allLideres);
+    document.getElementById('lider-modal').classList.add('hidden');
+
+    if (offlineMode && !token) {
+        showOfflineToast("Líder guardado localmente (Modo Consulta).");
+        return;
+    }
+
     try {
-        if (id) {
+        if (id && !id.startsWith('temp_')) {
             await axios.patch(`/api/v1/lideres/lideres/${id}/`, data, {
                 headers: { Authorization: `Token ${token}` }
             });
@@ -602,16 +655,33 @@ async function saveLider(e) {
                 headers: { Authorization: `Token ${token}` }
             });
         }
-        document.getElementById('lider-modal').classList.add('hidden');
-        fetchLideres(); // Refresh list
+        showSuccessToast('Líder guardado correctamente');
+        fetchLideres(); // Real refresh to get server IDs/stats
     } catch (err) {
-        Swal.fire({
-            icon: 'error',
-            title: 'Error al guardar',
-            text: 'Verifique los datos e intente nuevamente.',
-            confirmButtonColor: '#0F1E4B'
-        });
+        console.error("Error saving leader", err);
+        if (!navigator.onLine) {
+            showOfflineToast("Sin conexión. Los cambios son locales por ahora.");
+        } else {
+            showErrorAlert('Error al guardar. Verifique los datos.');
+        }
     }
+}
+
+// Helpers for cleaner code
+function showSuccessToast(title) {
+    Swal.mixin({
+        toast: true, position: 'top-end', showConfirmButton: false, timer: 2000, timerProgressBar: true
+    }).fire({ icon: 'success', title: title });
+}
+
+function showOfflineToast(title) {
+    Swal.mixin({
+        toast: true, position: 'top-end', showConfirmButton: false, timer: 3000, timerProgressBar: true
+    }).fire({ icon: 'info', title: title, background: '#fffbeb' });
+}
+
+function showErrorAlert(text) {
+    Swal.fire({ icon: 'error', title: 'Error', text: text, confirmButtonColor: '#0F1E4B' });
 }
 
 // Deletion Logic
@@ -642,6 +712,11 @@ window.eliminarEntidad = async function (tipo, id, nombre) {
 
     if (result.isConfirmed) {
         try {
+            if (!navigator.onLine) {
+                showErrorAlert("Se requiere internet para eliminar registros.");
+                return;
+            }
+
             window.showLoader();
             const url = tipo === 'alumno' ? `/api/v1/alumnos/alumnos/${id}/` : `/api/v1/lideres/lideres/${id}/`;
             const response = await axios.delete(url, {
@@ -1273,6 +1348,11 @@ window.toggleTorch = function () {
 };
 
 window.smartShuffleLeaders = async function () {
+    if (!navigator.onLine) {
+        showErrorAlert("El sorteo requiere conexión a internet para sincronizar con la base de datos global.");
+        return;
+    }
+
     const result = await Swal.fire({
         title: '¿Sorteo Inteligente?',
         text: "Esto redistribuirá a todos los líderes activos aleatoriamente en los 15 grupos.",
@@ -1309,22 +1389,12 @@ window.smartShuffleLeaders = async function () {
 
         await Promise.all(promises);
 
-        Swal.fire({
-            icon: 'success',
-            title: 'Sorteo Completado',
-            text: `${count} líderes redistribuidos con éxito.`,
-            confirmButtonColor: '#0F1E4B'
-        });
+        showSuccessToast('Sorteo Completado');
         fetchLideres();
 
     } catch (err) {
         console.error("Error in smart shuffle:", err);
-        Swal.fire({
-            icon: 'error',
-            title: 'Error',
-            text: 'Ocurrió un error al redistribuir líderes.',
-            confirmButtonColor: '#0F1E4B'
-        });
+        showErrorAlert('Ocurrió un error al redistribuir líderes.');
     } finally {
         window.hideLoader && window.hideLoader();
     }
@@ -1411,15 +1481,268 @@ window.handleLeaderExcelUpload = async function (e) {
         window.hideLoader && window.hideLoader();
     }
 };
+// === MANUAL SCANNER CONTROLS ===
+window.startCameraManual = function () {
+    const selectionUI = document.getElementById('scanner-selection-ui');
+    const cameraUI = document.getElementById('scanner-camera-ui');
+
+    if (!window.DashboardScanner) {
+        console.error("Scanner module not found");
+        return;
+    }
+
+    selectionUI.classList.add('hidden');
+    cameraUI.classList.remove('hidden');
+
+    window.DashboardScanner.start(async (cedula) => {
+        // --- LOGICA HIBRIDA OFFLINE ---
+        if (!navigator.onLine) {
+            return await handleOfflineScan(cedula);
+        }
+
+        // Helper to get CSRF token
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+        const csrftoken = getCookie('csrftoken');
+
+        const headers = { Authorization: `Token ${token}` };
+        if (csrftoken) headers['X-CSRFToken'] = csrftoken;
+
+        const response = await axios.post('/api/v1/alumnos/marcar-asistencia/',
+            { cedula: cedula },
+            { headers: headers }
+        );
+
+        const alumno = response.data.alumno;
+        const idx = allAlumnos.findIndex(a => a.cedula === alumno.cedula);
+        if (idx !== -1) {
+            allAlumnos[idx].asistio = true;
+            localStorage.setItem('allAlumnos', JSON.stringify(allAlumnos)); // Mantener local sincronizado
+            updateKPIs();
+        }
+
+        return alumno;
+    });
+};
+
+window.stopCameraAndReturn = function () {
+    if (window.DashboardScanner) {
+        window.DashboardScanner.stop();
+    }
+    document.getElementById('scanner-selection-ui').classList.remove('hidden');
+    document.getElementById('scanner-camera-ui').classList.add('hidden');
+    document.getElementById('scan-result').classList.add('hidden');
+};
+
 // Global handle for QR Image Upload
 window.handleQRFileSelect = function (input) {
     if (input.files && input.files.length > 0) {
         if (window.DashboardScanner) {
+            // Ensure dataProcessor is defined if it wasn't started by camera
+            if (!DashboardScanner.dataProcessor) {
+                DashboardScanner.dataProcessor = async (cedula) => {
+                    if (!navigator.onLine) {
+                        return await handleOfflineScan(cedula);
+                    }
+
+                    const headers = { Authorization: `Token ${token}` };
+                    const response = await axios.post('/api/v1/alumnos/marcar-asistencia/',
+                        { cedula: cedula },
+                        { headers: headers }
+                    );
+                    const alumno = response.data.alumno;
+                    const idx = allAlumnos.findIndex(a => a.cedula === alumno.cedula);
+                    if (idx !== -1) {
+                        allAlumnos[idx].asistio = true;
+                        localStorage.setItem('allAlumnos', JSON.stringify(allAlumnos));
+                        updateKPIs();
+                    }
+                    return alumno;
+                };
+            }
             window.DashboardScanner.scanImage(input.files[0]);
-            // Clear input so same file can be selected again
             input.value = '';
         } else {
             console.error("Scanner module not found");
         }
+    }
+};
+
+// === OFFLINE HYBRID LOGIC ===
+window.handleOfflineScan = async function (cedula) {
+    console.log("Procesando escaneo offline para:", cedula);
+
+    // 1. Buscar en JSON local (caché)
+    const alumnoLocal = allAlumnos.find(a => a.cedula === cedula || a.codigo_qr === cedula);
+
+    if (!alumnoLocal) {
+        throw new Error("Estudiante no encontrado en la base local. Se requiere internet para validar registros nuevos.");
+    }
+
+    // 2. Verificar si ya asistió (en el JSON local)
+    if (alumnoLocal.asistio) {
+        return {
+            nombre: alumnoLocal.nombre_completo,
+            already_marked: true,
+            offline: true
+        };
+    }
+
+    // 3. Añadir a la cola offline si no está ya
+    if (!offlineQueue.includes(cedula)) {
+        offlineQueue.push(cedula);
+        localStorage.setItem('offlineQueue', JSON.stringify(offlineQueue));
+    }
+
+    // 4. Marcar como asistido localmente para feedback inmediato
+    const idx = allAlumnos.findIndex(a => a.cedula === alumnoLocal.cedula);
+    if (idx !== -1) {
+        allAlumnos[idx].asistio = true;
+        localStorage.setItem('allAlumnos', JSON.stringify(allAlumnos));
+
+        // --- ACTUALIZAR LÍDER LOCALMENTE ---
+        const liderId = alumnoLocal.lider_invitador;
+        if (liderId) {
+            const lIdx = allLideres.findIndex(l => l.id == liderId);
+            if (lIdx !== -1) {
+                allLideres[lIdx].total_asistencias = (allLideres[lIdx].total_asistencias || 0) + 1;
+                localStorage.setItem('allLideres', JSON.stringify(allLideres));
+            }
+        }
+
+        // --- ACTUALIZAR TODA LA UI ---
+        updateKPIs();
+        renderRegistrosTable(allAlumnos);
+        renderLideresTable(allLideres);
+
+        if (window.DashboardCharts) {
+            DashboardCharts.render(allAlumnos, allLideres);
+        }
+    }
+
+    updateOfflineUI();
+
+    return {
+        nombre: alumnoLocal.nombre_completo,
+        offline: true
+    };
+};
+
+window.syncOfflineScans = async function () {
+    if (offlineQueue.length === 0) {
+        console.log("No hay registros pendientes para sincronizar.");
+        return;
+    }
+
+    if (!navigator.onLine) {
+        console.warn("Intento de sincronización sin internet abortado.");
+        return;
+    }
+
+    const btn = document.getElementById('btn-sync-manual');
+    const originalText = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<i class="animate-spin" data-lucide="refresh-cw"></i> Sincronizando...';
+    lucide.createIcons();
+
+    let successCount = 0;
+    const itemsToSync = [...offlineQueue];
+
+    try {
+        for (const cedula of itemsToSync) {
+            try {
+                await axios.post('/api/v1/alumnos/marcar-asistencia/',
+                    { cedula: cedula },
+                    { headers: { Authorization: `Token ${token}` } }
+                );
+                successCount++;
+                // Eliminar de la cola local tras éxito
+                offlineQueue = offlineQueue.filter(item => item !== cedula);
+            } catch (e) {
+                console.error(`Error sincronizando ${cedula}:`, e);
+            }
+        }
+
+        localStorage.setItem('offlineQueue', JSON.stringify(offlineQueue));
+        updateOfflineUI();
+
+        if (successCount > 0) {
+            const Toast = Swal.mixin({
+                toast: true,
+                position: 'top-end',
+                showConfirmButton: false,
+                timer: 3000
+            });
+            Toast.fire({
+                icon: 'success',
+                title: `Sincronizados ${successCount} registros con el servidor.`
+            });
+            // Refrescar datos finales desde el servidor
+            refreshData();
+        }
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = originalText;
+        lucide.createIcons();
+    }
+};
+
+window.updateOfflineUI = function () {
+    const container = document.getElementById('offline-sync-container');
+    const countEl = document.getElementById('offline-count');
+    const btnSync = document.getElementById('btn-sync-manual');
+
+    if (!container || !countEl || !btnSync) return;
+
+    const isOffline = !navigator.onLine;
+    const hasPending = offlineQueue.length > 0;
+    const syncBox = container.querySelector('div') && container.querySelector('.bg-orange-50, .bg-green-50');
+
+    if (isOffline || hasPending) {
+        container.classList.remove('hidden');
+        countEl.textContent = offlineQueue.length;
+        const statusLabel = document.getElementById('offline-status-label');
+
+        if (isOffline) {
+            if (syncBox) syncBox.className = "bg-orange-50 border border-orange-200 rounded-2xl p-4 flex items-center justify-between gap-4";
+            if (statusLabel) statusLabel.textContent = 'MODO OFFLINE ACTIVADO';
+            btnSync.classList.add('hidden');
+        } else {
+            if (syncBox) syncBox.className = "bg-green-50 border border-green-200 rounded-2xl p-4 flex items-center justify-between gap-4";
+            if (statusLabel) {
+                statusLabel.textContent = 'SINCRONIZACIÓN PENDIENTE';
+                statusLabel.className = statusLabel.className.replace('text-unemi-orange', 'text-emerald-500');
+            }
+            btnSync.classList.remove('hidden');
+
+            if (offlineMode && !token) {
+                btnSync.innerHTML = '<i data-lucide="log-in" class="w-3 h-3"></i> Login para Sinc';
+                btnSync.className = btnSync.className.replace('bg-unemi-orange', 'bg-emerald-500');
+                btnSync.onclick = () => {
+                    localStorage.removeItem('offline_mode');
+                    window.location.href = '/login/';
+                };
+            } else {
+                btnSync.innerHTML = '<i data-lucide="refresh-ccw" class="w-3 h-3"></i> Sincronizar';
+                btnSync.className = btnSync.className.replace('bg-emerald-500', 'bg-unemi-orange');
+                btnSync.onclick = () => syncOfflineScans();
+            }
+        }
+        if (window.lucide) lucide.createIcons();
+    }
+    else {
+        container.classList.add('hidden');
     }
 };

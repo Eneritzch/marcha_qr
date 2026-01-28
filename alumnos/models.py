@@ -16,9 +16,10 @@ class Alumno(models.Model):
     email = models.EmailField(unique=True, verbose_name="Email")
     telefono = models.CharField(max_length=15, verbose_name="Teléfono")
 
-    modalidad = models.CharField(max_length=20, choices=MODALIDADES, verbose_name="Modalidad")
+    modalidad = models.CharField(max_length=20, choices=MODALIDADES, null=True, blank=True, verbose_name="Modalidad")
     facultad = models.CharField(max_length=100, null=True, blank=True, verbose_name="Facultad")
     carrera = models.CharField(max_length=150, null=True, blank=True, verbose_name="Carrera")
+    es_externo = models.BooleanField(default=False, verbose_name="¿Es externo a UNEMI?")
     
     # Código QR y Seguimiento
     codigo_qr = models.CharField(max_length=20, unique=True, editable=False, verbose_name="Código QR")

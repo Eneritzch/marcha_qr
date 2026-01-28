@@ -21,6 +21,12 @@ window.DashboardScanner = {
         const switchBtn = document.getElementById('btn-switch-camera');
 
         try {
+            if (typeof Html5Qrcode === 'undefined') {
+                if (statusEl) statusEl.innerHTML = `<span class="text-red-500 font-bold block bg-white px-2 rounded">Error: Librería de escaneo no cargada. Recarga con internet.</span>`;
+                console.error("Html5Qrcode is not defined. Possible caching failure.");
+                return;
+            }
+
             if (!window.isSecureContext) {
                 if (statusEl) statusEl.innerHTML = `<span class="text-red-500 font-bold block bg-white px-2 rounded">Error: Se requiere HTTPS.</span>`;
                 return;
@@ -191,8 +197,17 @@ window.DashboardScanner = {
         try {
             if (!this.dataProcessor) throw new Error("No data processor definido");
 
-            const alumno = await this.dataProcessor(decodedText);
-            this.showSuccessUI(alumno.nombre);
+            const result = await this.dataProcessor(decodedText);
+
+            if (result.offline) {
+                if (result.already_marked) {
+                    this.showSuccessUI(result.nombre, "Ya Registrado", "amber");
+                } else {
+                    this.showSuccessUI(result.nombre, "Guardado Localmente", "orange");
+                }
+            } else {
+                this.showSuccessUI(result.nombre);
+            }
 
         } catch (err) {
             console.error("Scanner Processing Error:", err);
@@ -219,30 +234,45 @@ window.DashboardScanner = {
                 feedbackBox.classList.remove('processing');
                 statusEl.classList.remove('text-unemi-orange');
 
-                if (this.isScanning && this.html5QrCode) {
+                if (isImage) {
+                    // Return to selection UI as requested
+                    if (window.stopCameraAndReturn) window.stopCameraAndReturn();
+                } else if (this.isScanning && this.html5QrCode) {
                     statusEl.textContent = "Escaneando...";
                     try { await this.html5QrCode.resume(); } catch (e) { }
                 } else {
                     statusEl.textContent = "Esperando cámara...";
-                    // Auto-restart camera if we are still in the scanner view
-                    const scannerView = document.getElementById('view-scanner');
-                    if (isImage && scannerView && !scannerView.classList.contains('hidden')) {
-                        console.log("Reiniciando cámara automáticamente...");
-                        this.start(this.dataProcessor);
-                    }
                 }
             }, displayTime);
         }
     },
 
-    showSuccessUI: function (nombre) {
+    showSuccessUI: function (nombre, customMsg = "Asistencia Ok", color = "green") {
         const feedbackBox = document.getElementById('scan-result');
-        feedbackBox.className = "absolute bottom-16 left-4 right-4 p-4 bg-green-500/90 backdrop-blur-md text-white rounded-2xl shadow-xl flex items-center gap-4 animate-in slide-in-from-bottom-10 z-30 border border-white/20";
+
+        // Map colors to tailwind classes
+        const colorClasses = {
+            green: "bg-green-500/90 text-white",
+            orange: "bg-orange-500/90 text-white",
+            amber: "bg-amber-500/90 text-white"
+        };
+
+        const iconClasses = {
+            green: "text-green-500",
+            orange: "text-orange-500",
+            amber: "text-amber-500"
+        };
+
+        const bgClass = colorClasses[color] || colorClasses.green;
+        const iconClass = iconClasses[color] || iconClasses.green;
+        const iconName = color === 'amber' ? 'alert-circle' : 'check';
+
+        feedbackBox.className = `absolute bottom-16 left-4 right-4 p-4 ${bgClass} backdrop-blur-md rounded-2xl shadow-xl flex items-center gap-4 animate-in slide-in-from-bottom-10 z-30 border border-white/20`;
         feedbackBox.classList.remove('hidden');
         feedbackBox.innerHTML = `
-            <div class="bg-white text-green-500 rounded-full p-2 shadow-sm"><i data-lucide="check" class="w-6 h-6"></i></div>
+            <div class="bg-white ${iconClass} rounded-full p-2 shadow-sm"><i data-lucide="${iconName}" class="w-6 h-6"></i></div>
             <div class="flex-1">
-                <p class="text-xs font-bold uppercase opacity-80">Asistencia Ok</p>
+                <p class="text-xs font-bold uppercase opacity-80">${customMsg}</p>
                 <p class="text-lg font-bold leading-tight">${nombre}</p>
             </div>
         `;
@@ -286,6 +316,13 @@ window.DashboardScanner = {
 
         statusEl.textContent = "Analizando imagen de galería...";
         feedbackBox.classList.add('processing');
+
+        // 1. Check if library is available
+        if (typeof Html5Qrcode === 'undefined') {
+            statusEl.textContent = "Error: Librería no disponible offline.";
+            this.showErrorUI("La librería de escaneo no se cargó. Por favor, recarga la aplicación con internet para activarla.");
+            return;
+        }
 
         // 2. Ensure we have a scanner instance
         if (!this.html5QrCode) {

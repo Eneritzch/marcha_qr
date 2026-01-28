@@ -308,6 +308,47 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
     }
 
+    // === EXTERNAL CHECKBOX LOGIC ===
+    const checkExterno = document.getElementById('check-externo');
+    const academicFields = ['modalidad-select', 'facultad-select', 'carrera-select'];
+    const academicContainers = ['facultad-container', 'carrera-container'];
+    const emailInput = document.querySelector('input[name="email"]');
+
+    checkExterno.addEventListener('change', (e) => {
+        const isExterno = e.target.checked;
+
+        // Hide/Show containers
+        const containers = ['modalidad-container', 'facultad-container', 'carrera-container'];
+        containers.forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.classList.toggle('hidden', isExterno);
+        });
+
+        academicFields.forEach(id => {
+            const el = document.getElementById(id);
+            if (isExterno) {
+                el.removeAttribute('required');
+                el.value = '';
+            } else {
+                el.setAttribute('required', '');
+            }
+        });
+
+        if (emailInput) {
+            emailInput.placeholder = isExterno ? 'usuario@ejemplo.com' : 'usuario@unemi.edu.ec';
+            const label = emailInput.previousElementSibling;
+            if (label) label.textContent = isExterno ? 'Correo Electrónico' : 'Correo Institucional';
+        }
+
+        // Reset academic filters if disabling
+        if (isExterno) {
+            const selFacultad = document.getElementById('facultad-select');
+            const selCarrera = document.getElementById('carrera-select');
+            if (selFacultad) selFacultad.disabled = true;
+            if (selCarrera) selCarrera.disabled = true;
+        }
+    });
+
     // === BANK CHECKBOX ===
     const checkPersonal = document.getElementById('check-misma-cuenta');
     checkPersonal.addEventListener('change', (e) => {
@@ -333,9 +374,10 @@ document.addEventListener('DOMContentLoaded', async () => {
             cedula: raw.cedula,
             email: raw.email,
             telefono: raw.telefono,
-            modalidad: raw.modalidad,
-            facultad: raw.facultad,
-            carrera: raw.carrera,
+            modalidad: raw.es_externo ? null : raw.modalidad,
+            facultad: raw.es_externo ? null : raw.facultad,
+            carrera: raw.es_externo ? null : raw.carrera,
+            es_externo: raw.es_externo === 'on',
             lider_invitador: raw.lider_invitador,
             cuenta_bancaria: {
                 banco: raw.banco,
