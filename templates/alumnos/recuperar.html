@@ -82,12 +82,12 @@
                      </span>
                      <span>UNIRME A MI GRUPO</span>
                  </a>
-                 <a id="download-credencial" href="#" target="_blank" class="block w-full bg-unemi-orange hover:bg-unemi_hover-orange text-white font-bold py-3 rounded-xl shadow-lg shadow-orange-500/20 transition-all flex items-center justify-center gap-2">
+                 <button id="download-credencial" onclick="downloadFile(this.dataset.url, this.dataset.filename)" class="block w-full bg-unemi-orange hover:bg-unemi_hover-orange text-white font-bold py-3 rounded-xl shadow-lg shadow-orange-500/20 transition-all flex items-center justify-center gap-2">
                      <i data-lucide="file-badge-2" class="w-5 h-5"></i> Descargar Credencial PDF
-                 </a>
-                 <a id="download-qr" href="#" target="_blank" class="block w-full bg-white text-unemi-blue border border-blue-100 hover:bg-blue-50 font-bold py-3 rounded-xl transition-all flex items-center justify-center gap-2">
+                 </button>
+                 <button id="download-qr" onclick="downloadFile(this.dataset.url, this.dataset.filename)" class="block w-full bg-white text-unemi-blue border border-blue-100 hover:bg-blue-50 font-bold py-3 rounded-xl transition-all flex items-center justify-center gap-2">
                      <i data-lucide="qr-code" class="w-5 h-5"></i> Descargar Imagen QR
-                 </a>
+                 </button>
              </div>
         </div>
 
@@ -126,8 +126,15 @@
             document.getElementById('res-nombre').textContent = data.nombre_completo || data.nombre;
             
             // Set update links
-            document.getElementById('download-qr').href = `/api/v1/alumnos/descargar-qr/${data.cedula}/`;
-            document.getElementById('download-credencial').href = `/api/v1/alumnos/descargar-credencial/${data.cedula}/`;
+            // Set data for download helper
+            const dlQr = document.getElementById('download-qr');
+            const dlWait = document.getElementById('download-credencial');
+            
+            dlQr.dataset.url = `/api/v1/alumnos/descargar-qr/${data.cedula}/`;
+            dlQr.dataset.filename = `qr_${data.cedula}.png`;
+            
+            dlWait.dataset.url = `/api/v1/alumnos/descargar-credencial/${data.cedula}/`;
+            dlWait.dataset.filename = `credencial_${data.cedula}.pdf`;
             
             // WhatsApp Link handling
             const waBtn = document.getElementById('join-whatsapp');

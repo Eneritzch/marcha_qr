@@ -140,6 +140,75 @@
                 }, 300);
             }
         };
+
+        // --- HELPER: Descarga Segura para PWA (Blob + Web Share) ---
+        // globally available for students and leaders
+        window.downloadFile = async function (url, filename) {
+            // Feedback visual si existe el botón
+            const btn = event ? event.currentTarget : null;
+            let originalHTML = "";
+            if (btn && btn.tagName === 'BUTTON') {
+                originalHTML = btn.innerHTML;
+                btn.disabled = true;
+                btn.innerHTML = '<i class="animate-spin" data-lucide="loader-2"></i>';
+                if(window.lucide) lucide.createIcons();
+            }
+
+            try {
+                // Si estamos en dashboard.js 'token' existe, si no, es público
+                const authToken = window.token || localStorage.getItem('token');
+                const headers = {};
+                if (authToken) headers['Authorization'] = `Token ${authToken}`;
+
+                const response = await axios.get(url, {
+                    headers: headers,
+                    responseType: 'blob'
+                });
+
+                const contentType = response.headers['content-type'] || (filename.endsWith('.pdf') ? 'application/pdf' : 'image/png');
+                const blob = new Blob([response.data], { type: contentType });
+
+                // iOS / Android PWA: Use Web Share API if possible
+                if (navigator.share && navigator.canShare && navigator.canShare({ files: [new File([blob], filename, { type: contentType })] })) {
+                    const file = new File([blob], filename, { type: contentType });
+                    await navigator.share({
+                        files: [file],
+                        title: 'Descargar ' + filename,
+                        text: 'Marcha UNEMI 2026'
+                    });
+                } else {
+                    // PC / Standard fallback
+                    const downloadUrl = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = downloadUrl;
+                    a.download = filename;
+                    document.body.appendChild(a);
+                    a.click();
+                    setTimeout(() => {
+                        window.URL.revokeObjectURL(downloadUrl);
+                        document.body.removeChild(a);
+                    }, 150);
+                }
+
+                if (window.Swal) {
+                    const Toast = Swal.mixin({ toast: true, position: 'top-end', showConfirmButton: false, timer: 2000 });
+                    Toast.fire({ icon: 'success', title: 'Archivo procesado' });
+                }
+
+            } catch (e) {
+                console.error("Error en descarga:", e);
+                if (e.name !== 'AbortError' && e.name !== 'NotAllowedError') {
+                    if (window.showErrorAlert) showErrorAlert("No se pudo procesar la descarga.");
+                    else alert("Error al descargar el archivo.");
+                }
+            } finally {
+                if (btn && btn.tagName === 'BUTTON') {
+                    btn.disabled = false;
+                    btn.innerHTML = originalHTML;
+                    if(window.lucide) lucide.createIcons();
+                }
+            }
+        };
     </script>
     {% block extra_js %}{% endblock %}
 </body>

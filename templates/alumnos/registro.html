@@ -307,12 +307,12 @@
             <!-- BUTTONS GRID -->
             <div class="grid gap-3 max-w-lg mx-auto px-2">
                 <div class="flex flex-col sm:flex-row gap-3">
-                     <a id="download-trigger-pdf" href="#" target="_blank" class="flex-1 bg-unemi-blue text-white font-bold py-3 px-4 rounded-xl hover:bg-slate-800 transition-colors shadow-lg shadow-blue-500/20 flex items-center justify-center gap-2 text-sm">
+                     <button id="download-trigger-pdf" onclick="downloadFile(this.dataset.url, this.dataset.filename)" class="flex-1 bg-unemi-blue text-white font-bold py-3 px-4 rounded-xl hover:bg-slate-800 transition-colors shadow-lg shadow-blue-500/20 flex items-center justify-center gap-2 text-sm">
                         <i data-lucide="file-text" class="w-4 h-4"></i> Descargar PDF
-                     </a>
-                     <a id="download-trigger-qr" href="#" target="_blank" class="flex-1 bg-orange-50 text-unemi-orange border border-orange-200 font-bold py-3 px-4 rounded-xl hover:bg-orange-100 transition-colors shadow-sm flex items-center justify-center gap-2 text-sm">
+                     </button>
+                     <button id="download-trigger-qr" onclick="downloadFile(this.dataset.url, this.dataset.filename)" class="flex-1 bg-orange-50 text-unemi-orange border border-orange-200 font-bold py-3 px-4 rounded-xl hover:bg-orange-100 transition-colors shadow-sm flex items-center justify-center gap-2 text-sm">
                         <i data-lucide="image" class="w-4 h-4"></i> Descargar Imagen
-                     </a>
+                     </button>
                 </div>
                 
                 <!-- SECRET CARD -->

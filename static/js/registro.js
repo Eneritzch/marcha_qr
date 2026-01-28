@@ -425,9 +425,15 @@ document.addEventListener('DOMContentLoaded', async () => {
             // If backend does NOT return image data directly, we can just use the link
             // Use backend endpoint to show the correct Dual-Tone QR (with cache busting)
             document.getElementById('qr-image').src = `/api/v1/alumnos/descargar-qr/${res.data.cedula}/?t=${new Date().getTime()}`;
-            // Link Download Buttons
-            document.getElementById('download-trigger-pdf').href = `/api/v1/alumnos/descargar-credencial/${res.data.cedula}/`;
-            document.getElementById('download-trigger-qr').href = `/api/v1/alumnos/descargar-qr/${res.data.cedula}/`;
+            // Link Download Buttons (Global dataset helper)
+            const btnPdf = document.getElementById('download-trigger-pdf');
+            const btnQr = document.getElementById('download-trigger-qr');
+
+            btnPdf.dataset.url = `/api/v1/alumnos/descargar-credencial/${res.data.cedula}/`;
+            btnPdf.dataset.filename = `credencial_${res.data.cedula}.pdf`;
+
+            btnQr.dataset.url = `/api/v1/alumnos/descargar-qr/${res.data.cedula}/`;
+            btnQr.dataset.filename = `qr_${res.data.cedula}.png`;
 
             // Dynamic WhatsApp Link
             const waBtn = document.getElementById('whatsapp-btn');

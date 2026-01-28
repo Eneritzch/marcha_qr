@@ -1736,63 +1736,7 @@ window.syncOfflineScans = async function () {
 };
 
 // --- HELPER: Descarga Segura para PWA (Blob + Web Share) ---
-window.downloadFile = async function (url, filename) {
-    if (!token) {
-        showErrorAlert("Se requiere sesión activa para descargar.");
-        return;
-    }
-
-    const btn = event.currentTarget;
-    const originalHTML = btn.innerHTML;
-    btn.disabled = true;
-    btn.innerHTML = '<i class="animate-spin" data-lucide="loader-2"></i>';
-    if (window.lucide) lucide.createIcons();
-
-    try {
-        const response = await axios.get(url, {
-            headers: { Authorization: `Token ${token}` },
-            responseType: 'blob'
-        });
-
-        const contentType = response.headers['content-type'] || (filename.endsWith('.pdf') ? 'application/pdf' : 'image/png');
-        const blob = new Blob([response.data], { type: contentType });
-
-        // Si es móvil y soporta Web Share API (Modo App ideal)
-        if (navigator.share && navigator.canShare && navigator.canShare({ files: [new File([blob], filename, { type: contentType })] })) {
-            const file = new File([blob], filename, { type: contentType });
-            await navigator.share({
-                files: [file],
-                title: 'Descargar ' + filename,
-                text: 'Credencial Marcha UNEMI 2026'
-            });
-        } else {
-            // Fallback: A.click() (Funciona en PC y navegadores móviles estándar)
-            const downloadUrl = window.URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = downloadUrl;
-            a.download = filename;
-            document.body.appendChild(a);
-            a.click();
-            setTimeout(() => {
-                window.URL.revokeObjectURL(downloadUrl);
-                document.body.removeChild(a);
-            }, 150);
-        }
-
-        const Toast = Swal.mixin({ toast: true, position: 'top-end', showConfirmButton: false, timer: 2000 });
-        Toast.fire({ icon: 'success', title: 'Archivo procesado' });
-
-    } catch (e) {
-        console.error("Error en descarga:", e);
-        if (e.name !== 'AbortError' && e.name !== 'NotAllowedError') { // Ignorar cancelación del usuario en Share API
-            showErrorAlert("No se pudo descargar el archivo. Verifica tu conexión.");
-        }
-    } finally {
-        btn.disabled = false;
-        btn.innerHTML = originalHTML;
-        if (window.lucide) lucide.createIcons();
-    }
-};
+// Moved to base.html for global access
 
 window.updateOfflineUI = function () {
     const container = document.getElementById('offline-sync-container');

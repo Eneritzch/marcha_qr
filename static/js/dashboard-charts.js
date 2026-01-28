@@ -288,7 +288,7 @@ window.DashboardCharts = {
             const topLeaders = leadersData.map(l => {
                 const invited = l.total_invitados || 0;
                 const attended = l.total_asistencias || 0;
-                const efficiency = invited > 0 ? (attended / invited) * 100 : 0;
+                const efficiency = invited > 0 ? Math.min((attended / invited) * 100, 100) : 0;
                 return { ...l, efficiency, invited, attended };
             })
                 .sort((a, b) => b.efficiency - a.efficiency || b.attended - a.attended) // Sort by Efficiency then Attendance
