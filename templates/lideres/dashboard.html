@@ -6,6 +6,17 @@
     <title>Dashboard Líder - Marcha UNEMI</title>
     <link rel="icon" type="image/webp" href="/static/img/icono.webp">
     <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#0F1E4B">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Marcha UNEMI">
+    
+    <style>
+        body {
+            overscroll-behavior-y: contain;
+            -webkit-tap-highlight-color: transparent;
+        }
+    </style>
     
     <!-- PWA Service Worker Registration -->
     <script>
@@ -917,9 +928,9 @@
             if(loader) loader.classList.add('opacity-0', 'pointer-events-none');
         }
     </script>
-    <script src="/static/js/dashboard-charts.js?v=1.8"></script>
-    <script src="/static/js/dashboard-scanner.js?v=1.8"></script>
-    <script src="/static/js/dashboard.js?v=1.8"></script>
+    <script src="/static/js/dashboard-charts.js?v=2.0"></script>
+    <script src="/static/js/dashboard-scanner.js?v=2.0"></script>
+    <script src="/static/js/dashboard.js?v=2.0"></script>
     <script>
         document.addEventListener('DOMContentLoaded', () => {
            try {

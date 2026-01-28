@@ -50,19 +50,24 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // Initial UI Update for Offline Mode
     updateOfflineUI();
+    // Second check after a short delay for browser consistency
+    setTimeout(updateOfflineUI, 1000);
 
     // Check for online/offline status to update UI and auto-sync
     window.addEventListener('online', () => {
-        console.log("Conexión recuperada, sincronizando en 2s...");
-        // Delay to ensure navigator.onLine is true and network is stable
+        console.log("Sistema detectó conexión recuperada.");
+        updateOfflineUI();
+        // Delay sync to ensure network is actually usable (avoid flaky Wi-Fi issues)
         setTimeout(() => {
-            updateOfflineUI();
-            if (navigator.onLine) syncOfflineScans();
-        }, 2000);
+            if (navigator.onLine) {
+                updateOfflineUI();
+                syncOfflineScans();
+            }
+        }, 3000);
     });
 
     window.addEventListener('offline', () => {
-        console.log("Conexión perdida, activando modo offline...");
+        console.log("Sistema detectó conexión perdida.");
         updateOfflineUI();
     });
 
@@ -1654,16 +1659,16 @@ window.handleOfflineScan = async function (cedula) {
         }
 
         // --- ACTUALIZAR TODA LA UI ---
+        // --- ACTUALIZAR UI AL INSTANTE (PARIDAD CON ONLINE) ---
         updateKPIs();
-        renderRegistrosTable(allAlumnos);
-        renderLideresTable(allLideres);
-
+        updateOfflineUI();
         if (window.DashboardCharts) {
             DashboardCharts.render(allAlumnos, allLideres);
         }
-    }
 
-    updateOfflineUI();
+        renderRegistrosTable(allAlumnos);
+        renderLideresTable(allLideres);
+    }
 
     return {
         nombre: alumnoLocal.nombre_completo,
@@ -1734,19 +1739,20 @@ window.updateOfflineUI = function () {
     const container = document.getElementById('offline-sync-container');
     const countEl = document.getElementById('offline-count');
     const btnSync = document.getElementById('btn-sync-manual');
+    const statusLabel = document.getElementById('offline-status-label');
 
     if (!container || !countEl || !btnSync) return;
 
     const isOffline = !navigator.onLine;
     const hasPending = offlineQueue.length > 0;
-    const syncBox = container.querySelector('div') && container.querySelector('.bg-orange-50, .bg-green-50');
+    const syncBox = container.querySelector('div.p-4');
 
     if (isOffline || hasPending) {
         container.classList.remove('hidden');
         countEl.textContent = offlineQueue.length;
-        const statusLabel = document.getElementById('offline-status-label');
 
         if (isOffline) {
+            // Priority 1: OFFLINE (Orange)
             if (syncBox) syncBox.className = "bg-orange-50 border border-orange-200 rounded-2xl p-4 flex items-center justify-between gap-4";
             if (statusLabel) {
                 statusLabel.textContent = 'MODO OFFLINE ACTIVADO';
@@ -1754,30 +1760,29 @@ window.updateOfflineUI = function () {
             }
             btnSync.classList.add('hidden');
         } else {
+            // Priority 2: PENDING SYNC (Green)
             if (syncBox) syncBox.className = "bg-green-50 border border-green-200 rounded-2xl p-4 flex items-center justify-between gap-4";
             if (statusLabel) {
                 statusLabel.textContent = 'SINCRONIZACIÓN PENDIENTE';
                 statusLabel.className = "text-[10px] font-black text-emerald-500 uppercase tracking-widest";
             }
             btnSync.classList.remove('hidden');
-            // ... (rest of the sync button logic remains same)
 
             if (offlineMode && !token) {
                 btnSync.innerHTML = '<i data-lucide="log-in" class="w-3 h-3"></i> Login para Sinc';
-                btnSync.className = btnSync.className.replace('bg-unemi-orange', 'bg-emerald-500');
+                btnSync.className = "flex items-center gap-1.5 px-3 py-1.5 bg-emerald-500 text-white rounded-lg text-xs font-bold hover:bg-emerald-600 transition-colors shadow-sm";
                 btnSync.onclick = () => {
                     localStorage.removeItem('offline_mode');
                     window.location.href = '/login/';
                 };
             } else {
                 btnSync.innerHTML = '<i data-lucide="refresh-ccw" class="w-3 h-3"></i> Sincronizar';
-                btnSync.className = btnSync.className.replace('bg-emerald-500', 'bg-unemi-orange');
+                btnSync.className = "flex items-center gap-1.5 px-3 py-1.5 bg-unemi-orange text-white rounded-lg text-xs font-bold hover:bg-unemi-orange/90 transition-colors shadow-sm";
                 btnSync.onclick = () => syncOfflineScans();
             }
         }
         if (window.lucide) lucide.createIcons();
-    }
-    else {
+    } else {
         container.classList.add('hidden');
     }
 };
