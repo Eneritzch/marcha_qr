@@ -371,6 +371,15 @@ document.addEventListener('DOMContentLoaded', async () => {
             document.getElementById('download-trigger-pdf').href = `/api/v1/alumnos/descargar-credencial/${res.data.cedula}/`;
             document.getElementById('download-trigger-qr').href = `/api/v1/alumnos/descargar-qr/${res.data.cedula}/`;
 
+            // Dynamic WhatsApp Link
+            const waBtn = document.getElementById('whatsapp-btn');
+            if (res.data.whatsapp_link) {
+                waBtn.href = res.data.whatsapp_link;
+                waBtn.parentElement.classList.remove('hidden'); // Ensure the container is visible
+            } else {
+                waBtn.parentElement.classList.add('hidden'); // Hide if no link
+            }
+
         } catch (error) {
             console.error(error);
             const feedback = document.getElementById('form-feedback');

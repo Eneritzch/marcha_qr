@@ -13,6 +13,11 @@ class LiderViewSet(viewsets.ModelViewSet):
     queryset = Lider.objects.all()
     serializer_class = LiderSerializer
 
+    def get_permissions(self):
+        if self.action == 'destroy':
+            return [permissions.IsAdminUser()]
+        return [permissions.IsAuthenticated()]
+
 class ActiveLiderListView(views.APIView):
     """Returns a list of active leaders grouped by their group for the registration form."""
     def get(self, request):
@@ -68,7 +73,8 @@ class LeaderLoginView(views.APIView):
                     "token": token.key,
                     "username": user.username,
                     "nombre": lider.nombre_completo,
-                    "grupo": lider.grupo
+                    "grupo": lider.grupo,
+                    "is_superuser": user.is_superuser
                 })
             return Response({"error": "El usuario no tiene un perfil de líder"}, status=status.HTTP_403_FORBIDDEN)
             
@@ -82,7 +88,7 @@ class DashboardStatsView(views.APIView):
         total_asistieron = Alumno.objects.filter(asistio=True).count()
         
         stats_grupos = []
-        for grupo_num in [1, 2, 3, 4]:
+        for grupo_num in range(1, 16):
             grupo_alumnos = Alumno.objects.filter(grupo=grupo_num)
             total_grupo = grupo_alumnos.count()
             asistieron_grupo = grupo_alumnos.filter(asistio=True).count()

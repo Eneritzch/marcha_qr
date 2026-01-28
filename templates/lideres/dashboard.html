@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard Líder - Marcha UNEMI</title>
-    <link rel="icon" type="image/svg+xml" href="/static/img/icono.svg">
+    <link rel="icon" type="image/webp" href="/static/img/icono.webp">
     
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -59,7 +59,7 @@
     <!-- SIDEBAR (Desktop) -->
     <aside class="w-64 bg-unemi-blue text-white flex flex-col shadow-2xl z-20 hidden md:flex">
         <div class="p-6 flex flex-col items-center gap-3 border-b border-white/10 text-center">
-            <img src="/static/img/icono.svg" alt="UNEMI Logo" class="w-20 h-20 object-contain drop-shadow-lg">
+            <img src="/static/img/icono.webp" alt="UNEMI Logo" class="w-20 h-20 object-contain drop-shadow-lg">
             <span class="font-bold tracking-widest text-sm">MARCHA UNEMI</span>
         </div>
 
@@ -219,10 +219,11 @@
                             <div class="flex gap-2">
                                 <select id="chart-main-filter" class="appearance-none bg-white border border-slate-200 text-slate-700 text-sm font-bold py-2 px-4 pr-10 rounded-xl focus:ring-4 focus:ring-unemi-blue/10 focus:border-unemi-blue focus:outline-none transition-all hover:border-unemi-blue/50 shadow-sm bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20fill%3D%22none%22%20viewBox%3D%220%200%2024%2024%22%20stroke%3D%22%230F1E4B%22%20stroke-width%3D%222%22%3E%3Cpath%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%20d%3D%22m19.5%208.25-7.5%207.5-7.5-7.5%22%2F%3E%3C%2Fsvg%3E')] bg-[length:1.1rem_1.1rem] bg-[right_0.75rem_center] bg-no-repeat cursor-pointer">
                                     <option value="all">Todos los Grupos</option>
-                                    <option value="1">Grupo 1</option>
-                                    <option value="2">Grupo 2</option>
-                                    <option value="3">Grupo 3</option>
-                                    <option value="4">Grupo 4</option>
+                                    <script>
+                                        for(let i=1; i<=15; i++) {
+                                            document.write(`<option value="${i}">Grupo ${i}</option>`);
+                                        }
+                                    </script>
                                 </select>
                             </div>
                         </div>
@@ -403,10 +404,11 @@
                         <div class="flex gap-2">
                             <select id="filter-lider-grupo" class="appearance-none bg-white border border-slate-200 text-unemi-orange text-sm font-bold py-2 px-4 pr-10 rounded-xl focus:ring-4 focus:ring-unemi-orange/10 focus:border-unemi-orange focus:outline-none transition-all hover:border-unemi-orange/50 shadow-sm bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20fill%3D%22none%22%20viewBox%3D%220%200%2024%2024%22%20stroke%3D%22%23EF7D00%22%20stroke-width%3D%222%22%3E%3Cpath%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%20d%3D%22m19.5%208.25-7.5%207.5-7.5-7.5%22%2F%3E%3C%2Fsvg%3E')] bg-[length:1.1rem_1.1rem] bg-[right_0.75rem_center] bg-no-repeat w-full cursor-pointer">
                                 <option value="all">Todos los grupos</option>
-                                <option value="1">Grupo 1</option>
-                                <option value="2">Grupo 2</option>
-                                <option value="3">Grupo 3</option>
-                                <option value="4">Grupo 4</option>
+                                <script>
+                                    for(let i=1; i<=15; i++) {
+                                        document.write(`<option value="${i}">Grupo ${i}</option>`);
+                                    }
+                                </script>
                             </select>
                         </div>
                     </div>
@@ -754,10 +756,11 @@
                         <div>
                             <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Grupo</label>
                             <select id="lider-grupo" required class="w-full p-4 bg-white border border-slate-200 rounded-2xl focus:ring-4 focus:ring-unemi-orange/20 focus:border-unemi-orange focus:outline-none font-bold text-slate-700 shadow-sm appearance-none bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20fill%3D%22none%22%20viewBox%3D%220%200%2024%2024%22%20stroke%3D%22%23EF7D00%22%20stroke-width%3D%222%22%3E%3Cpath%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%20d%3D%22m19.5%208.25-7.5%207.5-7.5-7.5%22%2F%3E%3C%2Fsvg%3E')] bg-[length:1.25rem_1.25rem] bg-[right_1rem_center] bg-no-repeat transition-all hover:border-unemi-orange/50">
-                                <option value="1">Grupo 1</option>
-                                <option value="2">Grupo 2</option>
-                                <option value="3">Grupo 3</option>
-                                <option value="4">Grupo 4</option>
+                                <script>
+                                    for(let i=1; i<=15; i++) {
+                                        document.write(`<option value="${i}">Grupo ${i}</option>`);
+                                    }
+                                </script>
                             </select>
                         </div>
                          <div>

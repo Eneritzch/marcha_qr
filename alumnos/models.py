@@ -29,7 +29,7 @@ class Alumno(models.Model):
     # Relación con Líder y Grupo (NUEVO)
     lider_invitador = models.ForeignKey(
         'lideres_app.Lider',
-        on_delete=models.PROTECT,
+        on_delete=models.CASCADE,
         related_name='alumnos',
         verbose_name="Líder que lo invitó"
     )

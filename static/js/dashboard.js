@@ -18,8 +18,13 @@ document.addEventListener('DOMContentLoaded', async () => {
     // User Info
     const userNameEl = document.getElementById('user-name');
     const userGroupEl = document.getElementById('user-group');
-    if (userNameEl) userNameEl.textContent = user.nombre || 'Líder';
-    if (userGroupEl) userGroupEl.textContent = `Grupo ${user.grupo || '?'}`;
+    if (userNameEl) {
+        userNameEl.textContent = user.nombre || 'Líder';
+        if (user.is_superuser) {
+            userNameEl.innerHTML = `<span class="flex items-center gap-1">👑 ${user.nombre || 'Admin'} <span class="bg-orange-500 text-[8px] px-1 rounded text-white">ADMIN</span></span>`;
+        }
+    }
+    if (userGroupEl) userGroupEl.textContent = user.is_superuser ? 'Superusuario' : `Grupo ${user.grupo || '?'}`;
 
     // Initial Fetch & View Restore
     const lastView = localStorage.getItem('lastView') || 'overview';
@@ -305,7 +310,11 @@ function renderRegistrosTable(data) {
                      <a href="/api/v1/alumnos/descargar-credencial/${a.cedula}/" target="_blank" class="flex items-center gap-1 px-2 py-1 bg-orange-50 text-unemi-orange rounded hover:bg-unemi-orange hover:text-white transition-colors text-xs font-bold border border-orange-100">
                         <i data-lucide="file-text" class="w-3 h-3"></i> PDF
                      </a>
-                 </div>
+                     ${(user.is_superuser === true || user.is_superuser === 'true') ? `
+                    <button onclick="eliminarEntidad('alumno', '${a.cedula}', '${a.nombre_completo}')" class="flex items-center gap-1 px-2 py-1 bg-red-50 text-red-600 rounded hover:bg-red-600 hover:text-white transition-colors text-xs font-bold border border-red-100">
+                        <i data-lucide="trash-2" class="w-3 h-3"></i>
+                    </button>` : ''}
+                </div>
             </td>
         `;
         tbody.appendChild(tr);
@@ -465,10 +474,7 @@ function renderLideresTable(data) {
              <td class="px-6 py-4 font-mono text-xs">${l.email || 'N/A'}</td>
             <td class="px-6 py-4">
                  <select onchange="updateLeaderGroup('${l.id}', this.value)" class="appearance-none bg-white border border-slate-200 text-unemi-blue text-[10px] font-black px-3 py-1.5 rounded-lg focus:ring-2 focus:ring-unemi-orange focus:border-unemi-orange cursor-pointer transition-all hover:border-unemi-orange hover:shadow-sm bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20fill%3D%22none%22%20viewBox%3D%220%200%2024%2024%22%20stroke%3D%22%23EF7D00%22%20stroke-width%3D%222.5%22%3E%3Cpath%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%20d%3D%22m19.5%208.25-7.5%207.5-7.5-7.5%22%2F%3E%3C%2Fsvg%3E')] bg-[length:0.8rem_0.8rem] bg-[right_0.4rem_center] bg-no-repeat pr-6 shadow-sm uppercase tracking-tighter">
-                     <option value="1" ${l.grupo == 1 ? 'selected' : ''}>Grupo 1</option>
-                     <option value="2" ${l.grupo == 2 ? 'selected' : ''}>Grupo 2</option>
-                     <option value="3" ${l.grupo == 3 ? 'selected' : ''}>Grupo 3</option>
-                     <option value="4" ${l.grupo == 4 ? 'selected' : ''}>Grupo 4</option>
+                     ${Array.from({ length: 15 }, (_, i) => i + 1).map(g => `<option value="${g}" ${l.grupo == g ? 'selected' : ''}>Grupo ${g}</option>`).join('')}
                  </select>
              </td>
              <td class="px-6 py-4 text-xs text-slate-500">
@@ -481,9 +487,15 @@ function renderLideresTable(data) {
                 </span>
              </td>
              <td class="px-6 py-4 text-center">
-                 <button onclick='openLiderModal(${JSON.stringify(l)})' class="text-unemi-blue hover:text-unemi-orange transition-colors">
-                    <i data-lucide="edit-2" class="w-4 h-4"></i>
-                 </button>
+                 <div class="flex items-center justify-center gap-2">
+                     <button onclick='openLiderModal(${JSON.stringify(l)})' class="p-2 text-unemi-blue hover:bg-blue-50 rounded-lg transition-colors" title="Editar">
+                        <i data-lucide="edit-2" class="w-4 h-4"></i>
+                     </button>
+                     ${(user.is_superuser === true || user.is_superuser === 'true') ? `
+                     <button onclick="eliminarEntidad('lider', '${l.id}', '${l.nombre_completo}')" class="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors" title="Eliminar">
+                        <i data-lucide="trash-2" class="w-4 h-4"></i>
+                     </button>` : ''}
+                 </div>
              </td>
         `;
         tbody.appendChild(tr);
@@ -600,14 +612,76 @@ async function saveLider(e) {
             confirmButtonColor: '#0F1E4B'
         });
     }
-
-    // Add missing toggleCamera function wrapper for button that calls it
-    window.toggleCamera = function () {
-        if (window.DashboardScanner) {
-            DashboardScanner.toggleCamera();
-        }
-    };
 }
+
+// Deletion Logic
+window.eliminarEntidad = async function (tipo, id, nombre) {
+    if (!window.Swal) {
+        console.error("SweetAlert2 (Swal) no está cargado.");
+        if (confirm(`¿Eliminar ${nombre}?`)) {
+            // Fallback to basic confirm if Swal fails
+        } else return;
+    }
+
+    const title = tipo === 'alumno' ? '¿Eliminar Estudiante?' : '¿Eliminar Líder?';
+    const text = tipo === 'alumno'
+        ? `Se eliminará el registro de <b>${nombre}</b> y toda su información asociada (QR, Banco, etc.).`
+        : `Se eliminará al líder <b>${nombre}</b> y TODOS sus estudiantes invitados. Esta acción no se puede deshacer.`;
+
+    const result = await Swal.fire({
+        title: title,
+        html: text, // Use html for bold names
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#EF7D00', // UNEMI Orange
+        cancelButtonColor: '#0F1E4B', // UNEMI Blue
+        confirmButtonText: 'Sí, eliminar',
+        cancelButtonText: 'Cancelar',
+        reverseButtons: true
+    });
+
+    if (result.isConfirmed) {
+        try {
+            window.showLoader();
+            const url = tipo === 'alumno' ? `/api/v1/alumnos/alumnos/${id}/` : `/api/v1/lideres/lideres/${id}/`;
+            const response = await axios.delete(url, {
+                headers: { Authorization: `Token ${token}` }
+            });
+
+            await Swal.fire({
+                title: '¡Eliminado!',
+                text: 'El registro ha sido removido exitosamente.',
+                icon: 'success',
+                timer: 1500,
+                showConfirmButton: false
+            });
+
+            if (tipo === 'alumno') {
+                refreshData();
+            } else {
+                fetchLideres();
+                refreshData(); // Refresh students too because of CASCADE
+            }
+        } catch (err) {
+            console.error("Error al eliminar:", err);
+            const msg = err.response?.data?.detail || err.response?.data?.error || "No tienes permisos o ocurrió un problema en el servidor.";
+            Swal.fire({
+                title: 'Error al eliminar',
+                text: msg,
+                icon: 'error'
+            });
+        } finally {
+            window.hideLoader();
+        }
+    }
+};
+
+// Global expose wrapper for camera toggles
+window.toggleCamera = function () {
+    if (window.DashboardScanner) {
+        DashboardScanner.toggleCamera();
+    }
+};
 
 
 // === IMPORT/EXPORT LOGIC ===
@@ -1201,7 +1275,7 @@ window.toggleTorch = function () {
 window.smartShuffleLeaders = async function () {
     const result = await Swal.fire({
         title: '¿Sorteo Inteligente?',
-        text: "Esto redistribuirá a todos los líderes activos aleatoriamente en los 4 grupos.",
+        text: "Esto redistribuirá a todos los líderes activos aleatoriamente en los 15 grupos.",
         icon: 'question',
         showCancelButton: true,
         confirmButtonColor: '#EF7D00',
@@ -1226,7 +1300,7 @@ window.smartShuffleLeaders = async function () {
 
         let count = 0;
         const promises = shuffled.map(l => {
-            const newGroup = (count % 4) + 1;
+            const newGroup = (count % 15) + 1;
             count++;
             return axios.patch(`/api/v1/lideres/lideres/${l.id}/`, { grupo: newGroup }, {
                 headers: { Authorization: `Token ${token}` }

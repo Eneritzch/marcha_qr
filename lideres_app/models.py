@@ -1,13 +1,20 @@
 from django.db import models
 from django.contrib.auth.models import User
 
+class GrupoConfig(models.Model):
+    numero = models.IntegerField(unique=True, verbose_name="Número de Grupo")
+    whatsapp_link = models.URLField(max_length=500, verbose_name="Link de WhatsApp")
+    
+    class Meta:
+        verbose_name = "Configuración de Grupo"
+        verbose_name_plural = "Configuraciones de Grupos"
+        ordering = ['numero']
+
+    def __str__(self):
+        return f"Grupo {self.numero}"
+
 class Lider(models.Model):
-    GRUPOS = [
-        (1, 'Grupo 1'),
-        (2, 'Grupo 2'),
-        (3, 'Grupo 3'),
-        (4, 'Grupo 4'),
-    ]
+    GRUPOS = [(i, f'Grupo {i}') for i in range(1, 16)]
     
     # Vinculación con Usuario del Sistema
     user = models.OneToOneField(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='lider_profile', verbose_name="Usuario de Sistema")

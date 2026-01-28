@@ -26,6 +26,8 @@ class AlumnoViewSet(viewsets.ModelViewSet):
         action = getattr(self, 'action', None)
         if action in ['validar_cedula', 'create']:
             return [permissions.AllowAny()]
+        if action == 'destroy':
+            return [permissions.IsAdminUser()]
         return [permissions.IsAuthenticated()]
 
     def get_queryset(self):
