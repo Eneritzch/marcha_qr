@@ -28,7 +28,7 @@ class CredentialGenerator:
         c.rect(0, height - 40*mm, width, 40*mm, stroke=0, fill=1)
         
         # --- Header Content ---
-        logo_path = os.path.join(settings.BASE_DIR, 'static', 'img', 'icono.png')
+        logo_path = os.path.join(settings.BASE_DIR, 'static', 'img', 'icono.webp')
         if os.path.exists(logo_path):
             # Logo header
             c.drawImage(logo_path, width/2 - 15*mm, height - 32*mm, width=30*mm, height=30*mm, mask='auto', preserveAspectRatio=True)
