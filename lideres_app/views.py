@@ -157,3 +157,21 @@ class LeaderExcelUploadView(views.APIView):
             
         except Exception as e:
             return Response({"error": f"Error al procesar el archivo: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+class RandomLeaderView(views.APIView):
+    """Returns a random active leader for automatic assignment."""
+    permission_classes = [permissions.AllowAny]
+
+    def get(self, request):
+        import random
+        lideres_activos = list(Lider.objects.filter(activo=True))
+        
+        if not lideres_activos:
+             return Response({"error": "No hay líderes activos disponibles"}, status=status.HTTP_404_NOT_FOUND)
+             
+        lider = random.choice(lideres_activos)
+        return Response({
+            "id": lider.id,
+            "nombre_completo": lider.nombre_completo,
+            "grupo": lider.grupo
+        })

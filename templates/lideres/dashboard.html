@@ -124,10 +124,7 @@
                     <i data-lucide="users" class="w-5 h-5"></i>
                     <span class="font-medium">Registros</span>
                 </button>
-                 <button onclick="switchView('bancos')" id="sidebar-nav-bancos" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all hover:bg-white/10 text-left text-slate-300 hover:text-white">
-                    <i data-lucide="credit-card" class="w-5 h-5"></i>
-                    <span class="font-medium">Datos Bancarios</span>
-                </button>
+
                  <button onclick="switchView('lideres')" id="sidebar-nav-lideres" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all hover:bg-white/10 text-left text-slate-300 hover:text-white">
                     <i data-lucide="crown" class="w-5 h-5"></i>
                     <span class="font-medium">Gestión Líderes</span>
@@ -190,13 +187,7 @@
             </button>
         </div>
 
-        <!-- 5. Bancos -->
-        <div class="nav-item-wrapper relative w-16 flex justify-center transition-all duration-300" data-target="bancos">
-            <button onclick="switchView('bancos')" id="mobile-nav-bancos" class="nav-btn flex flex-col items-center gap-1 p-2 text-slate-400 transition-all rounded-full">
-                <i data-lucide="credit-card" class="w-6 h-6"></i>
-                <span class="text-[10px] font-bold">Bancos</span>
-            </button>
-        </div>
+
 
         <!-- 6. Líderes -->
         <div class="nav-item-wrapper relative w-16 flex justify-center transition-all duration-300" data-target="lideres">
@@ -265,7 +256,7 @@
                             <div class="flex gap-2">
                                 <select id="chart-main-filter" class="appearance-none bg-white border border-slate-200 text-slate-700 text-sm font-bold py-2 px-4 pr-10 rounded-xl focus:ring-4 focus:ring-unemi-blue/10 focus:border-unemi-blue focus:outline-none transition-all hover:border-unemi-blue/50 shadow-sm bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20fill%3D%22none%22%20viewBox%3D%220%200%2024%2024%22%20stroke%3D%22%230F1E4B%22%20stroke-width%3D%222%22%3E%3Cpath%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%20d%3D%22m19.5%208.25-7.5%207.5-7.5-7.5%22%2F%3E%3C%2Fsvg%3E')] bg-[length:1.1rem_1.1rem] bg-[right_0.75rem_center] bg-no-repeat cursor-pointer">
                                     <option value="all">Todos los Grupos</option>
-                                    <script>
+                                <script>
                                         for(let i=1; i<=15; i++) {
                                             document.write(`<option value="${i}">Grupo ${i}</option>`);
                                         }
@@ -447,39 +438,7 @@
             </section>
 
 
-            <!-- VIEW: BANCOS TABLE -->
-            <section id="view-bancos" class="hidden space-y-6 fade-in">
-                 <div class="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
-                    <div class="p-6 border-b border-slate-100 flex flex-col md:flex-row gap-4 justify-between items-center bg-blue-50/30">
-                         <div class="flex items-center gap-2">
-                            <i data-lucide="credit-card" class="text-unemi-blue w-5 h-5"></i>
-                            <h3 class="font-bold text-unemi-blue">Detalle Bancario</h3>
-                         </div>
-                        <div class="flex gap-2 w-full md:w-auto">
-                             <select id="filter-banco" class="appearance-none w-full md:w-72 bg-white border border-slate-200 text-unemi-blue text-sm font-bold py-2 px-4 pr-10 rounded-xl focus:ring-4 focus:ring-unemi-blue/10 focus:border-unemi-blue focus:outline-none transition-all hover:border-unemi-blue/50 shadow-sm bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20fill%3D%22none%22%20viewBox%3D%220%200%2024%2024%22%20stroke%3D%22%230F1E4B%22%20stroke-width%3D%222%22%3E%3Cpath%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%20d%3D%22m19.5%208.25-7.5%207.5-7.5-7.5%22%2F%3E%3C%2Fsvg%3E')] bg-[length:1.1rem_1.1rem] bg-[right_0.75rem_center] bg-no-repeat cursor-pointer">
-                                <option value="all">Filtrar por Banco (Todos)</option>
-                                <!-- Populated dynamically -->
-                            </select>
-                        </div>
-                    </div>
-                    <div class="overflow-x-auto">
-                        <table class="w-full text-sm text-left text-slate-500">
-                            <thead class="text-xs text-white uppercase bg-slate-800">
-                                <tr>
-                                    <th class="px-6 py-3 rounded-tl-lg">Beneficiario</th>
-                                    <th class="px-6 py-3">Cédula</th>
-                                    <th class="px-6 py-3">Banco</th>
-                                    <th class="px-6 py-3">Tipo Cuenta</th>
-                                    <th class="px-6 py-3 rounded-tr-lg">Número de Cuenta</th>
-                                </tr>
-                            </thead>
-                            <tbody id="tbody-bancos" class="divide-y divide-slate-100 font-mono">
-                                <!-- Data injected here -->
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </section>
+
 
             <!-- VIEW: LIDERES TABLE -->
             <section id="view-lideres" class="hidden space-y-6 fade-in">
@@ -593,18 +552,7 @@
                                 <i data-lucide="chevron-right" class="w-5 h-5 text-slate-400 group-hover:text-unemi-orange transition-colors"></i>
                             </button>
                             
-                            <button onclick="showExportPreview('bancos')" class="flex items-center justify-between w-full bg-slate-50 hover:bg-slate-100 border border-slate-200 p-4 rounded-xl transition-all group">
-                                <div class="flex items-center gap-3">
-                                    <div class="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
-                                        <i data-lucide="credit-card" class="w-5 h-5 text-green-600"></i>
-                                    </div>
-                                    <div>
-                                        <p class="font-bold text-sm text-slate-800">Datos Bancarios</p>
-                                        <p class="text-xs text-slate-500">Exportar cuentas bancarias</p>
-                                    </div>
-                                </div>
-                                <i data-lucide="chevron-right" class="w-5 h-5 text-slate-400 group-hover:text-unemi-orange transition-colors"></i>
-                            </button>
+
                         </div>
                     </div>
                 </div>
@@ -853,14 +801,11 @@
                         </div>
                         <div>
                             <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Cédula</label>
-                            <input type="text" id="lider-cedula" required class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-unemi-blue focus:outline-none font-mono">
+                            <input type="text" id="lider-cedula" maxlength="10" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-unemi-blue focus:outline-none font-mono">
                         </div>
-                    </div>
-
-                    <div class="grid md:grid-cols-2 gap-4">
                         <div>
-                            <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Grupo</label>
-                            <select id="lider-grupo" required class="w-full p-4 bg-white border border-slate-200 rounded-2xl focus:ring-4 focus:ring-unemi-orange/20 focus:border-unemi-orange focus:outline-none font-bold text-slate-700 shadow-sm appearance-none bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20fill%3D%22none%22%20viewBox%3D%220%200%2024%2024%22%20stroke%3D%22%23EF7D00%22%20stroke-width%3D%222%22%3E%3Cpath%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%20d%3D%22m19.5%208.25-7.5%207.5-7.5-7.5%22%2F%3E%3C%2Fsvg%3E')] bg-[length:1.25rem_1.25rem] bg-[right_1rem_center] bg-no-repeat transition-all hover:border-unemi-orange/50">
+                            <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Asignar Grupo</label>
+                            <select id="lider-grupo" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-unemi-blue focus:outline-none font-bold text-unemi-orange">
                                 <script>
                                     for(let i=1; i<=15; i++) {
                                         document.write(`<option value="${i}">Grupo ${i}</option>`);
@@ -868,41 +813,88 @@
                                 </script>
                             </select>
                         </div>
-                         <div>
+                        <div>
                             <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Teléfono</label>
                             <input type="text" id="lider-telefono" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-unemi-blue focus:outline-none">
                         </div>
+                        <div class="md:col-span-2">
+                             <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Correo Electrónico (Usuario)</label>
+                            <input type="email" id="lider-email" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-unemi-blue focus:outline-none">
+                        </div>
+                        <div class="md:col-span-2 flex justify-between items-center py-2 border-t border-slate-100 mt-2">
+                            <label class="flex items-center gap-2 cursor-pointer">
+                                <input type="checkbox" id="lider-activo" checked class="w-5 h-5 text-unemi-orange rounded focus:ring-unemi-orange">
+                                <span class="text-sm font-bold text-slate-700">Líder Activo</span>
+                            </label>
+                            <label class="flex items-center gap-2 cursor-pointer">
+                                <input type="checkbox" id="lider-visible" checked class="w-5 h-5 text-unemi-blue rounded focus:ring-unemi-blue">
+                                <span class="text-sm font-bold text-slate-700">Visible en Registro</span>
+                            </label>
+                        </div>
                     </div>
                     
-                    <div>
-                         <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Correo Electrónico</label>
-                         <input type="email" id="lider-email" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-unemi-blue focus:outline-none">
-                    </div>
-
-                    <div class="bg-yellow-50 p-4 rounded-xl border border-yellow-100 flex items-center gap-3">
-                        <input type="checkbox" id="lider-activo" class="w-5 h-5 text-unemi-orange focus:ring-unemi-orange rounded">
-                        <div>
-                            <p class="text-sm font-bold text-slate-700">Cuenta Activa</p>
-                            <p class="text-xs text-slate-500">Si se desactiva, el líder no podrá iniciar sesión.</p>
-                        </div>
-                    </div>
-
-                    <div class="bg-blue-50 p-4 rounded-xl border border-blue-100 flex items-center gap-3">
-                         <input type="checkbox" id="lider-visible" class="w-5 h-5 text-unemi-blue focus:ring-unemi-blue rounded">
-                        <div>
-                            <p class="text-sm font-bold text-slate-700">Visible en Registro</p>
-                            <p class="text-xs text-slate-500">Aparecerá como opción en el formulario de inscripción público.</p>
-                        </div>
-                    </div>
-
-                    <div class="pt-4 flex gap-3">
-                         <button type="button" onclick="document.getElementById('lider-modal').classList.add('hidden')" class="flex-1 py-3 text-slate-400 font-bold hover:bg-slate-50 rounded-xl transition-colors">Cancelar</button>
-                        <button type="submit" class="flex-1 bg-unemi-blue hover:bg-slate-800 text-white font-bold py-3 rounded-xl transition-all shadow-lg shadow-blue-500/20">Guardar Líder</button>
-                    </div>
-                </form>
+                    <button type="submit" class="w-full bg-unemi-blue hover:bg-slate-800 text-white font-black uppercase tracking-widest py-4 rounded-xl shadow-lg transition-all active:scale-95">
+                        Guardar Cambios
+                    </button>
+                 </form>
             </div>
         </div>
     </div>
+
+    <!-- EDIT STUDENT MODAL -->
+    <div id="student-modal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden relative">
+             <div class="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+                <h3 class="font-bold text-unemi-blue">Editar Estudiante</h3>
+                <button onclick="document.getElementById('student-modal').classList.add('hidden')" class="text-slate-400 hover:text-slate-600"><i data-lucide="x" class="w-6 h-6"></i></button>
+            </div>
+            <div class="p-8 space-y-4 max-h-[80vh] overflow-y-auto">
+                 <form id="student-form" class="space-y-4">
+                    <input type="hidden" id="edit-student-id"> <!-- Stores ID (cedula or PK) -->
+                    
+                    <div class="grid md:grid-cols-2 gap-4">
+                        <div class="md:col-span-2">
+                            <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Nombre Completo</label>
+                            <input type="text" id="edit-student-nombre" required class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-unemi-blue focus:outline-none font-bold">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Cédula (No editable)</label>
+                            <input type="text" id="edit-student-cedula" disabled class="w-full p-3 bg-slate-100 border border-slate-200 rounded-xl text-slate-500 font-mono">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Grupo Actual</label>
+                            <div id="edit-student-grupo-display" class="w-full p-3 bg-slate-100 border border-slate-200 rounded-xl font-black text-slate-500">
+                                --
+                            </div>
+                        </div>
+
+                        <!-- Leader Re-assignment -->
+                        <div class="md:col-span-2 bg-blue-50/50 p-4 rounded-xl border border-blue-100">
+                            <label class="block text-xs font-bold text-unemi-blue uppercase mb-2">Asignar Nuevo Líder</label>
+                            <div class="relative">
+                                <i data-lucide="search" class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4"></i>
+                                <input type="text" id="edit-student-leader-search" placeholder="Buscar líder..." class="w-full pl-9 pr-4 py-2 bg-white border border-blue-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-unemi-blue">
+                                <input type="hidden" id="edit-student-leader-id">
+                            </div>
+                            <!-- Leader Results Dropdown -->
+                            <div id="edit-student-leader-results" class="hidden mt-2 bg-white border border-slate-200 rounded-lg shadow-lg max-h-40 overflow-y-auto z-10"></div>
+                            
+                            <!-- Selected Leader Display -->
+                             <div id="edit-student-leader-selected" class="hidden mt-2 flex items-center justify-between bg-white p-2 rounded-lg border border-green-200 text-sm">
+                                <span class="font-bold text-green-700" id="selected-leader-name">--</span>
+                                <button type="button" onclick="clearSelectedLeader()" class="text-red-500 hover:text-red-700 p-1"><i data-lucide="x" class="w-4 h-4"></i></button>
+                             </div>
+                        </div>
+                    </div>
+                    
+                    <button type="submit" class="w-full bg-unemi-blue hover:bg-slate-800 text-white font-black uppercase tracking-widest py-4 rounded-xl shadow-lg transition-all active:scale-95">
+                        Guardar Cambios
+                    </button>
+                 </form>
+            </div>
+        </div>
+    </div>
+
 
     <!-- Modal: Importar Líderes Excel -->
     <div id="leader-import-modal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
@@ -941,6 +933,58 @@
 
     <!-- JS Logic -->
     <script>
+        // --- HELPER: Descarga Segura (Blob) ---
+        window.downloadFile = async function (url, filename) {
+            const btn = event ? event.currentTarget : null;
+            let originalHTML = "";
+            if (btn && btn.tagName === 'BUTTON') {
+                originalHTML = btn.innerHTML;
+                btn.disabled = true;
+                btn.innerHTML = '<i class="animate-spin" data-lucide="loader-2"></i>';
+                if(window.lucide) lucide.createIcons();
+            }
+
+            try {
+                const authToken = localStorage.getItem('token');
+                const headers = {};
+                if (authToken) headers['Authorization'] = `Token ${authToken}`;
+
+                const response = await axios.get(url, {
+                    headers: headers,
+                    responseType: 'blob'
+                });
+
+                const contentType = response.headers['content-type'] || (filename.endsWith('.pdf') ? 'application/pdf' : 'image/png');
+                const blob = new Blob([response.data], { type: contentType });
+
+                const downloadUrl = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = downloadUrl;
+                a.download = filename;
+                document.body.appendChild(a);
+                a.click();
+                setTimeout(() => {
+                    window.URL.revokeObjectURL(downloadUrl);
+                    document.body.removeChild(a);
+                }, 150);
+
+                if (window.Swal) {
+                    const Toast = Swal.mixin({ toast: true, position: 'top-end', showConfirmButton: false, timer: 2000 });
+                    Toast.fire({ icon: 'success', title: 'Descarga iniciada' });
+                }
+
+            } catch (e) {
+                console.error("Error en descarga:", e);
+                if (window.Swal) Swal.fire({ icon: 'error', title: 'Error', text: 'No se pudo descargar el archivo.' });
+            } finally {
+                if (btn && btn.tagName === 'BUTTON') {
+                    btn.disabled = false;
+                    btn.innerHTML = originalHTML;
+                    if(window.lucide) lucide.createIcons();
+                }
+            }
+        };
+
         // Define Loader Functions Globally (Before dashboard.js logic runs)
         window.showLoader = function() {
             const loader = document.getElementById('global-loader');

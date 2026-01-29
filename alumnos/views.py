@@ -21,13 +21,48 @@ class AlumnoViewSet(viewsets.ModelViewSet):
     lookup_field = 'cedula'
     authentication_classes = [authentication.TokenAuthentication] # Use token, skip session/csrf
 
+    def destroy(self, request, *args, **kwargs):
+        # Custom destroy to handle potential whitespace issues in cedula
+        cedula = kwargs.get('cedula')
+        print(f"DEBUG: Intentando eliminar alumno con cédula: '{cedula}'")
+        
+        try:
+            # First try standard lookup
+            instance = self.get_object()
+            self.perform_destroy(instance)
+            return Response(status=status.HTTP_204_NO_CONTENT)
+        except:
+            # Fallback: Try searching with trimmed cedula or filtered in queryset
+            # This is blocked by get_object using the queryset filter
+            try:
+                # Bypass get_object to inspect if it exists at all for this user
+                qs = self.get_queryset()
+                # Try exact text match in queryset
+                instance = qs.get(cedula=cedula)
+                self.perform_destroy(instance)
+                return Response(status=status.HTTP_204_NO_CONTENT)
+            except Alumno.DoesNotExist:
+                # Try stripping whitespace
+                if cedula:
+                    try:
+                        clean_cedula = cedula.strip()
+                        print(f"DEBUG: Reintentando con cédula limpia: '{clean_cedula}'")
+                        instance = qs.get(cedula=clean_cedula)
+                        self.perform_destroy(instance)
+                        return Response(status=status.HTTP_204_NO_CONTENT)
+                    except Alumno.DoesNotExist:
+                        pass
+                
+                print(f"DEBUG: No se encontró el alumno en el queryset del usuario.")
+                return Response({"error": "No encontrado"}, status=status.HTTP_404_NOT_FOUND)
+
     def get_permissions(self):
         # Use getattr to be safe during early lifecycle calls
         action = getattr(self, 'action', None)
         if action in ['validar_cedula', 'create']:
             return [permissions.AllowAny()]
         if action == 'destroy':
-            return [permissions.IsAdminUser()]
+            return [permissions.IsAuthenticated()]
         return [permissions.IsAuthenticated()]
 
     def get_pagination_class(self):
@@ -182,7 +217,7 @@ class ExportDataView(views.APIView):
         return Alumno.objects.none()
 
     def get(self, request, data_type):
-        valid_types = ['registros', 'bancos']
+        valid_types = ['registros']
         if data_type not in valid_types:
              return Response({"error": f"Tipo de exportación inválido. Opciones: {', '.join(valid_types)}"}, 
                              status=status.HTTP_400_BAD_REQUEST)
@@ -206,23 +241,6 @@ class ExportDataView(views.APIView):
                     'Líder': alumno.lider_invitador.nombre if alumno.lider_invitador else 'N/A'
                 })
             filename = f"Alumnos_MarchaUNEMI_{datetime.now().strftime('%Y%m%d')}.xlsx"
-
-        elif data_type == 'bancos':
-            # Filter students who have bank accounts
-            for alumno in queryset:
-                if hasattr(alumno, 'cuenta_bancaria'):
-                    cuenta = alumno.cuenta_bancaria
-                    data.append({
-                        'Alumno': alumno.nombre_completo,
-                        'Cédula Alumno': alumno.cedula,
-                        'Titular Cuenta': cuenta.titular_nombre,
-                        'Cédula Titular': cuenta.titular_cedula,
-                        'Banco': cuenta.get_banco_display(),
-                        'Tipo Cuenta': cuenta.get_tipo_cuenta_display(),
-                        'Número Cuenta': cuenta.numero_cuenta,
-                        'Es Propia': 'SÍ' if cuenta.es_propia else 'NO'
-                    })
-            filename = f"Bancos_MarchaUNEMI_{datetime.now().strftime('%Y%m%d')}.xlsx"
 
         if not data:
              return Response({"error": "No hay datos para exportar."}, status=status.HTTP_404_NOT_FOUND)

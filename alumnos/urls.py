@@ -7,7 +7,7 @@ from .views import (
 from .excel_import_export_views import (
     ExcelImportExportView, ExcelAnalyzeView, 
     ExcelProcessImportView, ExcelTemplateDownloadView,
-    export_alumnos_view, export_bancos_view
+    export_alumnos_view
 )
 
 router = DefaultRouter()
@@ -32,5 +32,5 @@ urlpatterns = [
     
     # Export Routes (function-based views)
     path('export/registros/', export_alumnos_view, name='export-alumnos'),
-    path('export/bancos/', export_bancos_view, name='export-bancos'),
+
 ]

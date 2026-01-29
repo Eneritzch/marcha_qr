@@ -83,13 +83,7 @@ class ExcelAnalyzeView(views.APIView):
                 'telefono': 'Celular/WhatsApp *',
                 'modalidad': 'Modalidad de Estudios *',
                 'carrera': 'Carrera *',
-                'facultad': 'Facultad (Opcional)',
-                # Bank fields (optional)
-                'banco': 'Banco (Opcional)',
-                'tipo_cuenta': 'Tipo de Cuenta (Opcional)',
-                'numero_cuenta': 'Número de Cuenta (Opcional)',
-                'titular_nombre': 'Titular Nombre (Opcional)',
-                'titular_cedula': 'Titular Cédula (Opcional)'
+                'facultad': 'Facultad (Opcional)'
             }
             
             return Response({
@@ -112,7 +106,7 @@ class ExcelAnalyzeView(views.APIView):
         # Check if first row contains mostly strings and common header keywords
         header_keywords = [
             'nombre', 'cedula', 'cédula', 'email', 'correo', 'telefono', 'teléfono',
-            'celular', 'carrera', 'facultad', 'modalidad', 'banco', 'cuenta', 'titular'
+            'celular', 'carrera', 'facultad', 'modalidad'
         ]
         
         string_count = sum(1 for val in first_row if isinstance(val, str))
@@ -161,27 +155,6 @@ class ExcelAnalyzeView(views.APIView):
             'facultad': [
                 'facultad', 'escuela', 'departamento', 'unidad academica',
                 'unidad académica', 'instituto', 'college', 'school', 'faculty'
-            ],
-            # Bank fields
-            'banco': [
-                'banco', 'institucion financiera', 'institución financiera',
-                'entidad bancaria', 'bank', 'financial institution'
-            ],
-            'tipo_cuenta': [
-                'tipo cuenta', 'tipo de cuenta', 'tipo', 'account type',
-                'ahorros', 'corriente', 'savings', 'checking'
-            ],
-            'numero_cuenta': [
-                'numero cuenta', 'número cuenta', 'numero de cuenta', 'número de cuenta',
-                'cuenta', 'account number', 'nro cuenta', 'no cuenta', 'cuenta bancaria'
-            ],
-            'titular_nombre': [
-                'titular', 'titular nombre', 'nombre titular', 'propietario',
-                'dueño', 'account holder', 'owner', 'nombre del titular'
-            ],
-            'titular_cedula': [
-                'titular cedula', 'titular cédula', 'cedula titular', 'cédula titular',
-                'ci titular', 'documento titular', 'id titular'
             ]
         }
         
@@ -289,17 +262,6 @@ class ExcelProcessImportView(views.APIView):
                             lider_invitador=lider
                         )
                         
-                        # Create bank account if data is provided
-                        if data.get('numero_cuenta'):
-                            from .models import CuentaBancaria
-                            CuentaBancaria.objects.create(
-                                alumno=alumno,
-                                titular_nombre=data.get('titular_nombre', alumno.nombre_completo),
-                                titular_cedula=data.get('titular_cedula', alumno.cedula),
-                                banco=data.get('banco', 'PICHINCHA'),
-                                tipo_cuenta=data.get('tipo_cuenta', 'AHORROS'),
-                                numero_cuenta=data.get('numero_cuenta')
-                            )
                         results['created'] += 1
                 
                 except Exception as e:
@@ -531,103 +493,4 @@ def export_alumnos_view(request):
 
 
 
-def export_bancos_view(request):
-    """Export bank accounts to Excel"""
-    # Manual authentication check - don't redirect, return error
-    if not request.user.is_authenticated:
-        return HttpResponse('No autenticado. Por favor inicia sesión.', status=401)
-    
-    # Check permissions
-    if not (request.user.is_staff or hasattr(request.user, 'lider_profile')):
-        return HttpResponse('Acceso denegado. Solo administradores y líderes pueden exportar.', status=403)
-    
-    try:
-        # Determine strict access rights
-        if request.user.is_staff:
-            # Admin gets ALL bank accounts
-            alumnos = Alumno.objects.filter(cuenta_bancaria__isnull=False)
-        elif hasattr(request.user, 'lider_profile'):
-            # Leader gets ONLY their invited students who have bank accounts
-            alumnos = Alumno.objects.filter(
-                lider_invitador=request.user.lider_profile,
-                cuenta_bancaria__isnull=False
-            )
-        else:
-             # Should be caught by permission check above, but safe fallback
-             return HttpResponse('Acceso denegado.', status=403)
-        
-        # Check if there's data to export
-        if not alumnos.exists():
-            return HttpResponse('No hay datos bancarios para exportar', status=404)
-        
-        # Create workbook
-        wb = Workbook()
-        ws = wb.active
-        ws.title = 'Datos Bancarios'
-        
-        # Define headers
-        headers = ['Cédula Alumno', 'Nombre Alumno', 'Email', 'Teléfono',
-                   'Titular Nombre', 'Titular Cédula', 'Banco', 'Tipo Cuenta',
-                   'Número Cuenta', 'Grupo', 'Líder']
-        
-        # Write headers
-        for col_num, header in enumerate(headers, 1):
-            cell = ws.cell(row=1, column=col_num)
-            cell.value = header
-            cell.font = Font(color='FFFFFF', bold=True, size=11)
-            cell.fill = PatternFill(start_color='10B981', end_color='10B981', fill_type='solid')
-            cell.alignment = Alignment(horizontal='center', vertical='center')
-        
-        # Write data
-        row_num = 2
-        for alumno in alumnos:
-            # We already filtered by cuenta_bancaria__isnull=False, so we can safely access it
-            # Using getattr to be extra safe against any ORM caching inconsistency
-            if hasattr(alumno, 'cuenta_bancaria'):
-                cuenta = alumno.cuenta_bancaria
-                ws.cell(row=row_num, column=1, value=alumno.cedula)
-                ws.cell(row=row_num, column=2, value=alumno.nombre_completo)
-                ws.cell(row=row_num, column=3, value=alumno.email)
-                ws.cell(row=row_num, column=4, value=alumno.telefono)
-                ws.cell(row=row_num, column=5, value=cuenta.titular_nombre)
-                ws.cell(row=row_num, column=6, value=cuenta.titular_cedula)
-                ws.cell(row=row_num, column=7, value=cuenta.banco)
-                ws.cell(row=row_num, column=8, value=cuenta.tipo_cuenta)
-                ws.cell(row=row_num, column=9, value=cuenta.numero_cuenta)
-                ws.cell(row=row_num, column=10, value=alumno.grupo or '')
-                ws.cell(row=row_num, column=11, value=alumno.lider_invitador.nombre_completo if alumno.lider_invitador else '')
-                row_num += 1
-        
-        # Auto-adjust column widths
-        for column in ws.columns:
-            max_length = 0
-            column_letter = column[0].column_letter
-            for cell in column:
-                try:
-                    if cell.value and len(str(cell.value)) > max_length:
-                        max_length = len(str(cell.value))
-                except:
-                    pass
-            adjusted_width = min(max_length + 2, 50)
-            ws.column_dimensions[column_letter].width = adjusted_width
-        
-        # Save to BytesIO
-        output = io.BytesIO()
-        wb.save(output)
-        output.seek(0)
-        
-        # Create response
-        response = HttpResponse(
-            output.read(),
-            content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-        )
-        filename = f'Datos_Bancarios_UNEMI_{datetime.now().strftime("%Y%m%d_%H%M%S")}.xlsx'
-        response['Content-Disposition'] = f'attachment; filename={filename}'
-        
-        return response
-        
-    except Exception as e:
-        import traceback
-        error_details = traceback.format_exc()
-        print(f"Error en exportación bancaria: {error_details}")
-        return HttpResponse(f'Error al exportar: {str(e)}', status=500, content_type='text/plain')
+

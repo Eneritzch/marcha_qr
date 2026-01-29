@@ -1,10 +1,5 @@
 from django.contrib import admin
-from .models import Alumno, CuentaBancaria
-
-class CuentaBancariaInline(admin.StackedInline):
-    model = CuentaBancaria
-    can_delete = False
-    verbose_name_plural = 'Datos Bancarios'
+from .models import Alumno
 
 @admin.register(Alumno)
 class AlumnoAdmin(admin.ModelAdmin):
@@ -12,7 +7,6 @@ class AlumnoAdmin(admin.ModelAdmin):
     list_filter = ['grupo', 'asistio', 'modalidad']
     search_fields = ['nombre_completo', 'cedula', 'email']
     readonly_fields = ['codigo_qr', 'grupo']
-    inlines = [CuentaBancariaInline]
 
     def get_queryset(self, request):
         qs = super().get_queryset(request)
@@ -27,9 +21,3 @@ class AlumnoAdmin(admin.ModelAdmin):
         if not request.user.is_superuser and hasattr(request.user, 'lider_profile'):
             obj.lider_invitador = request.user.lider_profile
         super().save_model(request, obj, form, change)
-
-@admin.register(CuentaBancaria)
-class CuentaBancariaAdmin(admin.ModelAdmin):
-    list_display = ['titular_nombre', 'banco', 'numero_cuenta', 'alumno']
-    list_filter = ['banco', 'tipo_cuenta']
-    search_fields = ['titular_nombre', 'titular_cedula', 'numero_cuenta']

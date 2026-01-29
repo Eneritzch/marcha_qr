@@ -168,27 +168,17 @@
                 const contentType = response.headers['content-type'] || (filename.endsWith('.pdf') ? 'application/pdf' : 'image/png');
                 const blob = new Blob([response.data], { type: contentType });
 
-                // iOS / Android PWA: Use Web Share API if possible
-                if (navigator.share && navigator.canShare && navigator.canShare({ files: [new File([blob], filename, { type: contentType })] })) {
-                    const file = new File([blob], filename, { type: contentType });
-                    await navigator.share({
-                        files: [file],
-                        title: 'Descargar ' + filename,
-                        text: 'Marcha UNEMI 2026'
-                    });
-                } else {
-                    // PC / Standard fallback
-                    const downloadUrl = window.URL.createObjectURL(blob);
-                    const a = document.createElement('a');
-                    a.href = downloadUrl;
-                    a.download = filename;
-                    document.body.appendChild(a);
-                    a.click();
-                    setTimeout(() => {
-                        window.URL.revokeObjectURL(downloadUrl);
-                        document.body.removeChild(a);
-                    }, 150);
-                }
+                // Always Force Download (PC / Android / iOS fallback style)
+                const downloadUrl = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = downloadUrl;
+                a.download = filename;
+                document.body.appendChild(a);
+                a.click();
+                setTimeout(() => {
+                    window.URL.revokeObjectURL(downloadUrl);
+                    document.body.removeChild(a);
+                }, 150);
 
                 if (window.Swal) {
                     const Toast = Swal.mixin({ toast: true, position: 'top-end', showConfirmButton: false, timer: 2000 });

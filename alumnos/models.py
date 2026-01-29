@@ -31,11 +31,13 @@ class Alumno(models.Model):
     # Relación con Líder y Grupo (NUEVO)
     lider_invitador = models.ForeignKey(
         'lideres_app.Lider',
-        on_delete=models.CASCADE,
+        on_delete=models.SET_NULL, # Don't delete student if leader is deleted
+        null=True, 
+        blank=True,
         related_name='alumnos',
         verbose_name="Líder que lo invitó"
     )
-    grupo = models.IntegerField(verbose_name="Grupo asignado (Heredado)")
+    grupo = models.IntegerField(default=0, verbose_name="Grupo asignado (Heredado)")
 
     class Meta:
         verbose_name = "Alumno"
@@ -49,48 +51,36 @@ class Alumno(models.Model):
         # Asegurar que el grupo coincida con el del líder
         if self.lider_invitador and self.grupo != self.lider_invitador.grupo:
             self.grupo = self.lider_invitador.grupo
+        elif not self.lider_invitador:
+            self.grupo = 0
 
     def save(self, *args, **kwargs):
         # Generar código QR único si no existe
         if not self.codigo_qr:
             self.codigo_qr = f"UNM-{uuid.uuid4().hex[:8].upper()}"
         
-        # Sincronizar grupo con el líder
-        if self.lider_invitador:
+        # Validación de Líder Aleatorio
+        # Si no tiene líder asignado, seleccionamos uno aleatorio
+        if not self.lider_invitador:
+            from lideres_app.models import Lider
+            import random
+            
+            # Buscar líderes activos que sean visibles en registro
+            lideres_activos = list(Lider.objects.filter(activo=True))
+            
+            if lideres_activos:
+                líder_aleatorio = random.choice(lideres_activos)
+                self.lider_invitador = líder_aleatorio
+                self.grupo = líder_aleatorio.grupo
+            else:
+                # Fallback: Si no hay líderes activos, asignar grupo 0
+                if self.grupo is None:
+                     self.grupo = 0
+        else:
+            # Sincronizar grupo con el líder
             self.grupo = self.lider_invitador.grupo
             
         super().save(*args, **kwargs)
 
 
-class CuentaBancaria(models.Model):
-    TIPOS_CUENTA = [
-        ('AHORROS', 'Ahorros'),
-        ('CORRIENTE', 'Corriente'),
-    ]
 
-    BANCOS = [
-        ('PACIFICO', 'Banco Pacífico'),
-        ('PICHINCHA', 'Banco Pichincha'),
-        ('GUAYAQUIL', 'Banco Guayaquil'),
-    ]
-    
-    alumno = models.OneToOneField(
-        Alumno, 
-        on_delete=models.CASCADE, 
-        related_name='cuenta_bancaria',
-        verbose_name="Alumno"
-    )
-    titular_nombre = models.CharField(max_length=150, verbose_name="Nombre del Titular")
-    titular_cedula = models.CharField(max_length=10, verbose_name="Cédula del Titular")
-    banco = models.CharField(max_length=100, choices=BANCOS, verbose_name="Banco")
-    tipo_cuenta = models.CharField(max_length=20, choices=TIPOS_CUENTA, verbose_name="Tipo de Cuenta")
-    numero_cuenta = models.CharField(max_length=30, verbose_name="Número de Cuenta")
-    es_propia = models.BooleanField(default=True, verbose_name="Es cuenta propia")
-
-
-    class Meta:
-        verbose_name = "Cuenta Bancaria"
-        verbose_name_plural = "Cuentas Bancarias"
-
-    def __str__(self):
-        return f"Cuenta de {self.titular_nombre} ({self.banco})"

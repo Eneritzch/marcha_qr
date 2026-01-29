@@ -77,7 +77,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         const el = document.getElementById('search-registros');
         filterRegistros(el ? el.value : '');
     });
-    safeBind('filter-banco', 'change', filterBancos);
     safeBind('excel-form', 'submit', handleExcelUpload);
 
     // Leaders Events (Safe Binding)
@@ -134,7 +133,7 @@ function logout() {
 
 // === VIEW SWITCHING ===
 window.switchView = function (viewName) {
-    const views = ['overview', 'scanner', 'registros', 'bancos', 'lideres', 'importar-exportar'];
+    const views = ['overview', 'scanner', 'registros', 'lideres', 'importar-exportar'];
 
     // Save state
     localStorage.setItem('lastView', viewName);
@@ -218,7 +217,6 @@ window.switchView = function (viewName) {
         'overview': 'Resumen General',
         'scanner': 'Escanear Asistencia',
         'registros': 'Base de Registros',
-        'bancos': 'Información Bancaria',
         'lideres': 'Gestión de Líderes',
         'importar-exportar': 'Importar/Exportar Datos'
     };
@@ -249,7 +247,7 @@ window.switchView = function (viewName) {
     // Auto-Reload Logic
     if (viewName === 'lideres') {
         fetchLideres();
-    } else if (viewName === 'registros' || viewName === 'overview' || viewName === 'bancos') {
+    } else if (viewName === 'registros' || viewName === 'overview') {
         refreshData();
     }
 
@@ -303,7 +301,10 @@ function renderRegistrosTable(data) {
             <td class="px-6 py-4 font-medium text-slate-900">
                 <div class="flex flex-col">
                     <span>${a.nombre_completo}</span>
-                    ${a.es_externo ? '<span class="text-[9px] font-black text-orange-500 uppercase tracking-tighter">● Externo</span>' : ''}
+                    <div class="flex gap-1">
+                        ${a.es_externo ? '<span class="text-[9px] font-black text-orange-500 uppercase tracking-tighter">● Externo</span>' : ''}
+                        ${a.grupo === 0 ? '<span class="text-[9px] font-black text-slate-400 uppercase tracking-tighter">● Sin Grupo</span>' : ''}
+                    </div>
                 </div>
             </td>
             <td class="px-6 py-4 font-mono text-xs">${a.cedula}</td>
@@ -321,10 +322,12 @@ function renderRegistrosTable(data) {
                      <button onclick="downloadFile('/api/v1/alumnos/descargar-credencial/${a.cedula}/', 'credencial_${a.cedula}.pdf')" class="flex items-center gap-1 px-2 py-1 bg-orange-50 text-unemi-orange rounded hover:bg-unemi-orange hover:text-white transition-colors text-xs font-bold border border-orange-100">
                         <i data-lucide="file-text" class="w-3 h-3"></i> PDF
                      </button>
-                     ${(user.is_superuser === true || user.is_superuser === 'true') ? `
-                    <button onclick="eliminarEntidad('alumno', '${a.cedula}', '${a.nombre_completo}')" class="flex items-center gap-1 px-2 py-1 bg-red-50 text-red-600 rounded hover:bg-red-600 hover:text-white transition-colors text-xs font-bold border border-red-100">
+                     <button onclick='openStudentEdit(${JSON.stringify(a).replace(/'/g, "&#39;")})' class="flex items-center gap-1 px-2 py-1 bg-emerald-50 text-emerald-600 rounded hover:bg-emerald-600 hover:text-white transition-colors text-xs font-bold border border-emerald-100">
+                        <i data-lucide="edit-2" class="w-3 h-3"></i>
+                     </button>
+                     <button onclick="eliminarEntidad('alumno', '${a.cedula}', '${a.nombre_completo}')" class="flex items-center gap-1 px-2 py-1 bg-red-50 text-red-600 rounded hover:bg-red-600 hover:text-white transition-colors text-xs font-bold border border-red-100">
                         <i data-lucide="trash-2" class="w-3 h-3"></i>
-                    </button>` : ''}
+                    </button>
                 </div>
             </td>
         `;
@@ -333,57 +336,7 @@ function renderRegistrosTable(data) {
     lucide.createIcons();
 }
 
-function renderBancosTable(data) {
-    const tbody = document.getElementById('tbody-bancos');
-    tbody.innerHTML = '';
 
-    // Only show people with bank info
-    const dataWithBank = data.filter(a => a.cuenta_bancaria && a.cuenta_bancaria.numero_cuenta);
-
-    // Apply Filter
-    const filterVal = document.getElementById('filter-banco').value;
-    const filtered = filterVal === 'all' ? dataWithBank : dataWithBank.filter(a => a.cuenta_bancaria.banco === filterVal);
-
-    if (filtered.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="5" class="p-8 text-center text-slate-400">No hay datos bancarios registrados.</td></tr>`;
-        return;
-    }
-
-    filtered.forEach(a => {
-        const tr = document.createElement('tr');
-        tr.className = 'bg-white border-b hover:bg-blue-50/10 transition-colors';
-        tr.innerHTML = `
-            <td class="px-6 py-4 font-bold text-slate-700">${a.nombre_completo}</td>
-             <td class="px-6 py-4 font-mono text-xs">${a.cedula}</td>
-             <td class="px-6 py-4">${a.cuenta_bancaria.banco}</td>
-             <td class="px-6 py-4 capitalize">${a.cuenta_bancaria.tipo_cuenta}</td>
-             <td class="px-6 py-4 font-mono font-bold text-slate-800">${a.cuenta_bancaria.numero_cuenta}</td>
-        `;
-        tbody.appendChild(tr);
-    });
-}
-function populateBankFilter() {
-    const select = document.getElementById('filter-banco');
-    // Keep first option
-    select.innerHTML = '<option value="all">Filtrar por Banco (Todos)</option>';
-
-    const banks = new Set(
-        allAlumnos
-            .filter(a => a.cuenta_bancaria && a.cuenta_bancaria.banco)
-            .map(a => a.cuenta_bancaria.banco)
-    );
-
-    banks.forEach(b => {
-        const opt = document.createElement('option');
-        opt.value = b;
-        opt.textContent = b;
-        select.appendChild(opt);
-    });
-}
-function filterBancos() {
-    // Re-render handled inside logic using current filter value
-    renderBancosTable(allAlumnos);
-}
 
 // === DATA FETCHING ===
 window.refreshData = async function () {
@@ -391,8 +344,7 @@ window.refreshData = async function () {
     if (allAlumnos && allAlumnos.length > 0) {
         updateKPIs();
         renderRegistrosTable(allAlumnos);
-        renderBancosTable(allAlumnos);
-        populateBankFilter();
+        renderRegistrosTable(allAlumnos);
         // Render charts from cache
         if (window.DashboardCharts && allLideres.length > 0) {
             DashboardCharts.render(allAlumnos, allLideres);
@@ -423,8 +375,7 @@ window.refreshData = async function () {
         // Initial Render
         updateKPIs();
         renderRegistrosTable(allAlumnos);
-        renderBancosTable(allAlumnos);
-        populateBankFilter();
+        renderRegistrosTable(allAlumnos);
 
         // Also fetch leaders for the chart if not already
         if (allLideres.length === 0) {
@@ -534,6 +485,7 @@ function renderLideresTable(data) {
              <td class="px-6 py-4 font-mono text-xs">${l.email || 'N/A'}</td>
             <td class="px-6 py-4">
                  <select onchange="updateLeaderGroup('${l.id}', this.value)" class="appearance-none bg-white border border-slate-200 text-unemi-blue text-[10px] font-black px-3 py-1.5 rounded-lg focus:ring-2 focus:ring-unemi-orange focus:border-unemi-orange cursor-pointer transition-all hover:border-unemi-orange hover:shadow-sm bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20fill%3D%22none%22%20viewBox%3D%220%200%2024%2024%22%20stroke%3D%22%23EF7D00%22%20stroke-width%3D%222.5%22%3E%3Cpath%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%20d%3D%22m19.5%208.25-7.5%207.5-7.5-7.5%22%2F%3E%3C%2Fsvg%3E')] bg-[length:0.8rem_0.8rem] bg-[right_0.4rem_center] bg-no-repeat pr-6 shadow-sm uppercase tracking-tighter">
+                     <option value="0" ${l.grupo == 0 ? 'selected' : ''}>SIN GRUPO</option>
                      ${Array.from({ length: 15 }, (_, i) => i + 1).map(g => `<option value="${g}" ${l.grupo == g ? 'selected' : ''}>Grupo ${g}</option>`).join('')}
                  </select>
              </td>
@@ -551,10 +503,9 @@ function renderLideresTable(data) {
                      <button onclick='openLiderModal(${JSON.stringify(l)})' class="p-2 text-unemi-blue hover:bg-blue-50 rounded-lg transition-colors" title="Editar">
                         <i data-lucide="edit-2" class="w-4 h-4"></i>
                      </button>
-                     ${(user.is_superuser === true || user.is_superuser === 'true') ? `
                      <button onclick="eliminarEntidad('lider', '${l.id}', '${l.nombre_completo}')" class="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors" title="Eliminar">
                         <i data-lucide="trash-2" class="w-4 h-4"></i>
-                     </button>` : ''}
+                     </button>
                  </div>
              </td>
         `;
@@ -695,6 +646,157 @@ async function saveLider(e) {
     }
 }
 
+
+// === STUDENT EDIT LOGIC ===
+let selectedLeaderForStudent = null;
+
+window.openStudentEdit = function (student) {
+    // Reset State
+    selectedLeaderForStudent = null;
+    document.getElementById('edit-student-leader-search').value = '';
+    document.getElementById('edit-student-leader-id').value = '';
+    document.getElementById('edit-student-leader-selected').classList.add('hidden');
+    document.getElementById('edit-student-leader-results').innerHTML = '';
+    document.getElementById('edit-student-leader-results').classList.add('hidden');
+
+    // Populate Fields
+    document.getElementById('edit-student-id').value = student.id;
+    document.getElementById('edit-student-nombre').value = student.nombre_completo;
+    document.getElementById('edit-student-cedula').value = student.cedula;
+
+    // Group Display
+    const groupDisplay = document.getElementById('edit-student-grupo-display');
+    if (student.grupo === 0) {
+        groupDisplay.textContent = "SIN GRUPO";
+        groupDisplay.className = "w-full p-3 bg-red-50 border border-red-200 rounded-xl font-black text-red-500 uppercase";
+    } else {
+        groupDisplay.textContent = `GRUPO ${student.grupo}`;
+        groupDisplay.className = "w-full p-3 bg-blue-50 border border-blue-200 rounded-xl font-black text-unemi-blue uppercase";
+    }
+
+    // Pre-fill leader if exists
+    if (student.lider_invitador) {
+        // Need to find leader name. student object has 'lider_nombre' from serializer usually.
+        // If not, we try to find it in allLideres
+        let leaderName = student.lider_nombre || "Líder Asignado";
+        if (!leaderName && allLideres) {
+            const l = allLideres.find(x => x.id === student.lider_invitador);
+            if (l) leaderName = l.nombre_completo;
+        }
+
+        selectLeaderForStudent({
+            id: student.lider_invitador,
+            nombre_completo: leaderName
+        });
+    }
+
+    document.getElementById('student-modal').classList.remove('hidden');
+}
+
+// Leader Search inside Student Edit
+const studentLeaderSearch = document.getElementById('edit-student-leader-search');
+if (studentLeaderSearch) {
+    studentLeaderSearch.addEventListener('input', (e) => {
+        const q = e.target.value.toLowerCase().trim();
+        const resultsDiv = document.getElementById('edit-student-leader-results');
+
+        if (q.length < 2) {
+            resultsDiv.classList.add('hidden');
+            return;
+        }
+
+        const matches = allLideres.filter(l => l.nombre_completo.toLowerCase().includes(q));
+
+        if (matches.length > 0) {
+            resultsDiv.innerHTML = matches.map(l => `
+                <div onclick='selectLeaderForStudent(${JSON.stringify(l).replace(/'/g, "&#39;")})' class="p-3 hover:bg-slate-50 cursor-pointer border-b border-slate-100 last:border-0 flex justify-between items-center group">
+                    <span class="font-bold text-slate-700 group-hover:text-unemi-blue">${l.nombre_completo}</span>
+                    <span class="text-[10px] bg-slate-100 px-2 py-1 rounded text-slate-500">Grupo ${l.grupo}</span>
+                </div>
+            `).join('');
+            resultsDiv.classList.remove('hidden');
+        } else {
+            resultsDiv.innerHTML = `<div class="p-3 text-slate-400 text-xs text-center">No se encontraron líderes</div>`;
+            resultsDiv.classList.remove('hidden');
+        }
+    });
+}
+
+window.selectLeaderForStudent = function (leader) {
+    selectedLeaderForStudent = leader;
+    document.getElementById('edit-student-leader-id').value = leader.id;
+
+    // UI Update
+    document.getElementById('selected-leader-name').textContent = leader.nombre_completo;
+    document.getElementById('edit-student-leader-selected').classList.remove('hidden');
+    document.getElementById('edit-student-leader-results').classList.add('hidden');
+    document.getElementById('edit-student-leader-search').value = ''; // Clean search
+}
+
+window.clearSelectedLeader = function () {
+    selectedLeaderForStudent = null;
+    document.getElementById('edit-student-leader-id').value = '';
+    document.getElementById('selected-leader-name').textContent = '';
+    document.getElementById('edit-student-leader-selected').classList.add('hidden');
+}
+
+// Save Student
+safeBind('student-form', 'submit', async (e) => {
+    e.preventDefault();
+    const id = document.getElementById('edit-student-id').value; // Student PK or ID
+    const nombre = document.getElementById('edit-student-nombre').value;
+    const liderId = document.getElementById('edit-student-leader-id').value;
+
+    const payload = {
+        nombre_completo: nombre,
+        lider_invitador: liderId || null
+    };
+
+    try {
+        window.showLoader();
+        // Since we don't have the PK in the table row (only ID/Cedula usually), we need to ensure we use the correct ID.
+        // Django ModelViewSet uses lookup_field = 'cedula'. Wait, serializer uses 'id' (pk).
+        // Let's check the student object passed to openStudentEdit. It has 'id' (pk) and 'cedula'.
+        // Standard DRF route for update usually uses PK if not overridden, but ViewSet says lookup_field = 'cedula'.
+        // Let's reuse 'cedula' which is safer for this codebase based on previous delete logic.
+        const cedula = document.getElementById('edit-student-cedula').value;
+
+        await axios.patch(`/api/v1/alumnos/alumnos/${cedula}/`, payload, {
+            headers: { Authorization: `Token ${token}` }
+        });
+
+        // Update Local
+        const idx = allAlumnos.findIndex(a => a.cedula == cedula);
+        if (idx !== -1) {
+            allAlumnos[idx].nombre_completo = nombre;
+            allAlumnos[idx].lider_invitador = liderId ? parseInt(liderId) : null;
+            // Update group locally if leader assigned
+            if (liderId) {
+                const l = allLideres.find(x => x.id == liderId);
+                if (l) {
+                    allAlumnos[idx].grupo = l.grupo;
+                    allAlumnos[idx].lider_nombre = l.nombre_completo; // Helper for display
+                }
+            } else {
+                allAlumnos[idx].grupo = 0;
+            }
+        }
+
+        localStorage.setItem('allAlumnos', JSON.stringify(allAlumnos));
+        refreshData(); // Re-render table
+
+        document.getElementById('student-modal').classList.add('hidden');
+        showSuccessToast('Estudiante actualizado correctamente');
+
+    } catch (err) {
+        console.error("Error updating student", err);
+        showErrorAlert("Error al actualizar estudiante.");
+    } finally {
+        window.hideLoader();
+    }
+});
+
+
 // Helpers for cleaner code
 function showSuccessToast(title) {
     Swal.mixin({
@@ -760,13 +862,57 @@ window.eliminarEntidad = async function (tipo, id, nombre) {
             });
 
             if (tipo === 'alumno') {
+                // 1. Remove locally immediately
+                allAlumnos = allAlumnos.filter(a => a.cedula != id);
+                localStorage.setItem('allAlumnos', JSON.stringify(allAlumnos));
+
+                // 2. Update UI
+                updateKPIs();
+                const searchVal = document.getElementById('search-registros')?.value || '';
+                if (searchVal) {
+                    filterRegistros(searchVal);
+                } else {
+                    renderRegistrosTable(allAlumnos);
+                }
+
+                // 3. Background Sync
                 refreshData();
             } else {
+                allLideres = allLideres.filter(l => l.id != id);
+                localStorage.setItem('allLideres', JSON.stringify(allLideres));
+                renderLideresTable(allLideres);
+
                 fetchLideres();
-                refreshData(); // Refresh students too because of CASCADE
+                refreshData();
             }
         } catch (err) {
             console.error("Error al eliminar:", err);
+
+            // Handle 404 (Ghost records) as success
+            if (err.response && err.response.status === 404) {
+                await Swal.fire({
+                    title: 'Ya eliminado',
+                    text: 'El registro ya no existía en el servidor. Se ha limpiado de su vista.',
+                    icon: 'info',
+                    timer: 1500,
+                    showConfirmButton: false
+                });
+
+                if (tipo === 'alumno') {
+                    allAlumnos = allAlumnos.filter(a => a.cedula != id);
+                    localStorage.setItem('allAlumnos', JSON.stringify(allAlumnos));
+                    updateKPIs();
+                    const searchVal = document.getElementById('search-registros')?.value || '';
+                    if (searchVal) filterRegistros(searchVal);
+                    else renderRegistrosTable(allAlumnos);
+                } else {
+                    allLideres = allLideres.filter(l => l.id != id);
+                    localStorage.setItem('allLideres', JSON.stringify(allLideres));
+                    renderLideresTable(allLideres);
+                }
+                return;
+            }
+
             const msg = err.response?.data?.detail || err.response?.data?.error || "No tienes permisos o ocurrió un problema en el servidor.";
             Swal.fire({
                 title: 'Error al eliminar',

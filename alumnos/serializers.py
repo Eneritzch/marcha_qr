@@ -1,18 +1,11 @@
 from rest_framework import serializers
-from .models import Alumno, CuentaBancaria
+from .models import Alumno
 from core.validators import validar_cedula_ecuatoriana
 from lideres_app.models import Lider, GrupoConfig
 
-class CuentaBancariaSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = CuentaBancaria
-        fields = [
-            'titular_nombre', 'titular_cedula', 'banco', 
-            'tipo_cuenta', 'numero_cuenta', 'es_propia'
-        ]
+
 
 class AlumnoSerializer(serializers.ModelSerializer):
-    cuenta_bancaria = CuentaBancariaSerializer(required=False)
     lider_nombre = serializers.CharField(source='lider_invitador.nombre_completo', read_only=True)
     whatsapp_link = serializers.SerializerMethodField()
 
@@ -22,9 +15,12 @@ class AlumnoSerializer(serializers.ModelSerializer):
             'id', 'nombre_completo', 'cedula', 'email', 'telefono',
             'modalidad', 'facultad', 'carrera', 'es_externo', 'codigo_qr',
             'asistio', 'fecha_registro', 'lider_invitador', 
-            'lider_nombre', 'grupo', 'cuenta_bancaria', 'whatsapp_link'
+            'lider_nombre', 'grupo', 'whatsapp_link'
         ]
         read_only_fields = ['codigo_qr', 'grupo', 'asistio', 'fecha_registro', 'whatsapp_link']
+        extra_kwargs = {
+            'lider_invitador': {'required': False, 'allow_null': True}
+        }
 
     def get_whatsapp_link(self, obj):
         if obj.grupo:
@@ -53,9 +49,5 @@ class AlumnoSerializer(serializers.ModelSerializer):
 
 
     def create(self, validated_data):
-
-        cuenta_data = validated_data.pop('cuenta_bancaria', None)
         alumno = Alumno.objects.create(**validated_data)
-        if cuenta_data:
-            CuentaBancaria.objects.create(alumno=alumno, **cuenta_data)
         return alumno

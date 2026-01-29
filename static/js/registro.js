@@ -138,6 +138,58 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // Old change event (removed since we handle it in selectLeader)
 
+    // === NO LEADER LOGIC ===
+    const checkNoLider = document.getElementById('check-no-lider');
+
+    if (checkNoLider) {
+        checkNoLider.addEventListener('change', async (e) => {
+            const isChecked = e.target.checked;
+
+            // Toggle Inputs
+            searchInput.disabled = isChecked;
+            if (isChecked) {
+                searchInput.classList.add('bg-slate-100', 'text-slate-400', 'cursor-not-allowed');
+                searchInput.classList.remove('bg-white');
+                searchInput.value = ''; // Clear visual
+                // hiddenInput.value = ''; // Don't clear yet, we will fill it
+
+                // Update Preview
+                param.textContent = 'ASIGNANDO...';
+                param.className = 'text-3xl font-black text-slate-300 animate-pulse';
+
+                // Fetch Random Leader
+                try {
+                    const res = await axios.get('/api/v1/lideres/random/');
+                    const leader = res.data;
+
+                    hiddenInput.value = leader.id;
+                    searchInput.value = leader.nombre_completo; // Just to be sure, though disabled
+
+                    // Update Preview Correctly
+                    param.textContent = `GRUPO ${leader.grupo}`;
+                    param.className = 'text-3xl font-black text-unemi-orange animate-bounce-short';
+                } catch (e) {
+                    console.error("Error fetching random leader", e);
+                    param.textContent = 'ERROR DE ASIGNACIÓN';
+                    param.className = 'text-xl font-bold text-red-500';
+                }
+
+                // Remove error styles
+                searchInput.classList.remove('border-red-500');
+                hiddenInput.removeAttribute('required');
+            } else {
+                searchInput.classList.remove('bg-slate-100', 'text-slate-400', 'cursor-not-allowed');
+                searchInput.classList.add('bg-white');
+                searchInput.disabled = false;
+                searchInput.focus();
+
+                param.textContent = '--';
+                param.className = 'text-3xl font-black text-slate-300';
+                hiddenInput.setAttribute('required', '');
+            }
+        });
+    }
+
     // === STEPPER LOGIC ===
     btnNext.addEventListener('click', async () => {
         if (!validateStep(currentStep)) return;
@@ -350,10 +402,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
 
     // === BANK CHECKBOX ===
-    const checkPersonal = document.getElementById('check-misma-cuenta');
-    checkPersonal.addEventListener('change', (e) => {
-        document.getElementById('titular-fields').classList.toggle('hidden', e.target.checked);
-    });
+
 
     // === SUBMIT ===
     const form = document.getElementById('registro-form');
@@ -378,15 +427,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             facultad: raw.es_externo ? null : raw.facultad,
             carrera: raw.es_externo ? null : raw.carrera,
             es_externo: raw.es_externo === 'on',
-            lider_invitador: raw.lider_invitador,
-            cuenta_bancaria: {
-                banco: raw.banco,
-                tipo_cuenta: raw.tipo_cuenta,
-                numero_cuenta: raw.numero_cuenta,
-                es_propia: checkPersonal.checked,
-                titular_nombre: checkPersonal.checked ? raw.nombre_completo.toUpperCase() : raw.titular_nombre.toUpperCase(),
-                titular_cedula: checkPersonal.checked ? raw.cedula : raw.titular_cedula
-            }
+            lider_invitador: raw.lider_invitador || null // Send null to trigger random assignment
         };
 
         try {
@@ -418,7 +459,19 @@ document.addEventListener('DOMContentLoaded', async () => {
             // Populate Success View
             document.getElementById('success-name').textContent = res.data.nombre_completo;
             document.getElementById('success-cedula').textContent = res.data.cedula;
-            document.getElementById('success-group').textContent = `GRUPO ${res.data.grupo}`;
+
+            // Display Group
+            const groupNum = res.data.grupo;
+            const groupEl = document.getElementById('success-group');
+            if (groupNum && groupNum > 0) {
+                groupEl.textContent = `GRUPO ${groupNum}`;
+                groupEl.classList.remove('text-slate-400');
+                groupEl.classList.add('text-unemi-orange');
+            } else {
+                groupEl.textContent = 'GRUPO POR DEFINIR';
+                groupEl.classList.remove('text-unemi-orange');
+                groupEl.classList.add('text-slate-400');
+            }
             // Assuming backend generates QR returns URL or valid data
             // Since we need to Download, we use the download link
             // For Image preview, we can use the same generic download link or a dedicated one
@@ -466,9 +519,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 if (data.facultad) errors.push(`Facultad: ${getErrorText(data.facultad)}`);
                 if (data.carrera) errors.push(`Carrera: ${getErrorText(data.carrera)}`);
 
-                if (data.cuenta_bancaria) {
-                    if (data.cuenta_bancaria.numero_cuenta) errors.push(`Cuenta: ${getErrorText(data.cuenta_bancaria.numero_cuenta)}`);
-                }
+
 
                 // Generic "detail" or "error" keys
                 if (data.detail) errors.push(data.detail);

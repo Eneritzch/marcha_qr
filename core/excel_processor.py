@@ -1,6 +1,6 @@
 import pandas as pd
 from django.db import transaction
-from alumnos.models import Alumno, CuentaBancaria
+from alumnos.models import Alumno
 from lideres_app.models import Lider
 import logging
 
@@ -51,10 +51,6 @@ class ExcelProcessor:
                             facultad=row.get('facultad', ''),
                             lider_invitador=lider
                         )
-                        
-                        # Handle optional bank data not yet implemented in SmartImporter normalization fully
-                        # but we can try to access if available in original DF if needed. 
-                        # For now, we focus on student data as per user request.
                         
                         results['created'] += 1
                     except Exception as e:
