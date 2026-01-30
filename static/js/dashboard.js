@@ -316,18 +316,19 @@ function renderRegistrosTable(data) {
             </td>
              <td class="px-6 py-4 text-center">
                  <div class="flex items-center justify-center gap-2">
-                     <button onclick="downloadFile('/api/v1/alumnos/descargar-qr/${a.cedula}/', 'qr_${a.cedula}.png')" class="flex items-center gap-1 px-2 py-1 bg-blue-50 text-unemi-blue rounded hover:bg-unemi-blue hover:text-white transition-colors text-xs font-bold border border-blue-100">
+                     <button onclick="downloadFile('/api/v1/alumnos/descargar-qr/${a.cedula}/', 'qr_${a.cedula}.png', 'qr', {cedula: '${a.cedula}', nombre_completo: '${a.nombre_completo}'})" class="flex items-center gap-1 px-2 py-1 bg-blue-50 text-unemi-blue rounded hover:bg-unemi-blue hover:text-white transition-colors text-xs font-bold border border-blue-100">
                         <i data-lucide="qr-code" class="w-3 h-3"></i> QR
                      </button>
-                     <button onclick="downloadFile('/api/v1/alumnos/descargar-credencial/${a.cedula}/', 'credencial_${a.cedula}.pdf')" class="flex items-center gap-1 px-2 py-1 bg-orange-50 text-unemi-orange rounded hover:bg-unemi-orange hover:text-white transition-colors text-xs font-bold border border-orange-100">
+                     <button onclick='downloadFile("/api/v1/alumnos/descargar-credencial/${a.cedula}/", "credencial_${a.cedula}.pdf", "pdf", ${JSON.stringify(a).replace(/'/g, "&#39;")})' class="flex items-center gap-1 px-2 py-1 bg-orange-50 text-unemi-orange rounded hover:bg-unemi-orange hover:text-white transition-colors text-xs font-bold border border-orange-100">
                         <i data-lucide="file-text" class="w-3 h-3"></i> PDF
                      </button>
                      <button onclick='openStudentEdit(${JSON.stringify(a).replace(/'/g, "&#39;")})' class="flex items-center gap-1 px-2 py-1 bg-emerald-50 text-emerald-600 rounded hover:bg-emerald-600 hover:text-white transition-colors text-xs font-bold border border-emerald-100">
                         <i data-lucide="edit-2" class="w-3 h-3"></i>
                      </button>
+                     ${user.is_superuser ? `
                      <button onclick="eliminarEntidad('alumno', '${a.cedula}', '${a.nombre_completo}')" class="flex items-center gap-1 px-2 py-1 bg-red-50 text-red-600 rounded hover:bg-red-600 hover:text-white transition-colors text-xs font-bold border border-red-100">
                         <i data-lucide="trash-2" class="w-3 h-3"></i>
-                    </button>
+                    </button>` : ''}
                 </div>
             </td>
         `;
@@ -503,9 +504,10 @@ function renderLideresTable(data) {
                      <button onclick='openLiderModal(${JSON.stringify(l)})' class="p-2 text-unemi-blue hover:bg-blue-50 rounded-lg transition-colors" title="Editar">
                         <i data-lucide="edit-2" class="w-4 h-4"></i>
                      </button>
+                     ${user.is_superuser ? `
                      <button onclick="eliminarEntidad('lider', '${l.id}', '${l.nombre_completo}')" class="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors" title="Eliminar">
                         <i data-lucide="trash-2" class="w-4 h-4"></i>
-                     </button>
+                     </button>` : ''}
                  </div>
              </td>
         `;
@@ -798,6 +800,214 @@ safeBind('student-form', 'submit', async (e) => {
 
 
 // Helpers for cleaner code
+
+// === HYBRID DOWNLOAD LOGIC ===
+window.downloadFile = async function (url, filename, type, studentData) {
+    // Attempt 1: Online Download
+    if (navigator.onLine) {
+        try {
+            const response = await axios.get(url, {
+                responseType: 'blob',
+                headers: { Authorization: `Token ${token}` },
+                timeout: 5000 // 5s timeout to fail fast
+            });
+            const blobUrl = window.URL.createObjectURL(new Blob([response.data]));
+            const link = document.createElement('a');
+            link.href = blobUrl;
+            link.setAttribute('download', filename);
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+            return; // Success
+        } catch (e) {
+            console.warn("Online download failed, falling back to offline generation", e);
+        }
+    }
+
+    // Attempt 2: Offline Generation
+    try {
+        window.showLoader();
+        if (type === 'qr') {
+            await generateAndDownloadQR(studentData.cedula, studentData.nombre_completo);
+        } else if (type === 'pdf') {
+            await generateAndDownloadPDF(studentData);
+        }
+    } catch (e) {
+        console.error("Offline generation failed", e);
+        showErrorAlert("No se pudo generar el archivo. Intente nuevamente.");
+    } finally {
+        window.hideLoader();
+    }
+}
+
+async function generateAndDownloadQR(cedula, nombre) {
+    // Create hidden div
+    const div = document.createElement('div');
+    // Ensure data is string
+    const qrText = String(cedula);
+
+    // Generate QR
+    // Using qrcodejs
+    // We need to wait for it to render
+    return new Promise((resolve, reject) => {
+        try {
+            // qrcodejs renders into an element
+            // We can create a temporary container
+            const container = document.createElement('div');
+            const qrcode = new QRCode(container, {
+                text: qrText,
+                width: 512,
+                height: 512,
+                colorDark: "#0F1E4B",
+                colorLight: "#ffffff",
+                correctLevel: QRCode.CorrectLevel.H
+            });
+
+            // Wait a bit for canvas/img to be ready
+            setTimeout(() => {
+                const canvas = container.querySelector('canvas');
+                const img = container.querySelector('img');
+                const dataUrl = canvas ? canvas.toDataURL('image/png') : img.src;
+
+                const link = document.createElement('a');
+                link.href = dataUrl;
+                link.download = `qr_${cedula}.png`;
+                document.body.appendChild(link);
+                link.click();
+                link.remove();
+                resolve();
+            }, 100);
+        } catch (e) {
+            reject(e);
+        }
+    });
+}
+
+async function generateAndDownloadPDF(student) {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({
+        orientation: 'p',
+        unit: 'mm',
+        format: 'a6' // 105 x 148 mm
+    });
+
+    const width = 105;
+    const height = 148;
+    const UNEMI_BLUE = "#0F1E4B";
+    const UNEMI_ORANGE = "#EF7D00";
+    const SLATE_500 = "#64748b";
+
+    // --- Background Header ---
+    doc.setFillColor(UNEMI_ORANGE);
+    doc.rect(0, 0, width, 40, 'F'); // Top 40mm
+
+    // --- Logo ---
+    // We need to fetch the logo blob to use it
+    try {
+        const logoImg = await loadImageToBase64('/static/img/icono.webp'); // Ensure cache sw
+        if (logoImg) {
+            doc.addImage(logoImg, 'WEBP', (width / 2) - 15, 8, 30, 30);
+        }
+    } catch (e) {
+        console.warn("Could not load logo for PDF", e);
+    }
+
+    // --- Title ---
+    doc.setTextColor(UNEMI_BLUE);
+    doc.setFontSize(12);
+    doc.setFont("helvetica", "bold");
+    doc.text("CREDENCIAL DE ASISTENCIA", width / 2, 50, { align: "center" });
+
+    // --- Student Info ---
+    let currentY = 58;
+
+    // Name
+    doc.setFontSize(14);
+    if (student.nombre_completo.length > 25) {
+        const words = student.nombre_completo.split(' ');
+        const mid = Math.ceil(words.length / 2);
+        const line1 = words.slice(0, mid).join(' ');
+        const line2 = words.slice(mid).join(' ');
+        doc.text(line1, width / 2, currentY, { align: "center" });
+        doc.text(line2, width / 2, currentY + 6, { align: "center" });
+        currentY += 12;
+    } else {
+        doc.text(student.nombre_completo, width / 2, currentY, { align: "center" });
+        currentY += 8;
+    }
+
+    // Cedula
+    doc.setFontSize(9);
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(SLATE_500);
+    doc.text(student.cedula, width / 2, currentY, { align: "center" });
+
+    // Carrera
+    if (student.carrera) {
+        doc.setFontSize(8);
+        doc.text(student.carrera.substring(0, 45), width / 2, currentY + 4, { align: "center" });
+    }
+
+    // --- Group Info ---
+    if (student.grupo) {
+        const groupY = currentY + 14;
+
+        doc.setFontSize(8);
+        doc.setTextColor(UNEMI_BLUE);
+        doc.setFont("helvetica", "bold");
+        doc.text("UBICA A TU LÍDER", width / 2, groupY - 4, { align: "center" });
+
+        doc.setFontSize(18);
+        doc.setTextColor(UNEMI_ORANGE);
+        doc.text(`GRUPO ${student.grupo}`, width / 2, groupY, { align: "center" });
+    }
+
+    // --- QR Code ---
+    // We generate QR data URL
+    const qrDataUrl = await generateQRDataUrl(student.codigo_qr || student.cedula);
+    const qrSize = 48;
+    const qrY = height - qrSize - 12;
+    doc.addImage(qrDataUrl, 'PNG', (width - qrSize) / 2, qrY, qrSize, qrSize);
+
+    // --- Footer ---
+    doc.setFontSize(7);
+    doc.setTextColor(UNEMI_BLUE);
+    doc.setFont("helvetica", "normal");
+    doc.text("Presenta este código para registrar tu asistencia", width / 2, height - 6, { align: "center" });
+
+    doc.save(`credencial_${student.cedula}.pdf`);
+}
+
+// Helper to generate QR Data URL
+function generateQRDataUrl(text) {
+    return new Promise((resolve) => {
+        const container = document.createElement('div');
+        const qrcode = new QRCode(container, {
+            text: String(text),
+            width: 512,
+            height: 512,
+            correctLevel: QRCode.CorrectLevel.H
+        });
+        setTimeout(() => {
+            const canvas = container.querySelector('canvas');
+            const img = container.querySelector('img');
+            resolve(canvas ? canvas.toDataURL('image/png') : img.src);
+        }, 100);
+    });
+}
+
+// Helper to load image
+function loadImageToBase64(url) {
+    return axios.get(url, { responseType: 'blob' })
+        .then(response => {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onloadend = () => resolve(reader.result);
+                reader.onerror = reject;
+                reader.readAsDataURL(response.data);
+            });
+        });
+}
 function showSuccessToast(title) {
     Swal.mixin({
         toast: true, position: 'top-end', showConfirmButton: false, timer: 2000, timerProgressBar: true

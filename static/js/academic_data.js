@@ -1,59 +1,65 @@
 export const ACADEMIC_DATA = {
     "PRESENCIAL": {
-        "FACULTAD CIENCIAS E INGENIERIA": [
-            "INGENIERIA EN SOFTWARE",
-            "INGENIERIA INDUSTRIAL",
-            "INGENIERIA AMBIENTAL",
-            "INGENIERIA EN BIOTECNOLOGIA",
-            "INGENIERIA EN ALIMENTOS",
-            "INGENIERIA EN TI"
+        "Facultad de Ciencias Sociales, Educación Comercial y Derecho": [
+            "Administración de Empresas",
+            "Agronegocios",
+            "Comunicación",
+            "Contabilidad y Auditoria",
+            "Economía",
+            "Multimedia y Producción Audiovisual",
+            "Turismo"
         ],
-        "FACULTAD CIENCIAS SOCIALES": [
-            "PSICOLOGIA",
-            "TRABAJO SOCIAL",
-            "COMUNICACION",
-            "DERECHO"
+        "Facultad de Educación": [
+            "Educación",
+            "Educación Especial",
+            "Pedagogía de la Actividad Física y Deporte",
+            "Pedagogía de la Lengua y la Literatura",
+            "Pedagogía de los Idiomas Nacionales y Extranjeros"
         ],
-        "FACULTAD SALUD": [
-            "ENFERMERIA",
-            "MEDICINA",
-            "NUTRICION Y DIETETICA",
-            "FISIOTERAPIA"
+        "Facultad de Ciencias e Ingenierías": [
+            "Alimentos",
+            "Arquitectura Sostenible",
+            "Biotecnología",
+            "Ingeniería Ambiental",
+            "Ingeniería Civil",
+            "Ingeniería Industrial",
+            "Software"
         ],
-        "FACULTAD EDUCACION": [
-            "EDUCACION INICIAL",
-            "EDUCACION BASICA",
-            "PEDAGOGIA DE LOS IDIOMAS",
-            "PEDAGOGIA EN ACTIVIDAD FISICA"
-        ],
-        "FACULTAD CIENCIAS ADMNISTRATIVAS Y COMERCIALES": [
-            "ADMINISTRACION DE EMPRESAS",
-            "CONTABILIDAD Y AUDITORIA",
-            "TURISMO",
-            "ECONOMIA"
+        "Facultad de Salud y Servicios Sociales": [
+            "Enfermería",
+            "Fisioterapia",
+            "Medicina",
+            "Nutrición y Dietética",
+            "Psicología Clínica"
         ]
     },
     "EN_LINEA": {
-        "FACULTAD CIENCIAS E INGENIERIA": [
-            "INGENIERIA EN TI"
+        "Facultad de Ciencias Sociales, Educación Comercial y Derecho": [
+            "Administración de Empresas",
+            "Comunicación",
+            "Derecho",
+            "Economía",
+            "Trabajo Social",
+            "Turismo"
         ],
-        "FACULTAD CIENCIAS SOCIALES": [
-            "PSICOLOGIA",
-            "TRABAJO SOCIAL",
-            "DERECHO"
+        "Facultad de Educación": [
+            "Educación Básica",
+            "Educación Inicial",
+            "Pedagogía de los Idiomas Nacionales y Extranjeros"
         ],
-        "FACULTAD EDUCACION": [
-            "EDUCACION INICIAL",
-            "EDUCACION BASICA"
-        ],
-        "FACULTAD CIENCIAS ADMNISTRATIVAS Y COMERCIALES": [
-            "ECONOMIA"
+        "Facultad de Ciencias e Ingenierías": [
+            "Tecnologías de la Información"
         ]
     },
     "SEMIPRESENCIAL": {
-        "FACULTAD CIENCIAS SOCIALES": [
-            "DERECHO"
+        "Facultad de Ciencias Sociales, Educación Comercial y Derecho": [
+            "Trabajo Social"
+        ],
+        "Facultad de Educación": [
+            "Educación Inicial",
+            "Pedagogía de las Ciencias Experimentales"
         ]
     },
+    "POSGRADO": {},
     "EGRESADO": {}
 };

@@ -62,7 +62,7 @@ class AlumnoViewSet(viewsets.ModelViewSet):
         if action in ['validar_cedula', 'create']:
             return [permissions.AllowAny()]
         if action == 'destroy':
-            return [permissions.IsAuthenticated()]
+            return [permissions.IsAdminUser()]
         return [permissions.IsAuthenticated()]
 
     def get_pagination_class(self):
@@ -80,9 +80,9 @@ class AlumnoViewSet(viewsets.ModelViewSet):
             return Alumno.objects.all()
         
         if user.is_staff:
-            return Alumno.objects.all()
+            return Alumno.objects.all().select_related('lider_invitador')
         if hasattr(user, 'lider_profile'):
-            return Alumno.objects.filter(lider_invitador=user.lider_profile)
+            return Alumno.objects.filter(lider_invitador=user.lider_profile).select_related('lider_invitador')
         return Alumno.objects.none()
 
     @action(detail=False, methods=['post'], url_path='validar-cedula')
@@ -222,11 +222,11 @@ class ExportDataView(views.APIView):
              return Response({"error": f"Tipo de exportación inválido. Opciones: {', '.join(valid_types)}"}, 
                              status=status.HTTP_400_BAD_REQUEST)
 
-        queryset = self.get_queryset()
+        queryset = self.get_queryset().select_related('lider_invitador')
         
         data = []
         if data_type == 'registros':
-            for alumno in queryset:
+            for alumno in queryset.iterator():
                 data.append({
                     'Nombre Completo': alumno.nombre_completo,
                     'Cédula': alumno.cedula,

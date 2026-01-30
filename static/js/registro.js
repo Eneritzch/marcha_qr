@@ -323,13 +323,13 @@ document.addEventListener('DOMContentLoaded', async () => {
             selFacultad.disabled = true;
             selCarrera.disabled = true;
 
-            if (mod === 'EGRESADO') {
+            if (mod === 'EGRESADO' || mod === 'POSGRADO') {
                 if (facContainer) facContainer.classList.add('hidden');
                 if (carContainer) carContainer.classList.add('hidden');
-                selFacultad.innerHTML = '<option value="EGRESADO">EGRESADO</option>';
-                selCarrera.innerHTML = '<option value="EGRESADO">EGRESADO</option>';
-                selFacultad.value = 'EGRESADO';
-                selCarrera.value = 'EGRESADO';
+                selFacultad.innerHTML = `<option value="${mod}">${mod}</option>`;
+                selCarrera.innerHTML = `<option value="${mod}">${mod}</option>`;
+                selFacultad.value = mod;
+                selCarrera.value = mod;
                 return;
             } else {
                 if (facContainer) facContainer.classList.remove('hidden');

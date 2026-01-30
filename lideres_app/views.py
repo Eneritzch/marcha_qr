@@ -87,18 +87,28 @@ class DashboardStatsView(views.APIView):
         total_registrados = Alumno.objects.count()
         total_asistieron = Alumno.objects.filter(asistio=True).count()
         
-        stats_grupos = []
-        for grupo_num in range(1, 16):
-            grupo_alumnos = Alumno.objects.filter(grupo=grupo_num)
-            total_grupo = grupo_alumnos.count()
-            asistieron_grupo = grupo_alumnos.filter(asistio=True).count()
-            
-            stats_grupos.append({
-                'grupo': grupo_num,
-                'total': total_grupo,
-                'asistieron': asistieron_grupo,
-                'porcentaje': round((asistieron_grupo / total_grupo * 100), 1) if total_grupo > 0 else 0
-            })
+        # Optimized aggregation: 1 query instead of 15
+        from django.db.models import Sum, Case, When, IntegerField
+        
+        # Initialize stats for all groups to 0
+        stats_map = {g: {'grupo': g, 'total': 0, 'asistieron': 0, 'porcentaje': 0} for g in range(1, 16)}
+
+        # Aggregate counts by group
+        qs = Alumno.objects.values('grupo').annotate(
+            total=Count('id'),
+            asistencia=Count(Case(When(asistio=True, then=1), output_field=IntegerField()))
+        ).order_by('grupo')
+
+        for entry in qs:
+            g = entry['grupo']
+            if g in stats_map:
+                total = entry['total']
+                asistieron = entry['asistencia']
+                stats_map[g]['total'] = total
+                stats_map[g]['asistieron'] = asistieron
+                stats_map[g]['porcentaje'] = round((asistieron / total * 100), 1) if total > 0 else 0
+        
+        stats_grupos = list(stats_map.values())
 
         return Response({
             'total_registrados': total_registrados,

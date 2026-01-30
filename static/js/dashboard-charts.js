@@ -31,7 +31,7 @@ window.DashboardCharts = {
 
             // Process all leaders (or filtered ones) to sum stats by Group
             leadersData.forEach(l => {
-                const gName = `Grupo ${l.grupo}`;
+                const gName = `G${l.grupo}`;
                 if (!groupsStats[gName]) {
                     groupsStats[gName] = { invited: 0, attended: 0, groupNum: l.grupo };
                 }

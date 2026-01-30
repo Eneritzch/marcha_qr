@@ -23,7 +23,7 @@ class Alumno(models.Model):
     
     # Código QR y Seguimiento
     codigo_qr = models.CharField(max_length=20, unique=True, editable=False, verbose_name="Código QR")
-    asistio = models.BooleanField(default=False, verbose_name="Asistió")
+    asistio = models.BooleanField(default=False, db_index=True, verbose_name="Asistió")
     fecha_registro = models.DateTimeField(auto_now_add=True, verbose_name="Fecha de Registro")
     fecha_asistencia = models.DateTimeField(null=True, blank=True, verbose_name="Fecha de Asistencia")
     registrado_por = models.CharField(max_length=50, null=True, blank=True, verbose_name="Registrado por")
@@ -37,7 +37,7 @@ class Alumno(models.Model):
         related_name='alumnos',
         verbose_name="Líder que lo invitó"
     )
-    grupo = models.IntegerField(default=0, verbose_name="Grupo asignado (Heredado)")
+    grupo = models.IntegerField(default=0, db_index=True, verbose_name="Grupo asignado (Heredado)")
 
     class Meta:
         verbose_name = "Alumno"

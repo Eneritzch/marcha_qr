@@ -1,22 +1,27 @@
-const CACHE_NAME = 'marcha-unemi-v6';
+const CACHE_NAME = 'marcha-unemi-v11';
 const STATIC_ASSETS = [
     '/login/',
     '/dashboard/',
-    '/static/js/dashboard.js?v=1.8',
+    '/static/js/dashboard.js?v=2.1',
     '/static/js/dashboard-charts.js?v=1.8',
     '/static/js/dashboard-scanner.js?v=1.8',
     '/static/img/icono.svg',
     '/static/img/icono.webp',
+    '/static/img/icono-orange.png',
+    '/static/img/pwa-icon.png',
     '/static/img/TIGRILLO_LOAD_3.gif',
     '/static/img/unemi.webp',
     '/static/img/hero1.webp',
     '/static/img/hero2.webp',
+    '/static/js/academic_data.js',
     'https://cdn.tailwindcss.com',
     'https://cdn.jsdelivr.net/npm/lucide@0.474.0/dist/umd/lucide.min.js',
     'https://cdn.jsdelivr.net/npm/axios@1.7.9/dist/axios.min.js',
     'https://cdn.jsdelivr.net/npm/sweetalert2@11.15.10/dist/sweetalert2.all.min.js',
     'https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/html5-qrcode.min.js',
     'https://cdn.jsdelivr.net/npm/apexcharts@4.3.0/dist/apexcharts.min.js',
+    'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js',
+    'https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js',
     'https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;900&display=swap'
 ];
 

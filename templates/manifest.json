@@ -10,9 +10,9 @@
     "theme_color": "#0F1E4B",
     "icons": [
         {
-            "src": "/static/img/icono.webp",
+            "src": "/static/img/pwa-icon.png",
             "sizes": "512x512",
-            "type": "image/webp",
+            "type": "image/png",
             "purpose": "any maskable"
         }
     ]

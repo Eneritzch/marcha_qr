@@ -27,8 +27,8 @@ class Lider(models.Model):
     telefono = models.CharField(max_length=15, null=True, blank=True, verbose_name="Teléfono")
     
     # Grupo y estado
-    grupo = models.IntegerField(choices=GRUPOS, verbose_name="Grupo")
-    activo = models.BooleanField(default=True, verbose_name="Activo")
+    grupo = models.IntegerField(choices=GRUPOS, db_index=True, verbose_name="Grupo")
+    activo = models.BooleanField(default=True, db_index=True, verbose_name="Activo")
     visible_en_registro = models.BooleanField(default=True, verbose_name="Visible en Registro")
     
     # Orden y organización
