@@ -65,11 +65,12 @@ class AlumnoViewSet(viewsets.ModelViewSet):
             return [permissions.IsAdminUser()]
         return [permissions.IsAuthenticated()]
 
-    def get_pagination_class(self):
+    @property
+    def pagination_class(self):
         """Disable pagination if requested for offline sync."""
         if self.request.query_params.get('nopaginate') == 'true':
             return None
-        return super().get_pagination_class()
+        return self.settings.DEFAULT_PAGINATION_CLASS
 
     def get_queryset(self):
         """Filter students for leaders, allow all for public validation/creation."""
