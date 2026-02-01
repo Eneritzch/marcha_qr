@@ -228,6 +228,7 @@
             <!-- VIEW: OVERVIEW (Charts & Stats) -->
             <section id="view-overview" class="space-y-6 fade-in">
                 <!-- KPI Cards -->
+                <!-- KPI Cards -->
                 <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
                     <div class="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm">
                         <p class="text-xs font-bold text-slate-400 uppercase">Total Registrados</p>
@@ -407,15 +408,37 @@
 
             <!-- VIEW: REGISTROS TABLE -->
             <section id="view-registros" class="hidden space-y-6 fade-in">
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="bg-white p-4 rounded-2xl border border-blue-100 shadow-sm flex items-center justify-between">
+                        <div>
+                            <p class="text-xs font-bold text-blue-600 uppercase">Estudiantes UNEMI</p>
+                             <p class="text-xs text-blue-400">Matriculados</p>
+                        </div>
+                        <p id="kpi-unemi" class="text-3xl font-black text-blue-800">--</p>
+                    </div>
+                    <div class="bg-white p-4 rounded-2xl border border-orange-100 shadow-sm flex items-center justify-between">
+                        <div>
+                            <p class="text-xs font-bold text-orange-500 uppercase">Externos</p>
+                            <p class="text-xs text-orange-400">Invitados</p>
+                        </div>
+                        <p id="kpi-externos" class="text-3xl font-black text-orange-600">--</p>
+                    </div>
+                </div>
+
                 <div class="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
                     <div class="p-6 border-b border-slate-100 flex flex-col md:flex-row gap-4 justify-between items-center">
                         <div class="relative w-full md:w-96">
                             <i data-lucide="search" class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4"></i>
                             <input type="text" id="search-registros" placeholder="Buscar por nombre o cédula..." class="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-unemi-blue">
                         </div>
-                        <div class="flex gap-2">
+                        <div class="flex flex-wrap gap-2">
+                             <select id="filter-vinculo" class="appearance-none bg-white border border-slate-200 text-slate-700 text-sm font-bold py-2 px-4 pr-10 rounded-xl focus:ring-4 focus:ring-unemi-blue/10 focus:border-unemi-blue focus:outline-none transition-all hover:border-unemi-blue/50 shadow-sm bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20fill%3D%22none%22%20viewBox%3D%220%200%2024%2024%22%20stroke%3D%22%230F1E4B%22%20stroke-width%3D%222%22%3E%3Cpath%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%20d%3D%22m19.5%208.25-7.5%207.5-7.5-7.5%22%2F%3E%3C%2Fsvg%3E')] bg-[length:1.1rem_1.1rem] bg-[right_0.75rem_center] bg-no-repeat cursor-pointer">
+                                <option value="all">Vínculo (Todos)</option>
+                                <option value="unemi">Estudiantes UNEMI</option>
+                                <option value="externo">Externos</option>
+                            </select>
                              <select id="filter-estado" class="appearance-none bg-white border border-slate-200 text-slate-700 text-sm font-bold py-2 px-4 pr-10 rounded-xl focus:ring-4 focus:ring-unemi-blue/10 focus:border-unemi-blue focus:outline-none transition-all hover:border-unemi-blue/50 shadow-sm bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20fill%3D%22none%22%20viewBox%3D%220%200%2024%2024%22%20stroke%3D%22%230F1E4B%22%20stroke-width%3D%222%22%3E%3Cpath%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%20d%3D%22m19.5%208.25-7.5%207.5-7.5-7.5%22%2F%3E%3C%2Fsvg%3E')] bg-[length:1.1rem_1.1rem] bg-[right_0.75rem_center] bg-no-repeat cursor-pointer">
-                                <option value="all">Todos los Estados</option>
+                                <option value="all">Estado (Todos)</option>
                                 <option value="present">Asistió</option>
                                 <option value="absent">Pendiente</option>
                             </select>
@@ -425,6 +448,7 @@
                         <table class="w-full text-sm text-left text-slate-500">
                             <thead class="text-xs text-slate-700 uppercase bg-slate-50">
                                 <tr>
+                                    <th class="px-4 py-3 text-center">No.</th>
                                     <th class="px-6 py-3">Estudiante</th>
                                     <th class="px-6 py-3">Cédula</th>
                                     <th class="px-6 py-3">Carrera</th>
@@ -999,9 +1023,9 @@
             if(loader) loader.classList.add('opacity-0', 'pointer-events-none');
         }
     </script>
-    <script src="/static/js/dashboard-charts.js?v=2.1"></script>
-    <script src="/static/js/dashboard-scanner.js?v=2.1"></script>
-    <script src="/static/js/dashboard.js?v=2.1"></script>
+    <script src="/static/js/dashboard-charts.js?v=3.0"></script>
+    <script src="/static/js/dashboard-scanner.js?v=3.0"></script>
+    <script src="/static/js/dashboard.js?v=3.0"></script>
     <script>
         document.addEventListener('DOMContentLoaded', () => {
            try {

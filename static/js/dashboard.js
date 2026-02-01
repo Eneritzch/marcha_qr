@@ -77,6 +77,10 @@ document.addEventListener('DOMContentLoaded', async () => {
         const el = document.getElementById('search-registros');
         filterRegistros(el ? el.value : '');
     });
+    safeBind('filter-vinculo', 'change', () => {
+        const el = document.getElementById('search-registros');
+        filterRegistros(el ? el.value : '');
+    });
     safeBind('excel-form', 'submit', handleExcelUpload);
 
     // Leaders Events (Safe Binding)
@@ -263,41 +267,98 @@ function updateKPIs() {
     const pendientes = total - asistencias;
     const porcentaje = total > 0 ? ((asistencias / total) * 100).toFixed(1) : 0;
 
+    // New Counts
+    const externos = allAlumnos.filter(a => a.es_externo).length;
+    const unemi = total - externos;
+
     document.getElementById('kpi-total').textContent = total;
     document.getElementById('kpi-asistencias').textContent = asistencias;
     document.getElementById('kpi-pendientes').textContent = pendientes;
     document.getElementById('kpi-porcentaje').textContent = `${porcentaje}%`;
+
+    // Update New Cards
+    const elUnemi = document.getElementById('kpi-unemi');
+    const elExternos = document.getElementById('kpi-externos');
+    if (elUnemi) elUnemi.textContent = unemi;
+    if (elExternos) elExternos.textContent = externos;
 }
+
+// === DATA TABLES STATE ===
+let currentRegistrosPage = 1;
+const registrosPageSize = 50;
 
 // === TABLES ===
 function filterRegistros(query) {
-    const q = query.toLowerCase();
-    const status = document.getElementById('filter-estado').value;
+    console.log("filterRegistros called", { query });
+    const q = (query || '').toLowerCase();
+    const statusEl = document.getElementById('filter-estado');
+    const vinculoEl = document.getElementById('filter-vinculo');
+
+    if (!statusEl || !vinculoEl) {
+        console.error("Filtros no encontrados!", { statusEl, vinculoEl });
+        return;
+    }
+    const status = statusEl.value;
+    const vinculo = vinculoEl.value;
 
     const filtered = allAlumnos.filter(a => {
-        const matchesSearch = a.nombre_completo.toLowerCase().includes(q) || a.cedula.includes(q);
+        if (!a) return false;
+        const nombre = (a.nombre_completo || '').toLowerCase();
+        const cedula = (a.cedula || '');
+
+        const matchesSearch = nombre.includes(q) || cedula.includes(q);
         const matchesStatus = status === 'all' ||
             (status === 'present' && a.asistio) ||
             (status === 'absent' && !a.asistio);
-        return matchesSearch && matchesStatus;
+
+        const matchesVinculo = vinculo === 'all' ||
+            (vinculo === 'unemi' && !a.es_externo) ||
+            (vinculo === 'externo' && a.es_externo);
+
+        return matchesSearch && matchesStatus && matchesVinculo;
     });
 
+    currentRegistrosPage = 1; // Reset to page 1 on filter
     renderRegistrosTable(filtered);
 }
 
 function renderRegistrosTable(data) {
+    console.log("renderRegistrosTable called", { items: data ? data.length : 0 });
     const tbody = document.getElementById('tbody-registros');
-    tbody.innerHTML = '';
+    const pagination = document.getElementById('pagination-registros');
 
-    if (data.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="5" class="p-8 text-center text-slate-400">No se encontraron registros.</td></tr>`;
+    if (!tbody) {
+        console.error("tbody-registros no encontrado!");
         return;
     }
 
-    data.slice(0, 50).forEach(a => { // Limit to 50 for DOM perf
+    tbody.innerHTML = '';
+    if (pagination) pagination.innerHTML = '';
+
+    if (!data || data.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="6" class="p-8 text-center text-slate-400">No se encontraron registros.</td></tr>`;
+        return;
+    }
+
+    // Pagination Logic
+    const totalItems = data.length;
+    const totalPages = Math.ceil(totalItems / registrosPageSize);
+
+    // Clamp current page
+    if (currentRegistrosPage > totalPages) currentRegistrosPage = totalPages;
+    if (currentRegistrosPage < 1) currentRegistrosPage = 1;
+
+    const startIdx = (currentRegistrosPage - 1) * registrosPageSize;
+    const endIdx = Math.min(startIdx + registrosPageSize, totalItems);
+    const pageData = data.slice(startIdx, endIdx);
+
+    pageData.forEach((a, index) => {
+        if (!a) return;
+        const globalIndex = startIdx + index + 1;
         const tr = document.createElement('tr');
         tr.className = 'bg-white border-b hover:bg-slate-50 transition-colors';
         tr.innerHTML = `
+            <td class="px-4 py-4 text-center font-bold text-slate-400 text-xs">${globalIndex}</td>
             <td class="px-6 py-4 font-medium text-slate-900">
                 <div class="flex flex-col">
                     <span>${a.nombre_completo}</span>
@@ -334,6 +395,39 @@ function renderRegistrosTable(data) {
         `;
         tbody.appendChild(tr);
     });
+
+    // Render Pagination Controls
+    if (totalPages > 1) {
+        const createPageBtn = (label, page, isActive = false, isDisabled = false) => {
+            const btn = document.createElement('button');
+            btn.textContent = label;
+            btn.className = `px-3 py-1 text-xs font-bold rounded-lg transition-all ${isActive ? 'bg-unemi-blue text-white shadow-md' : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'}`;
+            if (isDisabled) {
+                btn.disabled = true;
+                btn.className += ' opacity-50 cursor-not-allowed';
+            } else {
+                btn.onclick = () => {
+                    currentRegistrosPage = page;
+                    renderRegistrosTable(data);
+                    document.getElementById('view-registros').scrollIntoView({ behavior: 'smooth' });
+                };
+            }
+            return btn;
+        };
+
+        // Previous
+        pagination.appendChild(createPageBtn('←', currentRegistrosPage - 1, false, currentRegistrosPage === 1));
+
+        // Info
+        const info = document.createElement('span');
+        info.className = 'text-xs text-slate-500 flex items-center px-2';
+        info.textContent = `Pág ${currentRegistrosPage} de ${totalPages}`;
+        pagination.appendChild(info);
+
+        // Next
+        pagination.appendChild(createPageBtn('→', currentRegistrosPage + 1, false, currentRegistrosPage === totalPages));
+    }
+
     lucide.createIcons();
 }
 
@@ -377,6 +471,7 @@ window.refreshData = async function () {
         updateKPIs();
         renderRegistrosTable(allAlumnos);
         renderRegistrosTable(allAlumnos);
+
 
         // Also fetch leaders for the chart if not already
         if (allLideres.length === 0) {

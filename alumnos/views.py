@@ -79,10 +79,13 @@ class AlumnoViewSet(viewsets.ModelViewSet):
         if action in ['validar_cedula', 'create']:
             return Alumno.objects.all()
         
-        if user.is_staff:
+        # FINAL PERMISSION LOGIC
+        if user.is_staff or user.is_superuser:
             return Alumno.objects.all().select_related('lider_invitador')
+        
         if hasattr(user, 'lider_profile'):
             return Alumno.objects.filter(lider_invitador=user.lider_profile).select_related('lider_invitador')
+            
         return Alumno.objects.none()
 
     @action(detail=False, methods=['post'], url_path='validar-cedula')

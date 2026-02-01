@@ -16,35 +16,47 @@ window.DashboardCharts = {
             if (!allAlumnos || allAlumnos.length === 0) return;
 
             // 1. DATA PREPARATION
+            // We calculate stats directly from allAlumnos to ensure Real-Time Sync
+            // regardless of whether leaders cache is stale.
 
-            // --- A. Leaders Bubble Data (Colorful & Sized) ---
-            // Filter by Group
-            const groupFilter = document.getElementById('chart-main-filter') ? document.getElementById('chart-main-filter').value : 'all';
-            let leadersData = allLideres;
-            if (groupFilter !== 'all') {
-                leadersData = allLideres.filter(l => l.grupo.toString() === groupFilter);
-            }
-
-            // --- CHART 1: GROUPS PERFORMANCE (Column Chart) ---
-            // Prepare Data: Aggregate by Group
+            // A. Aggregate by Group
             const groupsStats = {};
 
-            // Process all leaders (or filtered ones) to sum stats by Group
-            leadersData.forEach(l => {
-                const gName = `G${l.grupo}`;
-                if (!groupsStats[gName]) {
-                    groupsStats[gName] = { invited: 0, attended: 0, groupNum: l.grupo };
+            allAlumnos.forEach(a => {
+                const g = a.grupo || 0;
+                if (g > 0 && g <= 15) { // Only valid groups
+                    const gName = `G${g}`;
+                    if (!groupsStats[gName]) {
+                        groupsStats[gName] = { invited: 0, attended: 0, groupNum: g };
+                    }
+                    groupsStats[gName].invited++;
+                    if (a.asistio) groupsStats[gName].attended++;
                 }
-                groupsStats[gName].invited += (l.total_invitados || 0);
-                groupsStats[gName].attended += (l.total_asistencias || 0);
             });
 
-            // Sort by Group Number
-            const sortedGroupKeys = Object.keys(groupsStats).sort((a, b) => groupsStats[a].groupNum - groupsStats[b].groupNum);
+            // Ensure all groups 1-15 are present for smooth chart
+            for (let i = 1; i <= 15; i++) {
+                const gName = `G${i}`;
+                if (!groupsStats[gName]) {
+                    groupsStats[gName] = { invited: 0, attended: 0, groupNum: i };
+                }
+            }
 
-            const leadersList = sortedGroupKeys;
-            const invitedData = sortedGroupKeys.map(k => groupsStats[k].invited);
-            const attendedData = sortedGroupKeys.map(k => groupsStats[k].attended);
+            // Filter if Main Filter is active
+            const groupFilter = document.getElementById('chart-main-filter') ? document.getElementById('chart-main-filter').value : 'all';
+            let chartGroups = Object.keys(groupsStats).map(k => groupsStats[k]);
+
+            if (groupFilter !== 'all') {
+                const targetG = parseInt(groupFilter);
+                chartGroups = chartGroups.filter(g => g.groupNum === targetG);
+            }
+
+            // Sort by Group Number
+            chartGroups.sort((a, b) => a.groupNum - b.groupNum);
+
+            const leadersList = chartGroups.map(g => `G${g.groupNum}`);
+            const invitedData = chartGroups.map(g => g.invited);
+            const attendedData = chartGroups.map(g => g.attended);
 
             const leadersBarOptions = {
                 series: [{
@@ -284,11 +296,37 @@ window.DashboardCharts = {
             }
 
             // --- TOP 10 LEADERS TABLE ---
-            // Note: This modifies the DOM for leaders table, maybe it fits here if we consider it "Visuals"
-            const topLeaders = leadersData.map(l => {
-                const invited = l.total_invitados || 0;
-                const attended = l.total_asistencias || 0;
+            // Calculate stats per leader from fresh students data
+            const leaderStatsMap = {}; // id -> { invited: 0, attended: 0 }
+
+            allAlumnos.forEach(a => {
+                if (a.lider_invitador) {
+                    const lid = a.lider_invitador;
+                    if (!leaderStatsMap[lid]) leaderStatsMap[lid] = { invited: 0, attended: 0 };
+                    leaderStatsMap[lid].invited++;
+                    if (a.asistio) leaderStatsMap[lid].attended++;
+                }
+            });
+
+            // Merge with allLideres (to get names/groups)
+            // Filter by Group if needed used leadersData which was filtered above? 
+            // Actually let's use allLideres and filter again if strictly needed, 
+            // but the table usually shows top overall or top in view.
+            // Let's stick to global top or filtered top.
+
+            let tableLeadersSource = allLideres;
+            // Apply filter filter again locally since we removed previous `leadersData` logic
+            if (groupFilter !== 'all') {
+                tableLeadersSource = allLideres.filter(l => l.grupo.toString() === groupFilter);
+            }
+
+            const topLeaders = tableLeadersSource.map(l => {
+                // Use fresh calculated stats if available, else 0
+                const stats = leaderStatsMap[l.id] || { invited: 0, attended: 0 };
+                const invited = stats.invited;
+                const attended = stats.attended;
                 const efficiency = invited > 0 ? Math.min((attended / invited) * 100, 100) : 0;
+
                 return { ...l, efficiency, invited, attended };
             })
                 .sort((a, b) => b.efficiency - a.efficiency || b.attended - a.attended) // Sort by Efficiency then Attendance

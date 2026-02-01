@@ -8,6 +8,7 @@ class Alumno(models.Model):
         ('EN_LINEA', 'En Línea'),
         ('SEMIPRESENCIAL', 'Semipresencial'),
         ('EGRESADO', 'Egresado'),
+        ('POSGRADO', 'Posgrado'),
     ]
 
     # Información Personal y Académica
