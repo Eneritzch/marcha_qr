@@ -89,7 +89,7 @@ class AlumnoViewSet(viewsets.ModelViewSet):
             
         return Alumno.objects.none()
 
-    @action(detail=False, methods=['post'], url_path='validar-cedula')
+    @action(detail=False, methods=['get'], url_path='validar-cedula')
     def validar_cedula(self, request):
         """Validates cedula for step transitions."""
         cedula = request.data.get('cedula')
