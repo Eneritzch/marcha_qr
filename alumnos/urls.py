@@ -5,7 +5,8 @@ from rest_framework.response import Response
 from rest_framework import permissions
 from .views import (
     AlumnoViewSet, CredentialRecoveryView,
-    QRDownloadView, ExcelUploadView, MarcarAsistenciaView, CredentialDownloadView
+    QRDownloadView, ExcelUploadView, MarcarAsistenciaView, CredentialDownloadView,
+    RegistroManualAlumnoView
 )
 from .models import Alumno
 from .excel_import_export_views import (
@@ -35,6 +36,7 @@ urlpatterns = [
     path('', include(router.urls)),
     path('recuperar/<str:cedula>/', CredentialRecoveryView.as_view(), name='recover-credential'),
     path('marcar-asistencia/', MarcarAsistenciaView.as_view(), name='marcar-asistencia'),
+    path('registrar-manual/', RegistroManualAlumnoView.as_view(), name='registrar-manual'),
     path('descargar-qr/<str:cedula>/', QRDownloadView.as_view(), name='descargar-qr'),
     path('descargar-credencial/<str:cedula>/', CredentialDownloadView.as_view(), name='descargar-credencial'),
     path('upload-excel/', ExcelUploadView.as_view(), name='excel-upload'),

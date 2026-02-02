@@ -44,6 +44,20 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     }
 
+    // Hide "Registrar Manual" if not admin
+    if (!user.is_superuser) {
+        // Hide in sidebar
+        const sidebarBtn = document.getElementById('sidebar-nav-registrar-manual');
+        if (sidebarBtn) sidebarBtn.style.display = 'none';
+        
+        // Hide in mobile nav
+        const mobileNav = document.getElementById('mobile-nav-registrar-manual');
+        if (mobileNav) {
+            const wrapper = mobileNav.closest('.nav-item-wrapper');
+            if (wrapper) wrapper.style.display = 'none';
+        }
+    }
+
     // Initial Fetch & View Restore
     const lastView = localStorage.getItem('lastView') || 'overview';
     switchView(lastView);
@@ -137,7 +151,14 @@ function logout() {
 
 // === VIEW SWITCHING ===
 window.switchView = function (viewName) {
-    const views = ['overview', 'scanner', 'registros', 'lideres', 'importar-exportar'];
+    const views = ['overview', 'scanner', 'registrar-manual', 'registros', 'lideres', 'importar-exportar'];
+
+    // Prevent non-admin users from accessing registrar-manual
+    if (viewName === 'registrar-manual' && !user.is_superuser) {
+        console.warn('Acceso denegado: Solo administradores pueden acceder a Registrar Manual');
+        // Redirect to overview
+        viewName = 'overview';
+    }
 
     // Save state
     localStorage.setItem('lastView', viewName);
@@ -2330,3 +2351,636 @@ window.updateOfflineUI = function () {
         container.classList.add('hidden');
     }
 };
+
+// ===== REGISTRO MANUAL DE ALUMNOS =====
+let allLeaders = []; // Flat array for leader search
+let leadersData = {}; // Cache map
+
+document.addEventListener('DOMContentLoaded', () => {
+    const registroForm = document.getElementById('manual-registro-form');
+    if (!registroForm) return;
+
+    // Load Leaders for search
+    loadLeadersForManualForm();
+
+    // Load Academic Data
+    if (window.ACADEMIC_DATA) {
+        initManualAcademicFilters();
+    } else {
+        window.addEventListener('academicDataReady', initManualAcademicFilters);
+    }
+
+    // Initialize step navigation (which includes external checkbox listener)
+    initManualStepNavigation();
+
+    // Initialize external checkbox state (show academic section by default)
+    handleManualExternoChange();
+
+    // Setup leader search handlers
+    setupManualLiderSearch();
+
+    registroForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        registrarAlumnoManual();
+    });
+
+    // Setup cédula validation
+    const cedulaInput = document.getElementById('manual-cedula');
+    if (cedulaInput) {
+        cedulaInput.addEventListener('blur', () => {
+            const val = cedulaInput.value.trim();
+            if (val.length === 10 && !/^\d+$/.test(val)) {
+                showManualFieldFeedback(cedulaInput, false, "Solo se permiten números");
+            } else if (val.length > 0 && val.length !== 10) {
+                showManualFieldFeedback(cedulaInput, false, "Debe tener 10 dígitos");
+            } else if (val.length === 10) {
+                showManualFieldFeedback(cedulaInput, true);
+            }
+        });
+    }
+});
+
+// Step Navigation for Manual Registration
+let manualCurrentStep = 1;
+let manualTotalSteps = 2; // Always 2 steps: Datos + Líder (+ Académico si no externo)
+
+function initManualStepNavigation() {
+    const prevBtn = document.getElementById('manual-prev-btn');
+    const nextBtn = document.getElementById('manual-next-btn');
+    const submitBtn = document.getElementById('manual-submit-btn');
+
+    if (prevBtn) prevBtn.addEventListener('click', manualPrevStep);
+    if (nextBtn) nextBtn.addEventListener('click', manualNextStep);
+
+    // Set initial visibility
+    updateManualStepDisplay();
+}
+
+function updateManualStepDisplay() {
+    // Hide all steps
+    for (let i = 1; i <= manualTotalSteps; i++) {
+        const step = document.getElementById(`manual-step-${i}`);
+        if (step) step.classList.add('hidden');
+    }
+    
+    // Show current step
+    const currentStepEl = document.getElementById(`manual-step-${manualCurrentStep}`);
+    if (currentStepEl) {
+        currentStepEl.classList.remove('hidden');
+    }
+
+    // Update buttons visibility
+    const prevBtn = document.getElementById('manual-prev-btn');
+    const nextBtn = document.getElementById('manual-next-btn');
+    const submitBtn = document.getElementById('manual-submit-btn');
+
+    if (prevBtn) {
+        if (manualCurrentStep === 1) {
+            prevBtn.classList.add('hidden');
+        } else {
+            prevBtn.classList.remove('hidden');
+        }
+    }
+
+    if (nextBtn) {
+        if (manualCurrentStep === manualTotalSteps) {
+            nextBtn.classList.add('hidden');
+        } else {
+            nextBtn.classList.remove('hidden');
+        }
+    }
+
+    if (submitBtn) {
+        if (manualCurrentStep === manualTotalSteps) {
+            submitBtn.classList.remove('hidden');
+        } else {
+            submitBtn.classList.add('hidden');
+        }
+    }
+
+    // Update progress bar and step indicators
+    updateManualProgress();
+}
+
+function updateManualProgress() {
+    // Calculate progress percentage (always 2 steps)
+    const progress = (manualCurrentStep / manualTotalSteps) * 100;
+    const progressBar = document.getElementById('manual-progress-bar');
+    if (progressBar) {
+        progressBar.style.width = progress + '%';
+    }
+
+    // Update step indicators (only first 2 steps)
+    document.querySelectorAll('.manual-step-item').forEach((item, idx) => {
+        const stepNum = idx + 1;
+        
+        // Hide step-3 indicator always
+        if (stepNum === 3) {
+            item.style.display = 'none';
+            return;
+        }
+        
+        item.style.display = 'flex';
+        
+        if (stepNum < manualCurrentStep) {
+            // Completed
+            item.classList.remove('active');
+            const circle = item.querySelector('div');
+            if (circle) {
+                circle.className = 'w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm border-2 bg-green-500 border-green-500 text-white shadow-lg shadow-green-500/30 transition-all';
+                circle.innerHTML = '<i data-lucide="check" class="w-4 h-4"></i>';
+                window.lucide?.createIcons();
+            }
+            const span = item.querySelector('span');
+            if (span) span.classList.remove('text-unemi-blue', 'text-slate-400');
+            if (span) span.classList.add('text-green-500');
+        } else if (stepNum === manualCurrentStep) {
+            // Current
+            item.classList.add('active');
+            const circle = item.querySelector('div');
+            if (circle) {
+                circle.className = 'w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm border-2 bg-unemi-blue border-unemi-blue text-white shadow-lg shadow-blue-500/30 transition-all';
+                circle.innerHTML = stepNum;
+            }
+            const span = item.querySelector('span');
+            if (span) span.classList.remove('text-slate-400', 'text-green-500');
+            if (span) span.classList.add('text-unemi-blue');
+        } else {
+            // Not yet
+            item.classList.remove('active');
+            const circle = item.querySelector('div');
+            if (circle) {
+                circle.className = 'w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm border-2 bg-white border-slate-300 text-slate-400 transition-all';
+                circle.innerHTML = stepNum;
+            }
+            const span = item.querySelector('span');
+            if (span) span.classList.remove('text-unemi-blue', 'text-green-500');
+            if (span) span.classList.add('text-slate-400');
+        }
+    });
+}
+
+function validateManualStep(step) {
+    let isValid = true;
+    let errorMsg = '';
+
+    if (step === 1) {
+        // Validate personal info
+        const cedula = document.getElementById('manual-cedula').value.trim();
+        const nombre = document.getElementById('manual-nombre').value.trim();
+        const email = document.querySelector('input[name="email"]').value.trim();
+        const telefono = document.querySelector('input[name="telefono"]').value.trim();
+
+        if (!cedula || cedula.length !== 10 || !/^\d+$/.test(cedula)) {
+            isValid = false;
+            errorMsg = 'Cédula inválida (debe tener 10 dígitos)';
+        } else if (!nombre) {
+            isValid = false;
+            errorMsg = 'Nombre completo es requerido';
+        } else if (!email || !email.includes('@')) {
+            isValid = false;
+            errorMsg = 'Correo electrónico inválido';
+        } else if (!telefono) {
+            isValid = false;
+            errorMsg = 'Teléfono es requerido';
+        }
+    } else if (step === 2) {
+        // Validate leader selection
+        const liderSelect = document.getElementById('manual-lider-select').value;
+        const noLiderCheck = document.getElementById('manual-check-no-lider').checked;
+
+        if (!liderSelect && !noLiderCheck) {
+            isValid = false;
+            errorMsg = 'Debes seleccionar un líder o marcar la opción de asignación inteligente';
+            if (!isValid) showManualFormFeedback('error', errorMsg);
+            return isValid;
+        }
+
+        // Validate academic info only if NOT external
+        const esExterno = document.getElementById('manual-check-externo').checked;
+        
+        if (!esExterno) {
+            const modalidad = document.getElementById('manual-modalidad').value;
+            const facultad = document.getElementById('manual-facultad').value;
+            const carrera = document.getElementById('manual-carrera').value;
+
+            if (!modalidad) {
+                isValid = false;
+                errorMsg = 'Modalidad es requerida';
+            } else if (!facultad) {
+                isValid = false;
+                errorMsg = 'Facultad es requerida';
+            } else if (!carrera) {
+                isValid = false;
+                errorMsg = 'Carrera es requerida';
+            }
+        }
+    }
+
+    if (!isValid) {
+        showManualFormFeedback('error', errorMsg);
+    }
+
+    return isValid;
+}
+
+function manualNextStep() {
+    if (!validateManualStep(manualCurrentStep)) {
+        return;
+    }
+
+    if (manualCurrentStep < manualTotalSteps) {
+        manualCurrentStep++;
+        updateManualStepDisplay();
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+}
+
+function manualPrevStep() {
+    if (manualCurrentStep > 1) {
+        manualCurrentStep--;
+        updateManualStepDisplay();
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+}
+
+async function loadLeadersForManualForm() {
+    try {
+        const res = await axios.get('/api/v1/lideres/activos/', {
+            headers: {
+                'Authorization': `Token ${localStorage.getItem('token')}`
+            }
+        });
+        // Structure is { "1": [leader, ...], "2": ... }
+        Object.values(res.data).flat().forEach(l => {
+            allLeaders.push(l);
+            leadersData[l.id] = l; // Keep cache map
+        });
+    } catch (e) {
+        console.error("Error loading leaders for manual form", e);
+    }
+}
+
+function setupManualLiderSearch() {
+    const searchInput = document.getElementById('manual-lider-search');
+    const hiddenInput = document.getElementById('manual-lider-select');
+    const dropdown = document.getElementById('manual-lider-dropdown');
+    const clearBtn = document.getElementById('manual-clear-search');
+    const checkNoLider = document.getElementById('manual-check-no-lider');
+    const grupoPreview = document.getElementById('manual-grupo-preview');
+
+    if (!searchInput) return;
+
+    // Search Event
+    searchInput.addEventListener('input', (e) => {
+        const q = e.target.value.toLowerCase().trim();
+
+        // Show/Hide Clear Button
+        clearBtn.classList.toggle('hidden', q.length === 0);
+
+        if (q.length < 1) {
+            dropdown.classList.add('hidden');
+            return;
+        }
+
+        const matches = allLeaders.filter(l => l.nombre_completo.toLowerCase().includes(q));
+        renderManualDropdown(matches, searchInput, hiddenInput, dropdown, grupoPreview);
+    });
+
+    // Clear Event
+    if (clearBtn) {
+        clearBtn.addEventListener('click', () => {
+            searchInput.value = '';
+            hiddenInput.value = '';
+            dropdown.classList.add('hidden');
+            clearBtn.classList.add('hidden');
+            grupoPreview.textContent = '--';
+            grupoPreview.className = 'text-2xl sm:text-3xl font-black text-slate-300';
+        });
+    }
+
+    // No Leader Logic
+    if (checkNoLider) {
+        checkNoLider.addEventListener('change', async (e) => {
+            const isChecked = e.target.checked;
+
+            // Toggle Inputs
+            searchInput.disabled = isChecked;
+            if (isChecked) {
+                searchInput.classList.add('bg-slate-100', 'text-slate-400', 'cursor-not-allowed');
+                searchInput.classList.remove('bg-white');
+                searchInput.value = '';
+
+                // Update Preview
+                grupoPreview.textContent = 'ASIGNANDO...';
+                grupoPreview.className = 'text-2xl sm:text-3xl font-black text-slate-300 animate-pulse';
+
+                // Fetch Random Leader (uses smart distribution)
+                try {
+                    const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
+                    const res = await axios.get(`/api/v1/lideres/random/?grupo=${currentUser.grupo}`, {
+                        headers: {
+                            'Authorization': `Token ${localStorage.getItem('token')}`
+                        }
+                    });
+                    const leader = res.data;
+
+                    hiddenInput.value = leader.id;
+                    searchInput.value = leader.nombre_completo;
+
+                    // Update Preview
+                    grupoPreview.textContent = `GRUPO ${leader.grupo}`;
+                    grupoPreview.className = 'text-2xl sm:text-3xl font-black text-unemi-orange animate-bounce';
+                } catch (e) {
+                    console.error("Error fetching random leader", e);
+                    grupoPreview.textContent = 'ERROR';
+                    grupoPreview.className = 'text-xl font-bold text-red-500';
+                }
+
+                searchInput.classList.remove('border-red-500');
+            } else {
+                searchInput.classList.remove('bg-slate-100', 'text-slate-400', 'cursor-not-allowed');
+                searchInput.classList.add('bg-white');
+                searchInput.value = '';
+                hiddenInput.value = '';
+                grupoPreview.textContent = '--';
+                grupoPreview.className = 'text-2xl sm:text-3xl font-black text-slate-300';
+            }
+        });
+    }
+
+    // Close dropdown on click outside
+    document.addEventListener('click', (e) => {
+        if (!searchInput.contains(e.target) && !dropdown.contains(e.target)) {
+            dropdown.classList.add('hidden');
+        }
+    });
+}
+
+function renderManualDropdown(matches, searchInput, hiddenInput, dropdown, grupoPreview) {
+    dropdown.innerHTML = '';
+    if (matches.length === 0) {
+        dropdown.innerHTML = `<div class="p-4 text-center text-slate-400 text-sm">No se encontraron resultados</div>`;
+    } else {
+        matches.forEach(l => {
+            const item = document.createElement('div');
+            item.className = 'p-3 hover:bg-blue-50 cursor-pointer flex items-center justify-between group';
+            item.innerHTML = `
+                <span class="font-bold text-slate-700 group-hover:text-unemi-blue transition-colors">${l.nombre_completo}</span>
+                <span class="text-xs bg-slate-100 text-slate-500 px-2 py-1 rounded hidden group-hover:inline-block">Grupo ${l.grupo}</span>
+            `;
+            item.addEventListener('click', () => {
+                selectManualLeader(l, searchInput, hiddenInput, dropdown, grupoPreview);
+            });
+            dropdown.appendChild(item);
+        });
+    }
+    dropdown.classList.remove('hidden');
+}
+
+function selectManualLeader(leader, searchInput, hiddenInput, dropdown, grupoPreview) {
+    searchInput.value = leader.nombre_completo;
+    hiddenInput.value = leader.id;
+    dropdown.classList.add('hidden');
+
+    // Update Group Preview
+    grupoPreview.textContent = `GRUPO ${leader.grupo}`;
+    grupoPreview.className = 'text-2xl sm:text-3xl font-black text-unemi-orange animate-pulse';
+
+    // Clear error styles
+    searchInput.classList.remove('border-red-500');
+    
+    // Uncheck "No Leader" if it was checked
+    const checkNoLider = document.getElementById('manual-check-no-lider');
+    if (checkNoLider && checkNoLider.checked) {
+        checkNoLider.checked = false;
+    }
+}
+
+function initManualAcademicFilters() {
+    if (!window.ACADEMIC_DATA) return;
+
+    const data = window.ACADEMIC_DATA;
+    const selModalidad = document.getElementById('manual-modalidad');
+    const selFacultad = document.getElementById('manual-facultad');
+    const selCarrera = document.getElementById('manual-carrera');
+
+    if (!selModalidad) return;
+
+    // Populate modalidades
+    Object.keys(data).forEach(modalidad => {
+        if (modalidad !== 'default') {
+            const modalidadLabel = {
+                'PRESENCIAL': 'Presencial',
+                'EN_LINEA': 'En Línea',
+                'SEMIPRESENCIAL': 'Semipresencial',
+                'EGRESADO': 'Egresado',
+                'POSGRADO': 'Posgrado'
+            }[modalidad] || modalidad;
+            const option = document.createElement('option');
+            option.value = modalidad;
+            option.textContent = modalidadLabel;
+            selModalidad.appendChild(option);
+        }
+    });
+
+    // Modalidad change
+    selModalidad.addEventListener('change', function() {
+        const mod = this.value;
+        selFacultad.innerHTML = '<option value="">Seleccione Facultad...</option>';
+        selCarrera.innerHTML = '<option value="">Primero seleccione Facultad...</option>';
+        selFacultad.disabled = true;
+        selCarrera.disabled = true;
+
+        if (mod === 'EGRESADO' || mod === 'POSGRADO') {
+            selFacultad.innerHTML = `<option value="${mod}">${mod}</option>`;
+            selCarrera.innerHTML = `<option value="${mod}">${mod}</option>`;
+            selFacultad.value = mod;
+            selCarrera.value = mod;
+            return;
+        }
+
+        if (mod && data[mod]) {
+            selFacultad.disabled = false;
+            Object.keys(data[mod]).forEach(f => {
+                selFacultad.add(new Option(f, f));
+            });
+        }
+    });
+
+    // Facultad change
+    selFacultad.addEventListener('change', function() {
+        const mod = selModalidad.value;
+        const fac = this.value;
+        selCarrera.innerHTML = '<option value="">Seleccione Carrera...</option>';
+        selCarrera.disabled = true;
+
+        if (mod && fac && data[mod][fac]) {
+            selCarrera.disabled = false;
+            data[mod][fac].forEach(c => {
+                selCarrera.add(new Option(c, c));
+            });
+        }
+    });
+}
+
+function handleManualExternoChange() {
+    const isExterno = document.getElementById('manual-check-externo').checked;
+    const academicSection = document.getElementById('manual-academic-section');
+    
+    if (isExterno) {
+        // Hide academic section
+        if (academicSection) academicSection.classList.add('hidden');
+        // Clear academic fields
+        document.getElementById('manual-modalidad').value = '';
+        document.getElementById('manual-facultad').value = '';
+        document.getElementById('manual-carrera').value = '';
+    } else {
+        // Show academic section
+        if (academicSection) academicSection.classList.remove('hidden');
+    }
+}
+
+function showManualFieldFeedback(input, isValid, message) {
+    if (isValid) {
+        input.classList.remove('border-red-500', 'ring-red-500');
+        input.classList.add('border-green-500', 'ring-green-500');
+    } else {
+        input.classList.remove('border-green-500', 'ring-green-500');
+        input.classList.add('border-red-500', 'ring-red-500');
+    }
+}
+
+function showManualFormFeedback(type, message) {
+    const feedback = document.getElementById('manual-form-feedback');
+    if (!feedback) return;
+
+    feedback.className = `rounded-xl p-4 flex items-start space-x-3 border`;
+    
+    if (type === 'error') {
+        feedback.classList.add('bg-red-50', 'text-red-800', 'border-red-200');
+        feedback.innerHTML = `
+            <i data-lucide="alert-circle" class="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5"></i>
+            <p class="font-bold">${message}</p>
+        `;
+    }
+
+    feedback.classList.remove('hidden');
+    window.lucide?.createIcons();
+
+    setTimeout(() => {
+        feedback.classList.add('hidden');
+    }, 4000);
+}
+
+async function registrarAlumnoManual() {
+    const form = document.getElementById('manual-registro-form');
+    
+    try {
+        const cedula = document.getElementById('manual-cedula').value.trim();
+        const nombre = document.getElementById('manual-nombre').value.trim();
+        const email = document.querySelector('input[name="email"]').value.trim();
+        const telefono = document.querySelector('input[name="telefono"]').value.trim();
+        const modalidad = document.getElementById('manual-modalidad').value || null;
+        const facultad = document.getElementById('manual-facultad').value || null;
+        const carrera = document.getElementById('manual-carrera').value || null;
+        const esExterno = document.getElementById('manual-check-externo').checked;
+        const liderInvitador = document.getElementById('manual-lider-select').value || null;
+
+        // Validation
+        if (!cedula || cedula.length !== 10 || !/^\d+$/.test(cedula)) {
+            showManualFormFeedback('error', 'Cédula inválida (debe tener 10 dígitos)');
+            return;
+        }
+        if (!nombre) {
+            showManualFormFeedback('error', 'Nombre completo es requerido');
+            return;
+        }
+        if (!email || !email.includes('@')) {
+            showManualFormFeedback('error', 'Correo electrónico inválido');
+            return;
+        }
+        if (!telefono) {
+            showManualFormFeedback('error', 'Teléfono es requerido');
+            return;
+        }
+        if (!esExterno && !modalidad) {
+            showManualFormFeedback('error', 'Modalidad es requerida para estudiantes internos');
+            return;
+        }
+        if (!esExterno && !facultad) {
+            showManualFormFeedback('error', 'Facultad es requerida para estudiantes internos');
+            return;
+        }
+        if (!esExterno && !carrera) {
+            showManualFormFeedback('error', 'Carrera es requerida para estudiantes internos');
+            return;
+        }
+
+        const submitBtn = document.getElementById('manual-submit-btn');
+        const originalHTML = submitBtn.innerHTML;
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<i data-lucide="loader-2" class="w-5 h-5 animate-spin"></i> <span>Registrando...</span>';
+        window.lucide?.createIcons();
+
+        const response = await axios.post('/api/v1/alumnos/registrar-manual/', {
+            cedula,
+            nombre_completo: nombre,
+            email,
+            telefono,
+            modalidad: esExterno ? null : modalidad,
+            facultad: esExterno ? null : facultad,
+            carrera: esExterno ? null : carrera,
+            es_externo: esExterno,
+            lider_invitador: liderInvitador  // Optional: if null, use smart distribution
+        }, {
+            headers: {
+                'Authorization': `Token ${token}`
+            }
+        });
+
+        // Success modal
+        Swal.fire({
+            title: '¡Registro Exitoso!',
+            html: `
+                <div class="space-y-3 text-left">
+                    <p><strong>${response.data.alumno.nombre_completo}</strong></p>
+                    <p class="text-sm">Código QR: <strong class="font-mono">${response.data.alumno.codigo_qr}</strong></p>
+                    <p class="text-sm">Grupo asignado: <strong class="text-unemi-orange">${response.data.alumno.grupo}</strong></p>
+                </div>
+            `,
+            icon: 'success',
+            confirmButtonColor: '#0F1E4B',
+            confirmButtonText: 'Continuar'
+        });
+
+        form.reset();
+        // Reset academic section visibility and leader selection
+        handleManualExternoChange();
+        document.getElementById('manual-lider-search').value = '';
+        document.getElementById('manual-lider-select').value = '';
+        document.getElementById('manual-grupo-preview').textContent = '--';
+        document.getElementById('manual-grupo-preview').className = 'text-2xl sm:text-3xl font-black text-slate-300';
+
+        setTimeout(() => {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = originalHTML;
+            window.lucide?.createIcons();
+        }, 1500);
+
+    } catch (error) {
+        let errorMsg = 'Error al registrar';
+        
+        if (error.response?.data?.error) {
+            errorMsg = error.response.data.error;
+        }
+
+        showManualFormFeedback('error', errorMsg);
+        console.error('Error:', error);
+
+        const submitBtn = document.getElementById('manual-submit-btn');
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = '<span>Registrar Alumno</span> <i data-lucide="check" class="w-5 h-5"></i>';
+        window.lucide?.createIcons();
+    }
+}

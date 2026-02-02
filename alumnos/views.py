@@ -6,9 +6,15 @@ from django.shortcuts import get_object_or_404
 from django.http import HttpResponse
 from .models import Alumno
 from .serializers import AlumnoSerializer
+from lideres_app.models import Lider
 from core.utils import QRGenerator
 from core.excel_processor import ExcelProcessor
 from core.validators import validar_cedula_ecuatoriana
+
+class IsAdmin(permissions.BasePermission):
+    """Custom permission to only allow admin/superuser access."""
+    def has_permission(self, request, view):
+        return request.user.is_authenticated and request.user.is_staff
 
 class IsLeader(permissions.BasePermission):
     """Custom permission to only allow leaders to access their own data."""
@@ -109,6 +115,103 @@ class AlumnoViewSet(viewsets.ModelViewSet):
     def create(self, request, *args, **kwargs):
         # ... (keep existing create logic or simplify)
         return super().create(request, *args, **kwargs)
+
+class RegistroManualAlumnoView(views.APIView):
+    """API view for manual student registration by admins only."""
+    permission_classes = [IsAdmin]
+
+    def post(self, request):
+        """Register a new student manually - Admin only."""
+        # Verify user is admin/staff (this is also checked by permission class)
+        if not request.user.is_staff:
+            return Response({"error": "Solo administradores pueden registrar alumnos manualmente."}, status=status.HTTP_403_FORBIDDEN)
+        
+        # Get and validate cedula
+        cedula = request.data.get('cedula', '').strip()
+        if not cedula or len(cedula) != 10:
+            return Response({"error": "Cédula inválida. Debe tener 10 dígitos."}, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Validate cedula format
+        if not validar_cedula_ecuatoriana(cedula):
+            return Response({"error": "La cédula proporcionada no es válida según el registro civil."}, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Check if cedula already exists
+        if Alumno.objects.filter(cedula=cedula).exists():
+            return Response({"error": "Esta cédula ya se encuentra registrada en el sistema."}, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Validate email uniqueness
+        email = request.data.get('email', '').strip().lower()
+        if not email:
+            return Response({"error": "El correo electrónico es requerido."}, status=status.HTTP_400_BAD_REQUEST)
+        
+        if Alumno.objects.filter(email=email).exists():
+            return Response({"error": "Este correo electrónico ya se encuentra registrado."}, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Get required fields
+        nombre_completo = request.data.get('nombre_completo', '').strip()
+        if not nombre_completo:
+            return Response({"error": "El nombre completo es requerido."}, status=status.HTTP_400_BAD_REQUEST)
+        
+        telefono = request.data.get('telefono', '').strip()
+        if not telefono:
+            return Response({"error": "El teléfono es requerido."}, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Optional academic fields
+        modalidad = request.data.get('modalidad') or None
+        facultad = request.data.get('facultad') or None
+        carrera = request.data.get('carrera') or None
+        es_externo = request.data.get('es_externo', False)
+        
+        # Optional leader selection - if not provided, use smart distribution
+        lider_invitador_id = request.data.get('lider_invitador')
+        if lider_invitador_id:
+            try:
+                lider_invitador = Lider.objects.get(id=lider_invitador_id)
+            except Lider.DoesNotExist:
+                return Response({"error": "Líder seleccionado no encontrado."}, status=status.HTTP_400_BAD_REQUEST)
+        else:
+            # Smart distribution: assign to any active leader with least students
+            lider_invitador = self.get_least_loaded_leader()
+        
+        try:
+            # Create the student with assigned leader
+            alumno = Alumno.objects.create(
+                cedula=cedula,
+                nombre_completo=nombre_completo,
+                email=email,
+                telefono=telefono,
+                modalidad=modalidad,
+                facultad=facultad,
+                carrera=carrera,
+                es_externo=es_externo,
+                lider_invitador=lider_invitador,
+                registrado_por=request.user.get_full_name() or request.user.username
+            )
+            
+            serializer = AlumnoSerializer(alumno)
+            return Response({
+                "message": "Alumno registrado exitosamente",
+                "alumno": serializer.data
+            }, status=status.HTTP_201_CREATED)
+        
+        except Exception as e:
+            return Response({"error": f"Error al registrar el alumno: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
+    def get_least_loaded_leader(self):
+        """Get any active leader with the least assigned students."""
+        from django.db.models import Count
+        
+        leaders = Lider.objects.filter(
+            activo=True
+        ).annotate(
+            alumno_count=Count('alumno_invitados')
+        ).order_by('alumno_count')
+        
+        if leaders.exists():
+            return leaders.first()
+        
+        # Fallback: just return any active leader
+        return Lider.objects.filter(activo=True).first()
 
 class ExcelUploadView(views.APIView):
     """API view for bulk student upload via Excel."""

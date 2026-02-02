@@ -185,3 +185,140 @@ class RandomLeaderView(views.APIView):
             "nombre_completo": lider.nombre_completo,
             "grupo": lider.grupo
         })
+
+
+class RedistribuirAlumnosView(views.APIView):
+    """Redistribuye equitativamente los alumnos entre los líderes del mismo grupo."""
+    permission_classes = [permissions.IsAdminUser]
+
+    def post(self, request):
+        grupo = request.data.get('grupo')  # None = todos los grupos
+        dry_run = request.data.get('dry_run', False)
+
+        try:
+            # Determinar qué grupos procesar
+            if grupo:
+                grupos = [grupo]
+            else:
+                grupos = list(Lider.objects.values_list('grupo', flat=True).distinct().order_by('grupo'))
+
+            resultados_por_grupo = []
+            total_cambios_globales = 0
+
+            for grupo_num in grupos:
+                # Obtener líderes activos en este grupo
+                lideres = list(Lider.objects.filter(grupo=grupo_num, activo=True).order_by('nombre_completo'))
+
+                if len(lideres) <= 1:
+                    resultados_por_grupo.append({
+                        'grupo': grupo_num,
+                        'estado': 'sin_cambios',
+                        'razon': 'Solo hay 1 líder o no hay líderes en este grupo',
+                        'cambios': 0,
+                        'distribucion_anterior': {},
+                        'distribucion_nueva': {}
+                    })
+                    continue
+
+                # Obtener todos los alumnos de este grupo
+                alumnos = list(Alumno.objects.filter(grupo=grupo_num).order_by('fecha_registro'))
+
+                if not alumnos:
+                    resultados_por_grupo.append({
+                        'grupo': grupo_num,
+                        'estado': 'sin_cambios',
+                        'razon': 'No hay alumnos en este grupo',
+                        'cambios': 0,
+                        'distribucion_anterior': {},
+                        'distribucion_nueva': {}
+                    })
+                    continue
+
+                # Calcular distribución actual
+                distribucion_anterior = {}
+                for lider in lideres:
+                    count = lider.alumnos.filter(grupo=grupo_num).count()
+                    distribucion_anterior[lider.id] = {
+                        'nombre': lider.nombre_completo,
+                        'cantidad': count
+                    }
+
+                # Calcular nueva distribución
+                total_alumnos = len(alumnos)
+                num_lideres = len(lideres)
+                alumnos_por_lider = total_alumnos // num_lideres
+                alumnos_extras = total_alumnos % num_lideres
+
+                nueva_distribucion = {}
+                for lider in lideres:
+                    nueva_distribucion[lider.id] = {
+                        'nombre': lider.nombre_completo,
+                        'cantidad': alumnos_por_lider + (1 if list(lideres).index(lider) < alumnos_extras else 0)
+                    }
+
+                # Crear asignaciones
+                cambios = 0
+                nuevas_asignaciones = []
+                idx_lider = 0
+                alumnos_asignados_por_lider = {lider.id: 0 for lider in lideres}
+
+                for idx, alumno in enumerate(alumnos):
+                    lider_nuevo = lideres[idx_lider]
+
+                    if alumno.lider_invitador != lider_nuevo:
+                        cambios += 1
+                        nuevas_asignaciones.append({
+                            'alumno_id': alumno.id,
+                            'alumno_nombre': alumno.nombre_completo,
+                            'lider_anterior': alumno.lider_invitador.nombre_completo if alumno.lider_invitador else 'Sin asignar',
+                            'lider_nuevo': lider_nuevo.nombre_completo
+                        })
+
+                    # Contar cuántos alumnos ya asignamos a este líder
+                    alumnos_asignados_por_lider[lider_nuevo.id] += 1
+                    cantidad_para_lider = nueva_distribucion[lider_nuevo.id]['cantidad']
+
+                    if alumnos_asignados_por_lider[lider_nuevo.id] >= cantidad_para_lider and idx_lider < len(lideres) - 1:
+                        idx_lider += 1
+
+                # Ejecutar cambios si no es dry_run
+                if not dry_run and cambios > 0:
+                    idx_lider = 0
+                    alumnos_asignados_por_lider = {lider.id: 0 for lider in lideres}
+                    
+                    for idx, alumno in enumerate(alumnos):
+                        lider_nuevo = lideres[idx_lider]
+                        alumno.lider_invitador = lider_nuevo
+                        alumno.grupo = lider_nuevo.grupo
+                        alumno.save()
+
+                        # Contar cuántos alumnos ya asignamos a este líder
+                        alumnos_asignados_por_lider[lider_nuevo.id] += 1
+                        cantidad_para_lider = nueva_distribucion[lider_nuevo.id]['cantidad']
+
+                        if alumnos_asignados_por_lider[lider_nuevo.id] >= cantidad_para_lider and idx_lider < len(lideres) - 1:
+                            idx_lider += 1
+
+                resultados_por_grupo.append({
+                    'grupo': grupo_num,
+                    'estado': 'completado' if cambios > 0 else 'sin_cambios',
+                    'cambios': cambios,
+                    'distribucion_anterior': distribucion_anterior,
+                    'distribucion_nueva': nueva_distribucion,
+                    'detalles_cambios': nuevas_asignaciones[:10]  # Mostrar primeros 10 cambios
+                })
+
+                total_cambios_globales += cambios
+
+            return Response({
+                'exito': True,
+                'modo': 'simulacion' if dry_run else 'ejecucion',
+                'total_cambios': total_cambios_globales,
+                'resultados_por_grupo': resultados_por_grupo
+            }, status=status.HTTP_200_OK)
+
+        except Exception as e:
+            return Response({
+                'exito': False,
+                'error': str(e)
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
