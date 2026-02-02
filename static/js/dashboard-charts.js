@@ -8,7 +8,8 @@ window.DashboardCharts = {
     chartsInstances: {
         scatter: null,
         radial: null,
-        bar: null
+        bar: null,
+        vinculoPie: null
     },
 
     render: function (allAlumnos, allLideres) {
@@ -143,6 +144,107 @@ window.DashboardCharts = {
             if (document.getElementById('radial-total-label')) {
                 document.getElementById('radial-total-label').textContent = total;
             }
+
+            // --- UNEMI vs EXTERNOS PIE CHART (Admin only) ---
+            const rowUnemiExternos = document.getElementById('unemi-externos-row');
+            const isAdmin = window.user && (window.user.is_superuser || window.user.is_staff);
+
+            if (rowUnemiExternos) {
+                if (isAdmin) {
+                    rowUnemiExternos.classList.remove('hidden');
+                } else {
+                    rowUnemiExternos.classList.add('hidden');
+                }
+            }
+
+            // Skip chart if not admin
+            if (!isAdmin) {
+                // Do nothing, section is hidden
+            } else {
+                const externos = allAlumnos.filter(a => a.es_externo).length;
+                const unemi = total - externos;
+
+                // Calculate percentages
+                const pctUnemi = total > 0 ? ((unemi / total) * 100).toFixed(1) : 0;
+                const pctExternos = total > 0 ? ((externos / total) * 100).toFixed(1) : 0;
+
+                // Update KPI cards
+                const elUnemi = document.getElementById('kpi-unemi');
+                const elExternos = document.getElementById('kpi-externos');
+                const elPctUnemi = document.getElementById('pct-unemi');
+                const elPctExternos = document.getElementById('pct-externos');
+
+                if (elUnemi) elUnemi.textContent = unemi;
+                if (elExternos) elExternos.textContent = externos;
+                if (elPctUnemi) elPctUnemi.textContent = pctUnemi + '%';
+                if (elPctExternos) elPctExternos.textContent = pctExternos + '%';
+
+                const pieOptions = {
+                    series: [unemi, externos],
+                    chart: {
+                        type: 'donut',
+                        height: 110,
+                        fontFamily: 'Inter, sans-serif'
+                    },
+                    labels: ['UNEMI', 'Externos'],
+                    colors: ['#153B50', '#EF7D00'],
+                    fill: {
+                        type: 'gradient',
+                        gradient: {
+                            shade: 'dark',
+                            type: 'horizontal',
+                            gradientToColors: ['#2563eb', '#f97316'],
+                            stops: [0, 100]
+                        }
+                    },
+                    plotOptions: {
+                        pie: {
+                            startAngle: -90,
+                            endAngle: 90,
+                            donut: {
+                                size: '70%',
+                                labels: {
+                                    show: true,
+                                    total: {
+                                        show: true,
+                                        label: 'Total',
+                                        fontSize: '11px',
+                                        fontWeight: 700,
+                                        color: '#64748b',
+                                        formatter: function (w) {
+                                            return w.globals.seriesTotals.reduce((a, b) => a + b, 0);
+                                        }
+                                    },
+                                    value: {
+                                        fontSize: '16px',
+                                        fontWeight: 800,
+                                        color: '#153B50',
+                                        offsetY: -5
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    dataLabels: { enabled: false },
+                    legend: { show: false },
+                    stroke: { width: 0 },
+                    tooltip: {
+                        enabled: true,
+                        theme: 'light',
+                        fillSeriesColor: false,
+                        y: { formatter: (val) => val + " estudiantes" }
+                    }
+                };
+
+                if (document.getElementById('chart-vinculo-pie')) {
+                    if (this.chartsInstances.vinculoPie) {
+                        this.chartsInstances.vinculoPie.updateSeries([unemi, externos]);
+                    } else {
+                        this.chartsInstances.vinculoPie = new ApexCharts(document.querySelector("#chart-vinculo-pie"), pieOptions);
+                        this.chartsInstances.vinculoPie.render();
+                    }
+                }
+            } // End of admin-only UNEMI/Externos section
 
             // Careers Data
             const careerStats = {};

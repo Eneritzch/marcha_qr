@@ -335,6 +335,12 @@ function renderRegistrosTable(data) {
     tbody.innerHTML = '';
     if (pagination) pagination.innerHTML = '';
 
+    // Update column header based on user role
+    const col4Header = document.getElementById('registros-col-4-header');
+    if (col4Header) {
+        col4Header.textContent = (user.is_superuser || user.is_staff) ? 'Líder / Grupo' : 'Carrera';
+    }
+
     if (!data || data.length === 0) {
         tbody.innerHTML = `<tr><td colspan="6" class="p-8 text-center text-slate-400">No se encontraron registros.</td></tr>`;
         return;
@@ -369,7 +375,19 @@ function renderRegistrosTable(data) {
                 </div>
             </td>
             <td class="px-6 py-4 font-mono text-xs">${a.cedula}</td>
-            <td class="px-6 py-4 text-xs">${a.carrera || (a.es_externo ? '<span class="text-slate-400 italic">No aplica</span>' : '-')}</td>
+            <td class="px-6 py-4">
+                ${(user.is_superuser || user.is_staff) ? `
+                <div class="flex flex-col gap-1">
+                    <span class="text-xs font-bold text-unemi-blue">${a.lider_nombre || 'Sin líder'}</span>
+                    <select onchange="changeStudentGroup('${a.cedula}', this.value)" class="appearance-none bg-orange-50 border border-orange-200 text-unemi-orange text-[10px] font-black px-2 py-1 rounded-lg focus:ring-2 focus:ring-unemi-orange focus:border-unemi-orange cursor-pointer transition-all hover:border-unemi-orange hover:shadow-sm bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20fill%3D%22none%22%20viewBox%3D%220%200%2024%2024%22%20stroke%3D%22%23EF7D00%22%20stroke-width%3D%222.5%22%3E%3Cpath%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%20d%3D%22m19.5%208.25-7.5%207.5-7.5-7.5%22%2F%3E%3C%2Fsvg%3E')] bg-[length:0.8rem_0.8rem] bg-[right_0.3rem_center] bg-no-repeat pr-5 uppercase tracking-tighter">
+                        <option value="0" ${a.grupo == 0 ? 'selected' : ''} class="text-slate-700 bg-white">SIN GRUPO</option>
+                        ${Array.from({ length: 15 }, (_, i) => i + 1).map(g => `<option value="${g}" ${a.grupo == g ? 'selected' : ''} class="text-slate-700 bg-white">Grupo ${g}</option>`).join('')}
+                    </select>
+                </div>
+                ` : `
+                <span class="text-xs">${a.carrera || (a.es_externo ? '<span class="text-slate-400 italic">No aplica</span>' : '-')}</span>
+                `}
+            </td>
             <td class="px-6 py-4 text-center">
                  <span class="px-2 py-1 rounded text-[10px] font-bold uppercase ${a.asistio ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-400'}">
                     ${a.asistio ? 'Presente' : 'Pendiente'}
@@ -639,6 +657,78 @@ window.updateLeaderGroup = async function (id, newGroup) {
         } else {
             showErrorAlert('No se pudo guardar el cambio del grupo.');
         }
+    }
+}
+
+// === QUICK GROUP CHANGE FOR STUDENTS ===
+window.changeStudentGroup = async function (cedula, newGroup) {
+    const numGroup = parseInt(newGroup);
+
+    // Find the student in local cache
+    const studentIdx = allAlumnos.findIndex(a => a.cedula === cedula);
+    if (studentIdx === -1) {
+        showErrorAlert('Estudiante no encontrado');
+        return;
+    }
+
+    // Find a leader from the selected group
+    let newLeaderId = null;
+    let newLeaderName = 'Sin líder';
+
+    if (numGroup > 0) {
+        const leadersInGroup = allLideres.filter(l => l.grupo === numGroup && l.activo);
+        if (leadersInGroup.length > 0) {
+            // Pick the first active leader from that group
+            const selectedLeader = leadersInGroup[0];
+            newLeaderId = selectedLeader.id;
+            newLeaderName = selectedLeader.nombre_completo;
+        } else {
+            showErrorAlert(`No hay líderes activos en el Grupo ${numGroup}`);
+            // Refresh table to reset dropdown
+            renderRegistrosTable(allAlumnos);
+            return;
+        }
+    }
+
+    // Optimistic local update
+    allAlumnos[studentIdx].grupo = numGroup;
+    allAlumnos[studentIdx].lider_invitador = newLeaderId;
+    allAlumnos[studentIdx].lider_nombre = newLeaderName;
+    localStorage.setItem('allAlumnos', JSON.stringify(allAlumnos));
+
+    // Don't re-render immediately to avoid flickering, wait for server response
+
+    if (offlineMode && !token) {
+        showOfflineToast("Cambio guardado localmente. Se sincronizará al recuperar conexión.");
+        renderRegistrosTable(allAlumnos);
+        return;
+    }
+
+    try {
+        window.showLoader && window.showLoader();
+
+        await axios.patch(`/api/v1/alumnos/alumnos/${cedula}/`, {
+            lider_invitador: newLeaderId
+        }, {
+            headers: { Authorization: `Token ${token}` }
+        });
+
+        showSuccessToast(`Estudiante movido a Grupo ${numGroup}`);
+
+        // Refresh to get updated whatsapp_link
+        await refreshData();
+
+    } catch (e) {
+        console.error("Error updating student group", e);
+        if (!navigator.onLine) {
+            showOfflineToast("Sin conexión. El cambio se mantiene localmente.");
+        } else {
+            showErrorAlert('No se pudo cambiar el grupo. ' + (e.response?.data?.detail || ''));
+            // Revert local change
+            await refreshData();
+        }
+    } finally {
+        window.hideLoader && window.hideLoader();
     }
 }
 

@@ -248,6 +248,28 @@
                     </div>
                 </div>
 
+                <!-- UNEMI vs Externos Row (Admin only) -->
+                <div id="unemi-externos-row" class="grid grid-cols-2 md:grid-cols-4 gap-4 hidden">
+                    <div class="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm">
+                        <p class="text-xs font-bold text-unemi-blue uppercase">Estudiantes UNEMI</p>
+                        <div class="flex items-end justify-between mt-2">
+                            <p id="kpi-unemi" class="text-3xl font-black text-unemi-blue">--</p>
+                            <p id="pct-unemi" class="text-lg font-bold text-unemi-blue/60">--%</p>
+                        </div>
+                    </div>
+                    <div class="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm">
+                        <p class="text-xs font-bold text-unemi-orange uppercase">Externos</p>
+                        <div class="flex items-end justify-between mt-2">
+                            <p id="kpi-externos" class="text-3xl font-black text-unemi-orange">--</p>
+                            <p id="pct-externos" class="text-lg font-bold text-unemi-orange/60">--%</p>
+                        </div>
+                    </div>
+                    <div class="md:col-span-2 bg-white p-6 rounded-2xl border border-slate-100 shadow-sm flex flex-col justify-center">
+                        <p class="text-xs font-bold text-slate-400 uppercase text-center mb-2">Distribución por Vínculo</p>
+                        <div id="chart-vinculo-pie" class="w-full h-28"></div>
+                    </div>
+                </div>
+
                 <!-- Premium Charts Grid -->
                 <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
                     
@@ -408,22 +430,6 @@
 
             <!-- VIEW: REGISTROS TABLE -->
             <section id="view-registros" class="hidden space-y-6 fade-in">
-                <div class="grid grid-cols-2 gap-4">
-                    <div class="bg-white p-4 rounded-2xl border border-blue-100 shadow-sm flex items-center justify-between">
-                        <div>
-                            <p class="text-xs font-bold text-blue-600 uppercase">Estudiantes UNEMI</p>
-                             <p class="text-xs text-blue-400">Matriculados</p>
-                        </div>
-                        <p id="kpi-unemi" class="text-3xl font-black text-blue-800">--</p>
-                    </div>
-                    <div class="bg-white p-4 rounded-2xl border border-orange-100 shadow-sm flex items-center justify-between">
-                        <div>
-                            <p class="text-xs font-bold text-orange-500 uppercase">Externos</p>
-                            <p class="text-xs text-orange-400">Invitados</p>
-                        </div>
-                        <p id="kpi-externos" class="text-3xl font-black text-orange-600">--</p>
-                    </div>
-                </div>
 
                 <div class="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
                     <div class="p-6 border-b border-slate-100 flex flex-col md:flex-row gap-4 justify-between items-center">
@@ -451,7 +457,7 @@
                                     <th class="px-4 py-3 text-center">No.</th>
                                     <th class="px-6 py-3">Estudiante</th>
                                     <th class="px-6 py-3">Cédula</th>
-                                    <th class="px-6 py-3">Carrera</th>
+                                    <th id="registros-col-4-header" class="px-6 py-3">Carrera</th>
                                     <th class="px-6 py-3 text-center">Asistencia</th>
                                     <th class="px-6 py-3 text-center">Acciones</th>
                                 </tr>
