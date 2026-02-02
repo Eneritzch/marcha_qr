@@ -147,7 +147,7 @@ window.DashboardCharts = {
 
             // --- UNEMI vs EXTERNOS PIE CHART (Admin only) ---
             const rowUnemiExternos = document.getElementById('unemi-externos-row');
-            const isAdmin = window.user && (window.user.is_superuser || window.user.is_staff);
+            const isAdmin = typeof user !== 'undefined' && (user.is_superuser || user.is_staff);
 
             if (rowUnemiExternos) {
                 if (isAdmin) {
