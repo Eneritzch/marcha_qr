@@ -71,14 +71,6 @@
         <span class="text-white font-black tracking-tighter text-xl italic uppercase">MUC UNEMI</span>
     </div>
     <div class="flex items-center gap-2 sm:gap-4">
-        <!-- PC ONLY: Credenciales button -->
-        <a href="{% url 'recuperar' %}" class="hidden sm:flex items-center space-x-2 text-unemi-orange border-2 border-unemi-orange transition-all font-black text-[10px] bg-white px-4 py-2 rounded-full hover:bg-unemi-orange hover:text-white group active:scale-95 shadow-lg shadow-orange-500/10">
-            <i data-lucide="qr-code" class="w-3.5 h-3.5 text-unemi-orange group-hover:text-white transition-colors"></i>
-            <span>CREDENCIALES</span>
-        </a>
-        
-        <!-- MOBILE ONLY: Mi Credencial button -->
-        <a href="{% url 'recuperar' %}" class="sm:hidden inline-block bg-unemi-orange text-white px-6 py-2.5 rounded-full text-[10px] font-black uppercase tracking-widest shadow-xl shadow-orange-600/30 hover:scale-105 transition-all active:scale-95 border-2 border-unemi-orange">Mi Credencial</a>
     </div>
 </header>
 {% endblock %}
@@ -109,7 +101,7 @@
         
         <p class="text-white/80 text-base sm:text-xl font-medium max-w-2xl mx-auto leading-relaxed">
             Su participación hizo de este evento un acontecimiento histórico para nuestra universidad. <br class="hidden sm:block"> 
-            Pronto podrán descargar sus certificados de participación a través de este portal. 
+            <span class="text-unemi-orange font-bold uppercase tracking-tight">Pronto podrán descargar sus certificados de participación a través de este portal.</span>
             <br><br>
             <b>¡Un orgullo ser parte de los 25 años de UNEMI!</b>
         </p>
