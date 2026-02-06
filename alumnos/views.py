@@ -233,6 +233,8 @@ class ExcelUploadView(views.APIView):
 class CredentialRecoveryView(views.APIView):
 
     """View to recover student data by cédula."""
+    permission_classes = [permissions.AllowAny]
+
     def get(self, request, cedula):
         alumno = get_object_or_404(Alumno, cedula=cedula)
         serializer = AlumnoSerializer(alumno)
@@ -242,7 +244,7 @@ from core.credentials import CredentialGenerator
 
 class CredentialDownloadView(views.APIView):
     """Generates and serves the PDF credential."""
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.AllowAny]
 
     def get(self, request, cedula):
         alumno = get_object_or_404(Alumno, cedula=cedula)
@@ -254,7 +256,7 @@ class CredentialDownloadView(views.APIView):
 
 class QRDownloadView(views.APIView):
     """Generates and serves the QR code for a student on-the-fly."""
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.AllowAny]
 
     def get(self, request, cedula):
         alumno = get_object_or_404(Alumno, cedula=cedula)
