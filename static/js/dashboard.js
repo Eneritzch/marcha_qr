@@ -67,6 +67,17 @@ document.addEventListener('DOMContentLoaded', async () => {
             const wrapperControl = mobileControlNav.closest('.nav-item-wrapper');
             if (wrapperControl) wrapperControl.style.display = 'none';
         }
+
+        // Hide Sorteos in sidebar
+        const sorteosBtn = document.getElementById('sidebar-nav-sorteos');
+        if (sorteosBtn) sorteosBtn.style.display = 'none';
+
+        // Hide Sorteos in mobile nav
+        const mobileSorteosNav = document.getElementById('mobile-nav-sorteos');
+        if (mobileSorteosNav) {
+            const wrapperSorteos = mobileSorteosNav.closest('.nav-item-wrapper');
+            if (wrapperSorteos) wrapperSorteos.style.display = 'none';
+        }
     }
 
     // Initial Fetch & View Restore
@@ -173,10 +184,10 @@ function logout() {
 
 // === VIEW SWITCHING ===
 window.switchView = function (viewName) {
-    const views = ['overview', 'scanner', 'registrar-manual', 'registros', 'lideres', 'importar-exportar', 'control-escaneo'];
+    const views = ['overview', 'scanner', 'registrar-manual', 'registros', 'lideres', 'importar-exportar', 'control-escaneo', 'sorteos'];
 
     // Prevent non-admin users from accessing restricted views
-    if ((viewName === 'registrar-manual' || viewName === 'control-escaneo') && !user.is_superuser) {
+    if ((viewName === 'registrar-manual' || viewName === 'control-escaneo' || viewName === 'sorteos') && !user.is_superuser) {
         console.warn(`Acceso denegado: Solo administradores pueden acceder a ${viewName}`);
         // Redirect to overview
         viewName = 'overview';
@@ -257,7 +268,8 @@ window.switchView = function (viewName) {
         'registros': 'Base de Registros',
         'lideres': 'Gestión de Líderes',
         'importar-exportar': 'Importar/Exportar Datos',
-        'control-escaneo': 'Control de Escaneo'
+        'control-escaneo': 'Control de Escaneo',
+        'sorteos': 'Sistema de Sorteos'
     };
     if (document.getElementById('page-title')) {
         document.getElementById('page-title').textContent = titles[viewName];
@@ -292,6 +304,9 @@ window.switchView = function (viewName) {
         fetchScanConfig();
     } else if (viewName === 'scanner') {
         checkScannerPhase();
+    } else if (viewName === 'sorteos') {
+        loadSorteoStats();
+        cargarGanadores();
     }
 
     lucide.createIcons();
@@ -3206,3 +3221,370 @@ window.checkScannerPhase = async function () {
         overlay.classList.add('hidden');
     }
 }
+
+// === SORTEOS LOGIC ===
+let currentSorteoTipo = 'PREMIO';
+
+window.loadSorteoStats = async function () {
+    try {
+        const response = await axios.get('/api/v1/sorteos/stats/', {
+            headers: { 'Authorization': `Token ${token}` }
+        });
+        const data = response.data;
+
+        document.getElementById('sorteo-stat-elegibles').textContent = data.elegibles_en_alumnos || 0;
+        document.getElementById('sorteo-stat-pool').textContent = data.activos_para_sorteo || 0;
+        document.getElementById('sorteo-stat-ganadores-premio').textContent = data.ganadores_premio || 0;
+        document.getElementById('sorteo-stat-ganadores-iphone').textContent = data.ganadores_iphone || 0;
+
+    } catch (error) {
+        console.error("Error loading sorteo stats:", error);
+    }
+}
+
+window.inicializarPoolSorteo = async function () {
+    const confirm = await Swal.fire({
+        title: '¿Inicializar Pool de Sorteo?',
+        text: 'Esto copiará todos los participantes elegibles (que completaron inicio Y fin) a la tabla de sorteos.',
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonColor: '#0F1E4B',
+        confirmButtonText: 'Sí, inicializar',
+        cancelButtonText: 'Cancelar'
+    });
+
+    if (!confirm.isConfirmed) return;
+
+    showLoader();
+    try {
+        const response = await axios.post('/api/v1/sorteos/inicializar/', {}, {
+            headers: { 'Authorization': `Token ${token}` }
+        });
+
+        Swal.fire({
+            title: '¡Pool Inicializado!',
+            html: `<b>${response.data.nuevos_agregados}</b> participantes agregados.<br>Total activos: <b>${response.data.total_activos}</b>`,
+            icon: 'success'
+        });
+
+        loadSorteoStats();
+    } catch (error) {
+        Swal.fire('Error', 'No se pudo inicializar el pool.', 'error');
+    } finally {
+        hideLoader();
+    }
+}
+
+window.switchSorteoTab = function (tipo) {
+    currentSorteoTipo = tipo;
+    const tabPremio = document.getElementById('tab-premio');
+    const tabIphone = document.getElementById('tab-iphone');
+
+    if (tipo === 'PREMIO') {
+        tabPremio.classList.add('text-unemi-orange', 'border-unemi-orange');
+        tabPremio.classList.remove('text-slate-400', 'border-transparent');
+        tabIphone.classList.remove('text-unemi-orange', 'border-unemi-orange');
+        tabIphone.classList.add('text-slate-400', 'border-transparent');
+    } else {
+        tabIphone.classList.add('text-unemi-orange', 'border-unemi-orange');
+        tabIphone.classList.remove('text-slate-400', 'border-transparent');
+        tabPremio.classList.remove('text-unemi-orange', 'border-unemi-orange');
+        tabPremio.classList.add('text-slate-400', 'border-transparent');
+    }
+}
+
+window.ejecutarSorteo = async function () {
+    const cantidad = parseInt(document.getElementById('sorteo-cantidad').value) || 1;
+    const modoPrueba = false; // Modo prueba deshabilitado en producción
+
+    const confirm = await Swal.fire({
+        title: '<i data-lucide="sparkles" class="w-8 h-8 text-amber-500 inline"></i> ¡Ejecutar Sorteo!',
+        html: `Se seleccionarán <b>${cantidad}</b> ganador(es) para <b>${currentSorteoTipo === 'PREMIO' ? 'Premios' : 'iPhones'}</b>.`,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#EF7D00',
+        confirmButtonText: '¡Sortear!',
+        cancelButtonText: 'Cancelar',
+        didOpen: () => { if (window.lucide) lucide.createIcons(); }
+    });
+
+    if (!confirm.isConfirmed) return;
+
+    const winnerDisplay = document.getElementById('sorteo-winner-display');
+
+    // Iniciar animación de ruleta
+    await startRouletteAnimation(winnerDisplay);
+
+    try {
+        const response = await axios.post('/api/v1/sorteos/ejecutar/', {
+            tipo: currentSorteoTipo,
+            cantidad: cantidad,
+            descripcion: '',
+            modo_prueba: modoPrueba
+        }, {
+            headers: { 'Authorization': `Token ${token}` }
+        });
+
+        const ganadores = response.data.ganadores;
+
+        // Animate winner reveal después de la ruleta
+        await animateWinnerReveal(ganadores, winnerDisplay);
+
+        loadSorteoStats();
+        cargarGanadores();
+
+    } catch (error) {
+        console.error("Sorteo error:", error);
+        winnerDisplay.innerHTML = `
+            <div class="text-center">
+                <i data-lucide="alert-circle" class="w-16 h-16 mx-auto text-red-400 mb-4"></i>
+                <p class="text-red-300">${error.response?.data?.error || 'Error al ejecutar sorteo'}</p>
+            </div>
+        `;
+        lucide.createIcons();
+    }
+}
+
+// Lista de nombres ficticios para la animación de ruleta
+const nombresFicticios = [
+    'María García López', 'Juan Carlos Pérez', 'Ana Martínez Silva',
+    'Carlos Eduardo Ruiz', 'Laura Fernández Castro', 'Diego Ramírez Torres',
+    'Sofía Morales Paredes', 'Andrés Vargas Mendoza', 'Valentina Rojas Díaz',
+    'Gabriel Herrera Núñez', 'Camila Ortiz Reyes', 'Sebastián Castro Flores',
+    'Isabella Guzmán Mora', 'Mateo Jiménez Luna', 'Lucía Sánchez Vera',
+    'Daniel Acosta Parra', 'Emma Delgado Rivas', 'Nicolás Romero Cruz'
+];
+
+async function startRouletteAnimation(container) {
+    return new Promise((resolve) => {
+        // Crear estructura de la ruleta
+        container.innerHTML = `
+            <div class="text-center">
+                <p class="text-amber-400 text-sm font-bold uppercase tracking-widest mb-4">Sorteando...</p>
+                <div class="relative h-24 overflow-hidden rounded-xl bg-white/10 border-2 border-amber-400/50">
+                    <div class="absolute inset-x-0 top-0 h-8 bg-gradient-to-b from-indigo-900 to-transparent z-10"></div>
+                    <div class="absolute inset-x-0 bottom-0 h-8 bg-gradient-to-t from-indigo-900 to-transparent z-10"></div>
+                    <div id="roulette-names" class="transition-transform" style="transform: translateY(0);">
+                    </div>
+                </div>
+                <div class="mt-4 flex justify-center gap-1">
+                    <span class="w-2 h-2 bg-amber-400 rounded-full animate-bounce" style="animation-delay: 0ms"></span>
+                    <span class="w-2 h-2 bg-amber-400 rounded-full animate-bounce" style="animation-delay: 150ms"></span>
+                    <span class="w-2 h-2 bg-amber-400 rounded-full animate-bounce" style="animation-delay: 300ms"></span>
+                </div>
+            </div>
+        `;
+
+        const rouletteContainer = document.getElementById('roulette-names');
+
+        // Generar lista larga de nombres aleatorios
+        let namesHtml = '';
+        for (let i = 0; i < 30; i++) {
+            const randomName = nombresFicticios[Math.floor(Math.random() * nombresFicticios.length)];
+            namesHtml += `<div class="h-8 flex items-center justify-center text-white font-bold text-lg">${randomName}</div>`;
+        }
+        rouletteContainer.innerHTML = namesHtml;
+
+        // Animación de scroll
+        let offset = 0;
+        let speed = 8; // Velocidad inicial rápida
+        const totalDuration = 3000; // 3 segundos
+        const startTime = Date.now();
+
+        function animate() {
+            const elapsed = Date.now() - startTime;
+            const progress = elapsed / totalDuration;
+
+            // Desacelerar gradualmente
+            speed = Math.max(1, 8 * (1 - Math.pow(progress, 2)));
+            offset -= speed;
+
+            // Reset cuando se acaba la lista
+            if (offset < -800) {
+                offset = 0;
+                // Regenerar nombres aleatorios
+                let newHtml = '';
+                for (let i = 0; i < 30; i++) {
+                    const randomName = nombresFicticios[Math.floor(Math.random() * nombresFicticios.length)];
+                    newHtml += `<div class="h-8 flex items-center justify-center text-white font-bold text-lg">${randomName}</div>`;
+                }
+                rouletteContainer.innerHTML = newHtml;
+            }
+
+            rouletteContainer.style.transform = `translateY(${offset}px)`;
+
+            if (elapsed < totalDuration) {
+                requestAnimationFrame(animate);
+            } else {
+                resolve();
+            }
+        }
+
+        requestAnimationFrame(animate);
+    });
+}
+
+async function animateWinnerReveal(ganadores, winnerDisplay) {
+    // Pequeña pausa dramática
+    await new Promise(r => setTimeout(r, 300));
+
+    if (ganadores.length === 1) {
+        const g = ganadores[0];
+        const grupoText = g.grupo ? `Grupo ${g.grupo}` : 'Sin grupo';
+        winnerDisplay.innerHTML = `
+            <div class="text-center animate-scale-in">
+                <i data-lucide="trophy" class="w-20 h-20 mx-auto text-amber-400 mb-4 animate-bounce"></i>
+                <p class="text-amber-400 text-sm font-bold uppercase tracking-widest mb-2">¡GANADOR!</p>
+                <p class="text-emerald-400 text-lg font-bold mb-1">Del ${grupoText}</p>
+                <h3 class="text-3xl font-black mb-2 animate-pulse">${escapeHTML(g.nombre_completo)}</h3>
+                <p class="text-slate-300 font-mono">${escapeHTML(g.cedula)}</p>
+                <p class="text-slate-400 text-sm mt-2">${escapeHTML(g.email)}</p>
+            </div>
+        `;
+    } else {
+        let html = `<div class="text-center"><p class="text-amber-400 text-sm font-bold uppercase mb-4">${ganadores.length} GANADORES</p><div class="space-y-2 max-h-60 overflow-y-auto">`;
+        ganadores.forEach((g, i) => {
+            const grupoText = g.grupo ? `G${g.grupo}` : 'S/G';
+            html += `
+                <div class="bg-white/10 rounded-lg p-3 text-left flex items-center gap-2 animate-fade-in" style="animation-delay: ${i * 100}ms">
+                    <span class="text-amber-400 font-bold">#${g.numero_premio}</span>
+                    <span class="bg-emerald-500/20 text-emerald-400 text-xs font-bold px-2 py-0.5 rounded">${grupoText}</span>
+                    <span class="font-bold">${escapeHTML(g.nombre_completo)}</span>
+                    <span class="text-slate-400 text-xs ml-auto">${escapeHTML(g.cedula)}</span>
+                </div>
+            `;
+        });
+        html += '</div></div>';
+        winnerDisplay.innerHTML = html;
+    }
+    lucide.createIcons();
+}
+
+window.cargarGanadores = async function () {
+    try {
+        const response = await axios.get('/api/v1/sorteos/ganadores/', {
+            headers: { 'Authorization': `Token ${token}` }
+        });
+
+        const tbody = document.getElementById('tbody-ganadores');
+        const ganadores = response.data;
+
+        // Guardar ganadores globalmente para filtrado
+        window.ganadoresData = ganadores;
+
+        if (!ganadores || ganadores.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="6" class="px-4 py-8 text-center text-slate-400">No hay ganadores aún</td></tr>';
+            return;
+        }
+
+        renderGanadores(ganadores);
+        setupBuscadorGanadores();
+
+    } catch (error) {
+        console.error("Error loading winners:", error);
+    }
+}
+
+function renderGanadores(ganadores) {
+    const tbody = document.getElementById('tbody-ganadores');
+
+    if (!ganadores || ganadores.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6" class="px-4 py-8 text-center text-slate-400">No se encontraron resultados</td></tr>';
+        return;
+    }
+
+    tbody.innerHTML = '';
+    ganadores.forEach(g => {
+        const tr = document.createElement('tr');
+        tr.className = 'hover:bg-slate-50';
+        tr.innerHTML = `
+            <td class="px-4 py-3 font-bold text-center">${g.numero_premio}</td>
+            <td class="px-4 py-3">
+                <span class="px-2 py-1 rounded text-xs font-bold ${g.tipo_sorteo === 'IPHONE' ? 'bg-purple-100 text-purple-700' : 'bg-emerald-100 text-emerald-700'}">
+                    ${g.tipo_sorteo_display}
+                </span>
+            </td>
+            <td class="px-4 py-3 font-medium">${escapeHTML(g.nombre_completo)}</td>
+            <td class="px-4 py-3 font-mono text-xs">${escapeHTML(g.cedula)}</td>
+            <td class="px-4 py-3 text-xs">${escapeHTML(g.email)}</td>
+            <td class="px-4 py-3 text-xs text-slate-500">${escapeHTML(g.descripcion_premio || '-')}</td>
+        `;
+        tbody.appendChild(tr);
+    });
+}
+
+function setupBuscadorGanadores() {
+    const searchInput = document.getElementById('search-ganadores');
+    if (!searchInput || searchInput.dataset.listenerAdded) return;
+
+    searchInput.dataset.listenerAdded = 'true';
+    searchInput.addEventListener('input', (e) => {
+        const query = e.target.value.toLowerCase().trim();
+
+        if (!window.ganadoresData) return;
+
+        if (!query) {
+            renderGanadores(window.ganadoresData);
+            return;
+        }
+
+        const filtered = window.ganadoresData.filter(g =>
+            g.nombre_completo.toLowerCase().includes(query) ||
+            g.cedula.toLowerCase().includes(query) ||
+            g.email.toLowerCase().includes(query)
+        );
+
+        renderGanadores(filtered);
+    });
+}
+
+window.exportarGanadores = function () {
+    window.open(`/api/v1/sorteos/exportar/?token=${token}`, '_blank');
+}
+
+window.resetearSorteo = async function () {
+    const confirm = await Swal.fire({
+        title: '¿Resetear TODO?',
+        html: '<span class="text-red-600 font-bold">Esta acción eliminará TODOS los ganadores y el pool de sorteo.</span><br><br>Escribe <b>CONFIRMAR</b> para proceder:',
+        input: 'text',
+        inputPlaceholder: 'CONFIRMAR',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#dc2626',
+        confirmButtonText: 'Eliminar Todo',
+        cancelButtonText: 'Cancelar',
+        preConfirm: (value) => {
+            if (value !== 'CONFIRMAR') {
+                Swal.showValidationMessage('Debes escribir CONFIRMAR exactamente');
+                return false;
+            }
+            return true;
+        }
+    });
+
+    if (!confirm.isConfirmed) return;
+
+    showLoader();
+    try {
+        await axios.post('/api/v1/sorteos/reset/', { confirmar: true }, {
+            headers: { 'Authorization': `Token ${token}` }
+        });
+
+        Swal.fire('Reseteado', 'Todos los datos del sorteo han sido eliminados.', 'success');
+        loadSorteoStats();
+        cargarGanadores();
+
+        // Reset winner display
+        document.getElementById('sorteo-winner-display').innerHTML = `
+            <i data-lucide="trophy" class="w-16 h-16 mx-auto text-amber-400 mb-4 opacity-30"></i>
+            <p class="text-slate-300">Los ganadores aparecerán aquí</p>
+        `;
+        lucide.createIcons();
+
+    } catch (error) {
+        Swal.fire('Error', 'No se pudo resetear el sorteo.', 'error');
+    } finally {
+        hideLoader();
+    }
+}
+

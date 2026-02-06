@@ -12,6 +12,7 @@ urlpatterns = [
     # API V1
     path('api/v1/alumnos/', include('alumnos.urls')),
     path('api/v1/lideres/', include('lideres_app.urls')),
+    path('api/v1/sorteos/', include('sorteos.urls')),
     
     # API Documentation
     path('api/schema/', SpectacularAPIView.as_view(), name='schema'),

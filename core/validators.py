@@ -1,6 +1,9 @@
 def validar_cedula_ecuatoriana(cedula):
     """
     Algoritmo de validación de cédula ecuatoriana (módulo 10).
+    Acepta:
+    - Tercer dígito 0-5: Personas naturales
+    - Tercer dígito 6: Empresas públicas / Residentes extranjeros
     Retorna True si es válida, False en caso contrario.
     """
     if not cedula.isdigit() or len(cedula) != 10:
@@ -11,7 +14,8 @@ def validar_cedula_ecuatoriana(cedula):
         return False
     
     tercer_digito = int(cedula[2])
-    if tercer_digito > 5:
+    # Acepta 0-6 (personas naturales y residentes/empresas públicas)
+    if tercer_digito > 6:
         return False
     
     # Coeficientes: 2 1 2 1 2 1 2 1 2

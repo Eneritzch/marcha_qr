@@ -47,6 +47,7 @@ INSTALLED_APPS = [
     'alumnos',
     'lideres_app',
     'core',
+    'sorteos',
 ]
 
 MIDDLEWARE = [
