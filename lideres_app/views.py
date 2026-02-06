@@ -58,7 +58,6 @@ class LeaderLoginView(views.APIView):
                     user=user,
                     defaults={
                         'nombre_completo': "Administrador del Sistema",
-                        'cedula': "9999999999",
                         'grupo': 1,
                         'activo': True,
                         'visible_en_registro': False
