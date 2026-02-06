@@ -242,6 +242,8 @@ from core.credentials import CredentialGenerator
 
 class CredentialDownloadView(views.APIView):
     """Generates and serves the PDF credential."""
+    permission_classes = [permissions.IsAuthenticated]
+
     def get(self, request, cedula):
         alumno = get_object_or_404(Alumno, cedula=cedula)
         pdf_buffer = CredentialGenerator.generate_pdf(alumno)
@@ -252,6 +254,8 @@ class CredentialDownloadView(views.APIView):
 
 class QRDownloadView(views.APIView):
     """Generates and serves the QR code for a student on-the-fly."""
+    permission_classes = [permissions.IsAuthenticated]
+
     def get(self, request, cedula):
         alumno = get_object_or_404(Alumno, cedula=cedula)
         qr_bytes = QRGenerator.generate_qr_bytes(alumno.codigo_qr)
@@ -261,10 +265,25 @@ class QRDownloadView(views.APIView):
         return response
 
 class MarcarAsistenciaView(views.APIView):
-    """Marks attendance for a student given their ID (cedula)."""
+    """Marks attendance for a student given their ID (cedula) based on system phase."""
     permission_classes = [permissions.IsAuthenticated] # Leaders only
 
     def post(self, request):
+        from lideres_app.models import ConfiguracionEscaneo
+        from django.utils import timezone
+        
+        # 1. Get current phase
+        config = ConfiguracionEscaneo.objects.first()
+        if not config:
+            # Pre-emptive creation of config if it doesn't exist
+            config = ConfiguracionEscaneo.objects.create(fase_actual='CERRADO')
+            
+        fase = config.fase_actual
+        
+        if fase == 'CERRADO':
+            return Response({"error": "El escaneo no se encuentra habilitado en este momento. Espere instrucciones del administrador."}, 
+                            status=status.HTTP_400_BAD_REQUEST)
+
         codigo = request.data.get('cedula') # Frontend sends scanned text here
         if not codigo:
             return Response({"error": "Código o Cédula requerida"}, status=status.HTTP_400_BAD_REQUEST)
@@ -274,32 +293,68 @@ class MarcarAsistenciaView(views.APIView):
             from django.db.models import Q
             alumno = Alumno.objects.get(Q(cedula=codigo) | Q(codigo_qr=codigo))
             
-            # Check if already attended
-            if alumno.asistio:
-                 return Response({
-                    "message": "Asistencia ya registrada previamente",
-                    "alumno": {
-                        "nombre": alumno.nombre_completo,
-                        "codigo_qr": alumno.codigo_qr,
-                        "hora": alumno.fecha_asistencia.strftime("%H:%M:%S")
-                    }
-                }, status=status.HTTP_200_OK)
+            now = timezone.now()
+            
+            if fase == 'INICIO':
+                # Check if already started
+                if alumno.ha_iniciado:
+                     return Response({
+                        "message": "Ya fue registrado en esta etapa (Inicio). Intente nuevamente escanear a otro estudiante.",
+                        "alumno": {
+                            "nombre": alumno.nombre_completo,
+                            "cedula": alumno.cedula,
+                            "grupo": alumno.grupo,
+                            "hora": alumno.fecha_inicio.strftime("%H:%M:%S")
+                        }
+                    }, status=status.HTTP_200_OK)
 
-            # Mark attendance
-            from django.utils import timezone
-            alumno.asistio = True
-            alumno.fecha_asistencia = timezone.now()
-            # If logged in user is marking
+                # Mark start
+                alumno.ha_iniciado = True
+                alumno.fecha_inicio = now
+                # We don't mark 'asistio' as True yet, only after FIN phase
+                # alumno.asistio = True 
+                if not alumno.fecha_asistencia:
+                    alumno.fecha_asistencia = now
+                
+                msg = "¡Inicio registrado correctamente!"
+
+            elif fase == 'FIN':
+                # Check if already finished
+                if alumno.ha_finalizado:
+                     return Response({
+                        "message": "Ya fue registrado en esta etapa (Fin). Intente nuevamente escanear a otro estudiante.",
+                        "alumno": {
+                            "nombre": alumno.nombre_completo,
+                            "cedula": alumno.cedula,
+                            "grupo": alumno.grupo,
+                            "hora": alumno.fecha_fin.strftime("%H:%M:%S")
+                        }
+                    }, status=status.HTTP_200_OK)
+                
+                # IMPORTANT: Must have started first
+                if not alumno.ha_iniciado:
+                    return Response({"error": f"El estudiante {alumno.nombre_completo} NO registró su inicio de marcha. No se puede registrar su llegada."}, 
+                                    status=status.HTTP_400_BAD_REQUEST)
+
+                # Mark finish
+                alumno.ha_finalizado = True
+                alumno.fecha_fin = now
+                alumno.asistio = True # Final confirmation
+                msg = "¡Llegada registrada correctamente!"
+
+            # Auditoría
             if request.user.is_authenticated:
                 alumno.registrado_por = request.user.get_full_name() or request.user.username
+            
             alumno.save()
 
             return Response({
-                "message": "Asistencia registrada correctamente",
+                "message": msg,
                 "alumno": {
                     "nombre": alumno.nombre_completo,
                     "cedula": alumno.cedula,
-                    "grupo": alumno.grupo
+                    "grupo": alumno.grupo,
+                    "fase": fase
                 }
             }, status=status.HTTP_200_OK)
 

@@ -541,7 +541,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                 }
             }
 
-            feedback.innerHTML = `<i data-lucide="alert-circle" class="w-5 h-5 shrink-0"></i> <div>${msg}</div>`;
+            feedback.innerHTML = `<i data-lucide="alert-circle" class="w-5 h-5 shrink-0"></i> <div id="feedback-msg"></div>`;
+            document.getElementById('feedback-msg').textContent = msg.replace(/<br>/g, '\n'); // textContent handles the safety
             lucide.createIcons();
 
             btnSubmit.disabled = false;

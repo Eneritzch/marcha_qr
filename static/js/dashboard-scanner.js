@@ -206,7 +206,15 @@ window.DashboardScanner = {
                     this.showSuccessUI(result.nombre, "Guardado Localmente", "orange");
                 }
             } else {
-                this.showSuccessUI(result.nombre);
+                let color = "green";
+                let msg = result.message || "Asistencia Ok";
+
+                // If the message contains "ya registrado", use amber color for warning
+                if (msg.toLowerCase().includes("ya registrado")) {
+                    color = "amber";
+                }
+
+                this.showSuccessUI(result.nombre, msg, color);
             }
 
         } catch (err) {

@@ -1,5 +1,9 @@
 from django.contrib import admin
-from .models import Lider
+from .models import Lider, ConfiguracionEscaneo
+
+@admin.register(ConfiguracionEscaneo)
+class ConfiguracionEscaneoAdmin(admin.ModelAdmin):
+    list_display = ['fase_actual', 'ultima_actualizacion']
 
 @admin.register(Lider)
 class LiderAdmin(admin.ModelAdmin):

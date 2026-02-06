@@ -28,6 +28,12 @@ class Alumno(models.Model):
     fecha_registro = models.DateTimeField(auto_now_add=True, verbose_name="Fecha de Registro")
     fecha_asistencia = models.DateTimeField(null=True, blank=True, verbose_name="Fecha de Asistencia")
     registrado_por = models.CharField(max_length=50, null=True, blank=True, verbose_name="Registrado por")
+
+    # NUEVO: Seguimiento de Doble Fase
+    ha_iniciado = models.BooleanField(default=False, db_index=True, verbose_name="¿Inició Marcha?")
+    ha_finalizado = models.BooleanField(default=False, db_index=True, verbose_name="¿Finalizó Marcha?")
+    fecha_inicio = models.DateTimeField(null=True, blank=True, verbose_name="Fecha/Hora de Inicio")
+    fecha_fin = models.DateTimeField(null=True, blank=True, verbose_name="Fecha/Hora de Fin")
     
     # Relación con Líder y Grupo (NUEVO)
     lider_invitador = models.ForeignKey(
@@ -60,45 +66,23 @@ class Alumno(models.Model):
         if not self.codigo_qr:
             self.codigo_qr = f"UNM-{uuid.uuid4().hex[:8].upper()}"
         
-        # Validación de Líder Inteligente
-        # Si no tiene líder asignado, asignamos al grupo con menos miembros
+        # Validación de Líder Aleatorio
+        # Si no tiene líder asignado, seleccionamos uno aleatorio
         if not self.lider_invitador:
             from lideres_app.models import Lider
-            from django.db.models import Count
             import random
             
-            # Buscar líderes activos
-            lideres_activos = Lider.objects.filter(activo=True).values('grupo').distinct()
+            # Buscar líderes activos que sean visibles en registro
+            lideres_activos = list(Lider.objects.filter(activo=True))
             
             if lideres_activos:
-                # Contar estudiantes por grupo
-                grupos_con_miembros = []
-                for grupo_data in lideres_activos:
-                    grupo_num = grupo_data['grupo']
-                    cantidad_alumnos = Alumno.objects.filter(grupo=grupo_num).count()
-                    grupos_con_miembros.append({
-                        'grupo': grupo_num,
-                        'cantidad': cantidad_alumnos
-                    })
-                
-                # Encontrar grupo con menos miembros
-                grupo_menos_miembros = min(grupos_con_miembros, key=lambda x: x['cantidad'])
-                grupo_destino = grupo_menos_miembros['grupo']
-                
-                # Obtener líderes activos del grupo con menos miembros
-                lideres_en_grupo = list(Lider.objects.filter(activo=True, grupo=grupo_destino))
-                
-                if lideres_en_grupo:
-                    # Seleccionar un líder aleatorio del grupo con menos miembros
-                    lider_asignado = random.choice(lideres_en_grupo)
-                    self.lider_invitador = lider_asignado
-                    self.grupo = grupo_destino
-                else:
-                    # Fallback: Si no hay líderes en ese grupo, asignar grupo 0
-                    self.grupo = 0
+                líder_aleatorio = random.choice(lideres_activos)
+                self.lider_invitador = líder_aleatorio
+                self.grupo = líder_aleatorio.grupo
             else:
                 # Fallback: Si no hay líderes activos, asignar grupo 0
-                self.grupo = 0
+                if self.grupo is None:
+                     self.grupo = 0
         else:
             # Sincronizar grupo con el líder
             self.grupo = self.lider_invitador.grupo

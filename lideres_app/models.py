@@ -1,6 +1,29 @@
 from django.db import models
 from django.contrib.auth.models import User
 
+class ConfiguracionEscaneo(models.Model):
+    FASES = [
+        ('CERRADO', 'Escaneo Cerrado'),
+        ('INICIO', 'Registro de Inicio'),
+        ('FIN', 'Registro de Fin'),
+    ]
+    
+    fase_actual = models.CharField(max_length=15, choices=FASES, default='CERRADO', verbose_name="Fase Actual del Proceso")
+    ultima_actualizacion = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Configuración de Escaneo"
+        verbose_name_plural = "Configuraciones de Escaneo"
+
+    def __str__(self):
+        return f"Sistema en fase: {self.get_fase_actual_display()}"
+
+    def save(self, *args, **kwargs):
+        # Asegurar que solo haya una instancia de configuración (Singleton)
+        if not self.pk and ConfiguracionEscaneo.objects.exists():
+            return # No permitir crear más de uno
+        super().save(*args, **kwargs)
+
 class GrupoConfig(models.Model):
     numero = models.IntegerField(unique=True, verbose_name="Número de Grupo")
     whatsapp_link = models.URLField(max_length=500, verbose_name="Link de WhatsApp")

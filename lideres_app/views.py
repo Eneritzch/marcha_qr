@@ -54,13 +54,15 @@ class LeaderLoginView(views.APIView):
         if user is not None:
             # Auto-provision profile for Superusers if missing
             if user.is_superuser and not hasattr(user, 'lider_profile'):
-                Lider.objects.create(
+                Lider.objects.get_or_create(
                     user=user,
-                    nombre_completo="Administrador del Sistema",
-                    cedula="9999999999",
-                    grupo=1,
-                    activo=True,
-                    visible_en_registro=False
+                    defaults={
+                        'nombre_completo': "Administrador del Sistema",
+                        'cedula': "9999999999",
+                        'grupo': 1,
+                        'activo': True,
+                        'visible_en_registro': False
+                    }
                 )
                 # Refresh user to load the new profile relationship
                 user.refresh_from_db()
@@ -81,22 +83,25 @@ class LeaderLoginView(views.APIView):
         return Response({"error": "Credenciales inválidas"}, status=status.HTTP_401_UNAUTHORIZED)
 
 class DashboardStatsView(views.APIView):
-
     """General statistics for the dashboard."""
+    permission_classes = [permissions.IsAuthenticated]
+
     def get(self, request):
         total_registrados = Alumno.objects.count()
         total_asistieron = Alumno.objects.filter(asistio=True).count()
+        total_iniciados = Alumno.objects.filter(ha_iniciado=True, ha_finalizado=False).count()
         
         # Optimized aggregation: 1 query instead of 15
-        from django.db.models import Sum, Case, When, IntegerField
+        from django.db.models import Sum, Case, When, IntegerField, Count
         
         # Initialize stats for all groups to 0
-        stats_map = {g: {'grupo': g, 'total': 0, 'asistieron': 0, 'porcentaje': 0} for g in range(1, 16)}
+        stats_map = {g: {'grupo': g, 'total': 0, 'asistieron': 0, 'iniciados': 0, 'porcentaje': 0} for g in range(1, 16)}
 
         # Aggregate counts by group
         qs = Alumno.objects.values('grupo').annotate(
             total=Count('id'),
-            asistencia=Count(Case(When(asistio=True, then=1), output_field=IntegerField()))
+            asistencia=Count(Case(When(asistio=True, then=1), output_field=IntegerField())),
+            inicio=Count(Case(When(ha_iniciado=True, ha_finalizado=False, then=1), output_field=IntegerField()))
         ).order_by('grupo')
 
         for entry in qs:
@@ -104,8 +109,10 @@ class DashboardStatsView(views.APIView):
             if g in stats_map:
                 total = entry['total']
                 asistieron = entry['asistencia']
+                iniciados = entry['inicio']
                 stats_map[g]['total'] = total
                 stats_map[g]['asistieron'] = asistieron
+                stats_map[g]['iniciados'] = iniciados
                 stats_map[g]['porcentaje'] = round((asistieron / total * 100), 1) if total > 0 else 0
         
         stats_grupos = list(stats_map.values())
@@ -113,6 +120,7 @@ class DashboardStatsView(views.APIView):
         return Response({
             'total_registrados': total_registrados,
             'total_asistieron': total_asistieron,
+            'total_iniciados': total_iniciados,
             'stats_grupos': stats_grupos
         })
 
@@ -322,3 +330,50 @@ class RedistribuirAlumnosView(views.APIView):
                 'exito': False,
                 'error': str(e)
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+class FaseEscaneoView(views.APIView):
+    """View to get and set the current phase of the scanning process."""
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        from .models import ConfiguracionEscaneo
+        config = ConfiguracionEscaneo.objects.first()
+        if not config:
+            config = ConfiguracionEscaneo.objects.create(fase_actual='CERRADO')
+        
+        # Stats summary for the control panel
+        from alumnos.models import Alumno
+        stats = {
+            'total': Alumno.objects.count(),
+            'ha_iniciado': Alumno.objects.filter(ha_iniciado=True).count(),
+            'ha_finalizado': Alumno.objects.filter(ha_finalizado=True).count(),
+        }
+        
+        return Response({
+            "fase": config.fase_actual,
+            "fase_display": config.get_fase_actual_display(),
+            "ultima_actualizacion": config.ultima_actualizacion,
+            "stats": stats
+        })
+
+    def post(self, request):
+        """Change the current phase. Only for admins."""
+        if not request.user.is_staff:
+            return Response({"error": "Solo administradores pueden cambiar la fase."}, status=status.HTTP_403_FORBIDDEN)
+        
+        nueva_fase = request.data.get('fase')
+        from .models import ConfiguracionEscaneo
+        if nueva_fase not in [f[0] for f in ConfiguracionEscaneo.FASES]:
+            return Response({"error": "Fase inválida"}, status=status.HTTP_400_BAD_REQUEST)
+        
+        config = ConfiguracionEscaneo.objects.first()
+        if not config:
+            config = ConfiguracionEscaneo.objects.create(fase_actual=nueva_fase)
+        else:
+            config.fase_actual = nueva_fase
+            config.save()
+            
+        return Response({
+            "message": f"Fase cambiada a {config.get_fase_actual_display()}",
+            "fase": config.fase_actual
+        })

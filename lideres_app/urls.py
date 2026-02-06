@@ -1,6 +1,6 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-from .views import LiderViewSet, ActiveLiderListView, DashboardStatsView, LeaderLoginView, LeaderExcelUploadView, RandomLeaderView, RedistribuirAlumnosView
+from .views import LiderViewSet, ActiveLiderListView, DashboardStatsView, LeaderLoginView, LeaderExcelUploadView, RandomLeaderView, RedistribuirAlumnosView, FaseEscaneoView
 
 router = DefaultRouter()
 router.register(r'lideres', LiderViewSet)
@@ -13,5 +13,6 @@ urlpatterns = [
     path('upload-excel/', LeaderExcelUploadView.as_view(), name='leader-upload-excel'),
     path('random/', RandomLeaderView.as_view(), name='random-leader'),
     path('redistribuir/', RedistribuirAlumnosView.as_view(), name='redistribuir-alumnos'),
+    path('config-escaneo/', FaseEscaneoView.as_view(), name='config-escaneo'),
 ]
 

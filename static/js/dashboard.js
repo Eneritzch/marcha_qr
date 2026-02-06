@@ -49,12 +49,23 @@ document.addEventListener('DOMContentLoaded', async () => {
         // Hide in sidebar
         const sidebarBtn = document.getElementById('sidebar-nav-registrar-manual');
         if (sidebarBtn) sidebarBtn.style.display = 'none';
-        
+
         // Hide in mobile nav
         const mobileNav = document.getElementById('mobile-nav-registrar-manual');
         if (mobileNav) {
             const wrapper = mobileNav.closest('.nav-item-wrapper');
             if (wrapper) wrapper.style.display = 'none';
+        }
+
+        // Hide Control de Escaneo in sidebar
+        const controlBtn = document.getElementById('sidebar-nav-control-escaneo');
+        if (controlBtn) controlBtn.style.display = 'none';
+
+        // Hide Control de Escaneo in mobile nav
+        const mobileControlNav = document.getElementById('mobile-nav-control-escaneo');
+        if (mobileControlNav) {
+            const wrapperControl = mobileControlNav.closest('.nav-item-wrapper');
+            if (wrapperControl) wrapperControl.style.display = 'none';
         }
     }
 
@@ -138,6 +149,17 @@ function filterLideres(query) {
     renderLideresTable(filtered);
 }
 
+// === SECURITY UTILS ===
+const escapeHTML = (str) => {
+    if (!str) return '';
+    return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+};
+
 function logout() {
     // Clear session but NOT the data cache (to allow offline login later)
     localStorage.removeItem('token');
@@ -151,11 +173,11 @@ function logout() {
 
 // === VIEW SWITCHING ===
 window.switchView = function (viewName) {
-    const views = ['overview', 'scanner', 'registrar-manual', 'registros', 'lideres', 'importar-exportar'];
+    const views = ['overview', 'scanner', 'registrar-manual', 'registros', 'lideres', 'importar-exportar', 'control-escaneo'];
 
-    // Prevent non-admin users from accessing registrar-manual
-    if (viewName === 'registrar-manual' && !user.is_superuser) {
-        console.warn('Acceso denegado: Solo administradores pueden acceder a Registrar Manual');
+    // Prevent non-admin users from accessing restricted views
+    if ((viewName === 'registrar-manual' || viewName === 'control-escaneo') && !user.is_superuser) {
+        console.warn(`Acceso denegado: Solo administradores pueden acceder a ${viewName}`);
         // Redirect to overview
         viewName = 'overview';
     }
@@ -163,16 +185,30 @@ window.switchView = function (viewName) {
     // Save state
     localStorage.setItem('lastView', viewName);
 
-    // Hide all views
+    // Hide all views and reset styles globally for better reliability
     views.forEach(v => {
         const viewEl = document.getElementById(`view-${v}`);
         if (viewEl) viewEl.classList.add('hidden');
+    });
 
-        // Reset Sidebar Styles
-        const sidebarItem = document.getElementById(`sidebar-nav-${v}`);
-        if (sidebarItem) {
-            sidebarItem.classList.remove('sidebar-item-active');
-            sidebarItem.classList.add('text-slate-300');
+    // Aggressive Reset: Remove 'sidebar-item-active' from ANY element that has it
+    Array.from(document.getElementsByClassName('sidebar-item-active')).forEach(el => {
+        el.classList.remove('sidebar-item-active');
+        el.classList.add('text-slate-300');
+    });
+
+    // Reset Mobile Nav Styles (Global clearing)
+    document.querySelectorAll('.nav-item-wrapper').forEach(wrapper => {
+        wrapper.classList.remove('-top-5');
+        const btn = wrapper.querySelector('button');
+        if (btn) {
+            btn.classList.add('text-slate-400');
+            btn.classList.remove(
+                'bg-unemi-orange', 'text-white', 'w-14', 'h-14',
+                'shadow-lg', 'shadow-orange-500/30', 'border-4', 'border-white', 'justify-center'
+            );
+            const label = btn.querySelector('span');
+            if (label) label.classList.remove('hidden');
         }
     });
 
@@ -188,39 +224,15 @@ window.switchView = function (viewName) {
     }
 
     // Activate Mobile Nav (Dynamic Floating Button)
-    document.querySelectorAll('.nav-item-wrapper').forEach(wrapper => {
-        const btn = wrapper.querySelector('button');
-        const target = wrapper.dataset.target;
-        const label = btn.querySelector('span');
+    const activeMobileWrapper = document.querySelector(`.nav-item-wrapper[data-target="${viewName}"]`);
+    if (activeMobileWrapper) {
+        const btn = activeMobileWrapper.querySelector('button');
+        const label = btn ? btn.querySelector('span') : null;
 
-        if (target === viewName) {
-            // Active State: Floating Orange Circle
-            wrapper.classList.add('-top-5');
-
-            // Transform button to floating circle
+        activeMobileWrapper.classList.add('-top-5');
+        if (btn) {
             btn.classList.remove('text-slate-400');
             btn.classList.add(
-                'bg-unemi-orange',
-                'text-white',
-                'w-14',
-                'h-14',
-                'shadow-lg',
-                'shadow-orange-500/30',
-                'border-4',
-                'border-white', // Matches bg-white of nav
-                'justify-center'
-            );
-
-            // Hide label for clean look on active item
-            if (label) label.classList.add('hidden');
-
-        } else {
-            // Inactive State: Normal Icon
-            wrapper.classList.remove('-top-5');
-
-            // Reset button styles
-            btn.classList.add('text-slate-400');
-            btn.classList.remove(
                 'bg-unemi-orange',
                 'text-white',
                 'w-14',
@@ -231,11 +243,12 @@ window.switchView = function (viewName) {
                 'border-white',
                 'justify-center'
             );
-
-            // Show label
-            if (label) label.classList.remove('hidden');
         }
-    });
+        if (label) label.classList.add('hidden');
+
+        // Scroll active item into view for mobile nav
+        activeMobileWrapper.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+    }
 
     // Header Title Update
     const titles = {
@@ -243,7 +256,8 @@ window.switchView = function (viewName) {
         'scanner': 'Escanear Asistencia',
         'registros': 'Base de Registros',
         'lideres': 'Gestión de Líderes',
-        'importar-exportar': 'Importar/Exportar Datos'
+        'importar-exportar': 'Importar/Exportar Datos',
+        'control-escaneo': 'Control de Escaneo'
     };
     if (document.getElementById('page-title')) {
         document.getElementById('page-title').textContent = titles[viewName];
@@ -274,6 +288,10 @@ window.switchView = function (viewName) {
         fetchLideres();
     } else if (viewName === 'registros' || viewName === 'overview') {
         refreshData();
+    } else if (viewName === 'control-escaneo') {
+        fetchScanConfig();
+    } else if (viewName === 'scanner') {
+        checkScannerPhase();
     }
 
     lucide.createIcons();
@@ -283,25 +301,28 @@ window.switchView = function (viewName) {
 
 
 function updateKPIs() {
+    if (!allAlumnos) return;
     const total = allAlumnos.length;
-    const asistencias = allAlumnos.filter(a => a.asistio).length;
-    const pendientes = total - asistencias;
-    const porcentaje = total > 0 ? ((asistencias / total) * 100).toFixed(1) : 0;
+    const iniciados = allAlumnos.filter(a => a.ha_iniciado && !a.ha_finalizado).length;
+    const completados = allAlumnos.filter(a => a.ha_finalizado).length;
+    const porcentaje = total > 0 ? ((completados / total) * 100).toFixed(1) : 0;
+
+    const safeSet = (id, val) => {
+        const el = document.getElementById(id);
+        if (el) el.textContent = val;
+    };
+
+    safeSet('kpi-total', total);
+    safeSet('kpi-iniciados', iniciados);
+    safeSet('kpi-completados', completados);
+    safeSet('kpi-porcentaje', `${porcentaje}%`);
 
     // New Counts
     const externos = allAlumnos.filter(a => a.es_externo).length;
     const unemi = total - externos;
 
-    document.getElementById('kpi-total').textContent = total;
-    document.getElementById('kpi-asistencias').textContent = asistencias;
-    document.getElementById('kpi-pendientes').textContent = pendientes;
-    document.getElementById('kpi-porcentaje').textContent = `${porcentaje}%`;
-
-    // Update New Cards
-    const elUnemi = document.getElementById('kpi-unemi');
-    const elExternos = document.getElementById('kpi-externos');
-    if (elUnemi) elUnemi.textContent = unemi;
-    if (elExternos) elExternos.textContent = externos;
+    safeSet('kpi-unemi', unemi);
+    safeSet('kpi-externos', externos);
 }
 
 // === DATA TABLES STATE ===
@@ -329,8 +350,9 @@ function filterRegistros(query) {
 
         const matchesSearch = nombre.includes(q) || cedula.includes(q);
         const matchesStatus = status === 'all' ||
-            (status === 'present' && a.asistio) ||
-            (status === 'absent' && !a.asistio);
+            (status === 'completed' && a.ha_finalizado) ||
+            (status === 'started' && a.ha_iniciado && !a.ha_finalizado) ||
+            (status === 'absent' && !a.ha_iniciado);
 
         const matchesVinculo = vinculo === 'all' ||
             (vinculo === 'unemi' && !a.es_externo) ||
@@ -388,31 +410,41 @@ function renderRegistrosTable(data) {
             <td class="px-4 py-4 text-center font-bold text-slate-400 text-xs">${globalIndex}</td>
             <td class="px-6 py-4 font-medium text-slate-900">
                 <div class="flex flex-col">
-                    <span>${a.nombre_completo}</span>
+                    <span>${escapeHTML(a.nombre_completo)}</span>
                     <div class="flex gap-1">
                         ${a.es_externo ? '<span class="text-[9px] font-black text-orange-500 uppercase tracking-tighter">● Externo</span>' : ''}
                         ${a.grupo === 0 ? '<span class="text-[9px] font-black text-slate-400 uppercase tracking-tighter">● Sin Grupo</span>' : ''}
                     </div>
                 </div>
             </td>
-            <td class="px-6 py-4 font-mono text-xs">${a.cedula}</td>
+            <td class="px-6 py-4 font-mono text-xs">${escapeHTML(a.cedula)}</td>
             <td class="px-6 py-4">
                 ${(user.is_superuser || user.is_staff) ? `
                 <div class="flex flex-col gap-1">
-                    <span class="text-xs font-bold text-unemi-blue">${a.lider_nombre || 'Sin líder'}</span>
+                    <span class="text-xs font-bold text-unemi-blue">${escapeHTML(a.lider_nombre || 'Sin líder')}</span>
                     <select onchange="changeStudentGroup('${a.cedula}', this.value)" class="appearance-none bg-orange-50 border border-orange-200 text-unemi-orange text-[10px] font-black px-2 py-1 rounded-lg focus:ring-2 focus:ring-unemi-orange focus:border-unemi-orange cursor-pointer transition-all hover:border-unemi-orange hover:shadow-sm bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20fill%3D%22none%22%20viewBox%3D%220%200%2024%2024%22%20stroke%3D%22%23EF7D00%22%20stroke-width%3D%222.5%22%3E%3Cpath%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%20d%3D%22m19.5%208.25-7.5%207.5-7.5-7.5%22%2F%3E%3C%2Fsvg%3E')] bg-[length:0.8rem_0.8rem] bg-[right_0.3rem_center] bg-no-repeat pr-5 uppercase tracking-tighter">
                         <option value="0" ${a.grupo == 0 ? 'selected' : ''} class="text-slate-700 bg-white">SIN GRUPO</option>
                         ${Array.from({ length: 15 }, (_, i) => i + 1).map(g => `<option value="${g}" ${a.grupo == g ? 'selected' : ''} class="text-slate-700 bg-white">Grupo ${g}</option>`).join('')}
                     </select>
                 </div>
                 ` : `
-                <span class="text-xs">${a.carrera || (a.es_externo ? '<span class="text-slate-400 italic">No aplica</span>' : '-')}</span>
+                <span class="text-xs">${escapeHTML(a.carrera) || (a.es_externo ? '<span class="text-slate-400 italic">No aplica</span>' : '-')}</span>
                 `}
             </td>
             <td class="px-6 py-4 text-center">
-                 <span class="px-2 py-1 rounded text-[10px] font-bold uppercase ${a.asistio ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-400'}">
-                    ${a.asistio ? 'Presente' : 'Pendiente'}
-                 </span>
+                 ${a.ha_finalizado ? `
+                    <span class="px-2 py-1 rounded text-[10px] font-bold uppercase bg-green-100 text-green-700">
+                        Completado
+                    </span>
+                 ` : a.ha_iniciado ? `
+                    <span class="px-2 py-1 rounded text-[10px] font-bold uppercase bg-orange-100 text-unemi-orange">
+                        Iniciado
+                    </span>
+                 ` : `
+                    <span class="px-2 py-1 rounded text-[10px] font-bold uppercase bg-slate-100 text-slate-400">
+                        Ausente
+                    </span>
+                 `}
             </td>
              <td class="px-6 py-4 text-center">
                  <div class="flex items-center justify-center gap-2">
@@ -2116,7 +2148,8 @@ window.startCameraManual = function () {
             { headers: headers }
         );
 
-        const alumno = response.data.alumno;
+        const resData = response.data;
+        const alumno = resData.alumno;
         const idx = allAlumnos.findIndex(a => a.cedula === alumno.cedula);
         if (idx !== -1) {
             allAlumnos[idx].asistio = true;
@@ -2124,7 +2157,10 @@ window.startCameraManual = function () {
             updateKPIs();
         }
 
-        return alumno;
+        return {
+            ...alumno,
+            message: resData.message
+        };
     });
 };
 
@@ -2155,14 +2191,18 @@ window.handleQRFileSelect = function (input) {
                             { headers: headers }
                         );
 
-                        const alumno = response.data.alumno;
+                        const resData = response.data;
+                        const alumno = resData.alumno;
                         const idx = allAlumnos.findIndex(a => a.cedula === alumno.cedula);
                         if (idx !== -1) {
                             allAlumnos[idx].asistio = true;
                             localStorage.setItem('allAlumnos', JSON.stringify(allAlumnos));
                             updateKPIs();
                         }
-                        return alumno;
+                        return {
+                            ...alumno,
+                            message: resData.message
+                        };
                     } catch (e) {
                         console.warn("Online scan failed, falling back to offline logic:", e);
                         // FALLBACK TO OFFLINE SCAN
@@ -2189,39 +2229,73 @@ window.handleOfflineScan = async function (cedula) {
         throw new Error("Estudiante no encontrado en la base local. Se requiere internet para validar registros nuevos.");
     }
 
-    // 2. Verificar si ya asistió (en el JSON local)
-    if (alumnoLocal.asistio) {
+    // Identificar fase actual (Prioridad: localStorage (caché) -> DOM -> Default)
+    let faseActual = localStorage.getItem('lastScanPhase') || 'INICIO';
+    const badgeContainer = document.getElementById('status-badge-container');
+    if (badgeContainer) {
+        const text = badgeContainer.textContent.toLowerCase();
+        if (text.includes('fin')) faseActual = 'FIN';
+    }
+
+    // 2. Verificar duplicados locales por fase
+    if (faseActual === 'INICIO' && alumnoLocal.ha_iniciado) {
         return {
             nombre: alumnoLocal.nombre_completo,
             already_marked: true,
-            offline: true
+            offline: true,
+            message: "Ya fue registrado en esta etapa (Inicio). Intente nuevamente escanear."
+        };
+    }
+    if (faseActual === 'FIN' && alumnoLocal.ha_finalizado) {
+        return {
+            nombre: alumnoLocal.nombre_completo,
+            already_marked: true,
+            offline: true,
+            message: "Ya fue registrado en esta etapa (Fin). Intente nuevamente escanear."
         };
     }
 
-    // 3. Añadir a la cola offline si no está ya
-    if (!offlineQueue.includes(cedula)) {
-        offlineQueue.push(cedula);
+    // Validación de secuencia: No puede marcar FIN si no ha INICIADO (incluso offline)
+    if (faseActual === 'FIN' && !alumnoLocal.ha_iniciado) {
+        throw new Error(`El estudiante ${alumnoLocal.nombre_completo} NO registró su inicio de marcha. No se puede registrar su llegada offline.`);
+    }
+
+    // 3. Añadir a la cola offline con metadatos de fase
+    // Guardamos objeto en lugar de solo cédula para saber qué fase era
+    const scanData = { cedula: alumnoLocal.cedula, fase: faseActual, timestamp: new Date().toISOString() };
+
+    // Evitar duplicados exactos en la cola
+    const isDuplicateInQueue = offlineQueue.some(q => q.cedula === scanData.cedula && q.fase === scanData.fase);
+    if (!isDuplicateInQueue) {
+        offlineQueue.push(scanData);
         localStorage.setItem('offlineQueue', JSON.stringify(offlineQueue));
     }
 
-    // 4. Marcar como asistido localmente para feedback inmediato
+    // 4. Marcar visualmente en el JSON local para feedback inmediato
     const idx = allAlumnos.findIndex(a => a.cedula === alumnoLocal.cedula);
     if (idx !== -1) {
-        allAlumnos[idx].asistio = true;
+        if (faseActual === 'INICIO') {
+            allAlumnos[idx].ha_iniciado = true;
+        } else {
+            allAlumnos[idx].ha_finalizado = true;
+            allAlumnos[idx].asistio = true;
+        }
         localStorage.setItem('allAlumnos', JSON.stringify(allAlumnos));
 
         // --- ACTUALIZAR LÍDER LOCALMENTE ---
-        const liderId = alumnoLocal.lider_invitador;
-        if (liderId) {
-            const lIdx = allLideres.findIndex(l => l.id == liderId);
-            if (lIdx !== -1) {
-                allLideres[lIdx].total_asistencias = (allLideres[lIdx].total_asistencias || 0) + 1;
-                localStorage.setItem('allLideres', JSON.stringify(allLideres));
+        // (Similar logic but we only count 'asistio' if it's FIN)
+        if (faseActual === 'FIN') {
+            const liderId = alumnoLocal.lider_invitador;
+            if (liderId) {
+                const lIdx = allLideres.findIndex(l => l.id == liderId);
+                if (lIdx !== -1) {
+                    allLideres[lIdx].total_asistencias = (allLideres[lIdx].total_asistencias || 0) + 1;
+                    localStorage.setItem('allLideres', JSON.stringify(allLideres));
+                }
             }
         }
 
         // --- ACTUALIZAR TODA LA UI ---
-        // --- ACTUALIZAR UI AL INSTANTE (PARIDAD CON ONLINE) ---
         updateKPIs();
         updateOfflineUI();
         if (window.DashboardCharts) {
@@ -2234,7 +2308,8 @@ window.handleOfflineScan = async function (cedula) {
 
     return {
         nombre: alumnoLocal.nombre_completo,
-        offline: true
+        offline: true,
+        message: faseActual === 'INICIO' ? "Inicio Guardado Localmente" : "Llegada Guardada Localmente"
     };
 };
 
@@ -2259,17 +2334,24 @@ window.syncOfflineScans = async function () {
     const itemsToSync = [...offlineQueue];
 
     try {
-        for (const cedula of itemsToSync) {
+        for (const item of itemsToSync) {
+            // El item ahora es un objeto {cedula, fase}
+            const scanCedula = typeof item === 'string' ? item : item.cedula;
+            // Si es un string viejo, asumimos que el server lo manejará (probablemente sea INICIO por defecto)
+
             try {
                 await axios.post('/api/v1/alumnos/marcar-asistencia/',
-                    { cedula: cedula },
+                    { cedula: scanCedula }, // El server ya sabe la fase actual, pero si quisiéramos forzarla, la enviaríamos aquí
                     { headers: { Authorization: `Token ${token}` } }
                 );
                 successCount++;
-                // Eliminar de la cola local tras éxito
-                offlineQueue = offlineQueue.filter(item => item !== cedula);
+                // Eliminar de la cola local tras éxito (comparación exacta)
+                offlineQueue = offlineQueue.filter(q => {
+                    const qCedula = typeof q === 'string' ? q : q.cedula;
+                    return qCedula !== scanCedula;
+                });
             } catch (e) {
-                console.error(`Error sincronizando ${cedula}:`, e);
+                console.error(`Error sincronizando ${scanCedula}:`, e);
             }
         }
 
@@ -2422,7 +2504,7 @@ function updateManualStepDisplay() {
         const step = document.getElementById(`manual-step-${i}`);
         if (step) step.classList.add('hidden');
     }
-    
+
     // Show current step
     const currentStepEl = document.getElementById(`manual-step-${manualCurrentStep}`);
     if (currentStepEl) {
@@ -2473,15 +2555,15 @@ function updateManualProgress() {
     // Update step indicators (only first 2 steps)
     document.querySelectorAll('.manual-step-item').forEach((item, idx) => {
         const stepNum = idx + 1;
-        
+
         // Hide step-3 indicator always
         if (stepNum === 3) {
             item.style.display = 'none';
             return;
         }
-        
+
         item.style.display = 'flex';
-        
+
         if (stepNum < manualCurrentStep) {
             // Completed
             item.classList.remove('active');
@@ -2558,7 +2640,7 @@ function validateManualStep(step) {
 
         // Validate academic info only if NOT external
         const esExterno = document.getElementById('manual-check-externo').checked;
-        
+
         if (!esExterno) {
             const modalidad = document.getElementById('manual-modalidad').value;
             const facultad = document.getElementById('manual-facultad').value;
@@ -2749,7 +2831,7 @@ function selectManualLeader(leader, searchInput, hiddenInput, dropdown, grupoPre
 
     // Clear error styles
     searchInput.classList.remove('border-red-500');
-    
+
     // Uncheck "No Leader" if it was checked
     const checkNoLider = document.getElementById('manual-check-no-lider');
     if (checkNoLider && checkNoLider.checked) {
@@ -2785,7 +2867,7 @@ function initManualAcademicFilters() {
     });
 
     // Modalidad change
-    selModalidad.addEventListener('change', function() {
+    selModalidad.addEventListener('change', function () {
         const mod = this.value;
         selFacultad.innerHTML = '<option value="">Seleccione Facultad...</option>';
         selCarrera.innerHTML = '<option value="">Primero seleccione Facultad...</option>';
@@ -2809,7 +2891,7 @@ function initManualAcademicFilters() {
     });
 
     // Facultad change
-    selFacultad.addEventListener('change', function() {
+    selFacultad.addEventListener('change', function () {
         const mod = selModalidad.value;
         const fac = this.value;
         selCarrera.innerHTML = '<option value="">Seleccione Carrera...</option>';
@@ -2827,7 +2909,7 @@ function initManualAcademicFilters() {
 function handleManualExternoChange() {
     const isExterno = document.getElementById('manual-check-externo').checked;
     const academicSection = document.getElementById('manual-academic-section');
-    
+
     if (isExterno) {
         // Hide academic section
         if (academicSection) academicSection.classList.add('hidden');
@@ -2856,7 +2938,7 @@ function showManualFormFeedback(type, message) {
     if (!feedback) return;
 
     feedback.className = `rounded-xl p-4 flex items-start space-x-3 border`;
-    
+
     if (type === 'error') {
         feedback.classList.add('bg-red-50', 'text-red-800', 'border-red-200');
         feedback.innerHTML = `
@@ -2875,7 +2957,7 @@ function showManualFormFeedback(type, message) {
 
 async function registrarAlumnoManual() {
     const form = document.getElementById('manual-registro-form');
-    
+
     try {
         const cedula = document.getElementById('manual-cedula').value.trim();
         const nombre = document.getElementById('manual-nombre').value.trim();
@@ -2970,7 +3052,7 @@ async function registrarAlumnoManual() {
 
     } catch (error) {
         let errorMsg = 'Error al registrar';
-        
+
         if (error.response?.data?.error) {
             errorMsg = error.response.data.error;
         }
@@ -2982,5 +3064,145 @@ async function registrarAlumnoManual() {
         submitBtn.disabled = false;
         submitBtn.innerHTML = '<span>Registrar Alumno</span> <i data-lucide="check" class="w-5 h-5"></i>';
         window.lucide?.createIcons();
+    }
+}
+
+// === CONTROL DE ESCANEO LOGIC ===
+
+window.fetchScanConfig = async function () {
+    if (!user.is_superuser) return;
+
+    try {
+        const response = await axios.get('/api/v1/lideres/config-escaneo/', {
+            headers: { 'Authorization': `Token ${token}` }
+        });
+
+        const data = response.data;
+        // Caché de fase para modo offline
+        localStorage.setItem('lastScanPhase', data.fase);
+        renderScanControlUI(data);
+    } catch (error) {
+        console.error("Error al obtener configuración de escaneo:", error);
+        // Fallback offline: Renderizar con caché si existe
+        const cachedPhase = localStorage.getItem('lastScanPhase');
+        if (cachedPhase) {
+            renderScanControlUI({ fase: cachedPhase, stats: { ha_iniciado: '--', ha_finalizado: '--' } });
+        }
+    }
+}
+
+function renderScanControlUI(data) {
+    const badgeContainer = document.getElementById('status-badge-container');
+    const statsInicio = document.getElementById('ctrl-stats-inicio');
+    const statsFin = document.getElementById('ctrl-stats-fin');
+
+    if (!badgeContainer) return;
+
+    // Update Stats
+    if (statsInicio) statsInicio.textContent = data.stats.ha_iniciado;
+    if (statsFin) statsFin.textContent = data.stats.ha_finalizado;
+
+    // Update Badge
+    let badgeHTML = '';
+    const fase = data.fase;
+
+    if (fase === 'CERRADO') {
+        badgeHTML = `
+            <span class="px-4 py-2 bg-red-100 text-red-600 rounded-full font-bold text-sm flex items-center gap-2">
+                <i data-lucide="lock" class="w-4 h-4"></i> Escaneo Cerrado
+            </span>
+        `;
+    } else if (fase === 'INICIO') {
+        badgeHTML = `
+            <span class="px-4 py-2 bg-orange-100 text-unemi-orange rounded-full font-bold text-sm flex items-center gap-2">
+                <span class="w-2 h-2 rounded-full bg-unemi-orange animate-pulse"></span>
+                Registro de Inicio Activo
+            </span>
+        `;
+    } else if (fase === 'FIN') {
+        badgeHTML = `
+            <span class="px-4 py-2 bg-green-100 text-green-600 rounded-full font-bold text-sm flex items-center gap-2">
+                <span class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
+                Registro de Fin Activo
+            </span>
+        `;
+    }
+
+    badgeContainer.innerHTML = badgeHTML;
+
+    // Highlight active card
+    document.querySelectorAll('.phase-card').forEach(card => {
+        card.classList.remove('ring-4', 'ring-unemi-orange/20', 'border-unemi-orange/50', 'bg-white');
+        card.classList.add('bg-slate-50', 'border-slate-100');
+
+        const cardTitle = card.querySelector('h4').textContent;
+        if ((fase === 'CERRADO' && cardTitle.includes('Cerrar')) ||
+            (fase === 'INICIO' && cardTitle.includes('Inicio')) ||
+            (fase === 'FIN' && cardTitle.includes('Fin'))) {
+            card.classList.add('ring-4', 'ring-unemi-orange/20', 'border-unemi-orange/50', 'bg-white');
+            card.classList.remove('bg-slate-50', 'border-slate-100');
+        }
+    });
+
+    lucide.createIcons();
+}
+
+window.updateScanPhase = async function (newPhase) {
+    const confirm = await Swal.fire({
+        title: '¿Cambiar fase de escaneo?',
+        text: `El sistema pasará a la fase de: ${newPhase === 'CERRADO' ? 'Cierre Total' : newPhase}`,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#0F1E4B',
+        cancelButtonColor: '#d33',
+        confirmButtonText: 'Sí, cambiar',
+        cancelButtonText: 'Cancelar'
+    });
+
+    if (confirm.isConfirmed) {
+        showLoader();
+        try {
+            await axios.post('/api/v1/lideres/config-escaneo/', { fase: newPhase }, {
+                headers: { 'Authorization': `Token ${token}` }
+            });
+
+            await fetchScanConfig();
+
+            Swal.fire({
+                title: '¡Fase Actualizada!',
+                text: 'El estado del sistema ha sido modificado correctamente.',
+                icon: 'success',
+                timer: 2000,
+                showConfirmButton: false
+            });
+        } catch (error) {
+            Swal.fire('Error', 'No se pudo cambiar la fase del sistema.', 'error');
+        } finally {
+            hideLoader();
+        }
+    }
+}
+
+window.checkScannerPhase = async function () {
+    let fase = localStorage.getItem('lastScanPhase');
+
+    try {
+        const response = await axios.get('/api/v1/lideres/config-escaneo/', {
+            headers: { 'Authorization': `Token ${token}` }
+        });
+        fase = response.data.fase;
+        localStorage.setItem('lastScanPhase', fase);
+    } catch (error) {
+        console.warn("Fase de escaneo leída desde caché local.");
+    }
+
+    const overlay = document.getElementById('scanner-lock-overlay');
+    if (!overlay) return;
+
+    if (fase === 'CERRADO') {
+        overlay.classList.remove('hidden');
+        if (window.DashboardScanner) DashboardScanner.stop();
+    } else {
+        overlay.classList.add('hidden');
     }
 }
