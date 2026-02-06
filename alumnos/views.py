@@ -391,7 +391,7 @@ class ExportDataView(views.APIView):
         data = []
         if data_type == 'registros':
             for alumno in queryset.iterator():
-                data.append({
+                row = {
                     'Nombre Completo': alumno.nombre_completo,
                     'Cédula': alumno.cedula,
                     'Email': alumno.email,
@@ -401,9 +401,24 @@ class ExportDataView(views.APIView):
                     'Carrera': alumno.carrera,
                     'Grupo': alumno.grupo,
                     'Código QR': alumno.codigo_qr,
-                    'Asistió': 'SÍ' if alumno.asistio else 'NO',
-                    'Líder': alumno.lider_invitador.nombre if alumno.lider_invitador else 'N/A'
-                })
+                    'Líder': alumno.lider_invitador.nombre_completo if alumno.lider_invitador else 'N/A'
+                }
+                
+                # Campos extra para administradores
+                if request.user.is_staff:
+                    row.update({
+                        'Inició Marcha': 'SÍ' if alumno.ha_iniciado else 'NO',
+                        'Finalizó Marcha': 'SÍ' if alumno.ha_finalizado else 'NO',
+                        'Fecha Inicio': alumno.fecha_inicio.strftime('%Y-%m-%d %H:%M:%S') if alumno.fecha_inicio else '-',
+                        'Fecha Fin': alumno.fecha_fin.strftime('%Y-%m-%d %H:%M:%S') if alumno.fecha_fin else '-',
+                        'Asistió (Final)': 'SÍ' if alumno.asistio else 'NO',
+                        'Registrado por': alumno.registrado_por or '-'
+                    })
+                else:
+                    # Campo básico de asistencia para líderes
+                    row['Asistió'] = 'SÍ' if alumno.asistio else 'NO'
+                
+                data.append(row)
             filename = f"Alumnos_MarchaUNEMI_{datetime.now().strftime('%Y%m%d')}.xlsx"
 
         if not data:
