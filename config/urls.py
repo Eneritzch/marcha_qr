@@ -23,8 +23,8 @@ urlpatterns = [
     path('login/', TemplateView.as_view(template_name='lideres/login.html'), name='login'),
     path('dashboard/', TemplateView.as_view(template_name='lideres/dashboard.html'), name='dashboard'),
     path('importar-exportar/', ExcelImportExportView.as_view(), name='importar-exportar'),
-    path('registro/', TemplateView.as_view(template_name='alumnos/registro_cerrado.html'), name='registro'),
-    path('recuperar/', TemplateView.as_view(template_name='alumnos/recuperar.html'), name='recuperar'),
+    # path('registro/', TemplateView.as_view(template_name='alumnos/registro_cerrado.html'), name='registro'),
+    # path('recuperar/', TemplateView.as_view(template_name='alumnos/recuperar.html'), name='recuperar'),
     path('', TemplateView.as_view(template_name='alumnos/landing.html'), name='home'),
     
     # PWA Service Worker & Manifest served from root
