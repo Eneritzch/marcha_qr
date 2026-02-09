@@ -13,6 +13,7 @@ urlpatterns = [
     path('api/v1/alumnos/', include('alumnos.urls')),
     path('api/v1/lideres/', include('lideres_app.urls')),
     path('api/v1/sorteos/', include('sorteos.urls')),
+    path('api/v1/certificados/', include('core.certificate_urls')),
     
     # API Documentation
     path('api/schema/', SpectacularAPIView.as_view(), name='schema'),
@@ -25,6 +26,7 @@ urlpatterns = [
     path('importar-exportar/', ExcelImportExportView.as_view(), name='importar-exportar'),
     # path('registro/', TemplateView.as_view(template_name='alumnos/registro_cerrado.html'), name='registro'),
     # path('recuperar/', TemplateView.as_view(template_name='alumnos/recuperar.html'), name='recuperar'),
+    path('certificados/', TemplateView.as_view(template_name='alumnos/certificados.html'), name='certificados'),
     path('', TemplateView.as_view(template_name='alumnos/landing.html'), name='home'),
     
     # PWA Service Worker & Manifest served from root

@@ -1,0 +1,331 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Certificado</title>
+
+  <!-- Fuente opcional (puedes quitarla si no quieres depender de internet) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <style>
+    /* ====== Configuración de impresión A4 ====== */
+    @page { size: A4 landscape; margin: 0; }
+    @media print {
+      .no-print { display: none !important; }
+      body { background: #fff; }
+      .sheet { box-shadow: none !important; margin: 0 !important; }
+    }
+
+    :root{
+      --primary:#0B3D91;   /* Azul institucional (ajústalo) */
+      --accent:#D4AF37;    /* Dorado */
+      --text:#1c1c1c;
+      --muted:#666;
+      --paper:#ffffff;
+    }
+
+    *{ box-sizing:border-box; }
+    body{
+      margin:0;
+      font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      background:#f2f4f7;
+      color:var(--text);
+    }
+
+    /* Hoja */
+    .sheet{
+      width: 297mm;     /* A4 horizontal */
+      height: 210mm;
+      margin: 18px auto;
+      background: var(--paper);
+      position: relative;
+      overflow: hidden;
+      box-shadow: 0 12px 30px rgba(0,0,0,.12);
+      border-radius: 10px;
+    }
+
+    /* Marco elegante */
+    .frame{
+      position:absolute;
+      inset: 12mm;
+      border: 2px solid rgba(11,61,145,.35);
+      border-radius: 10px;
+    }
+    .frame::before{
+      content:"";
+      position:absolute;
+      inset: 6mm;
+      border: 1px solid rgba(212,175,55,.55);
+      border-radius: 8px;
+    }
+
+    /* Fondo decorativo */
+    .bg-ribbon{
+      position:absolute;
+      top:-40mm;
+      right:-60mm;
+      width: 220mm;
+      height: 120mm;
+      background: linear-gradient(135deg, rgba(11,61,145,.14), rgba(212,175,55,.10));
+      transform: rotate(18deg);
+      border-radius: 30mm;
+      filter: blur(0px);
+    }
+    .seal{
+      position:absolute;
+      left: 22mm;
+      top: 22mm;
+      width: 18mm;
+      height: 18mm;
+      border-radius: 50%;
+      background: radial-gradient(circle at 30% 30%, rgba(212,175,55,.95), rgba(212,175,55,.35));
+      border: 2px solid rgba(11,61,145,.35);
+      box-shadow: 0 6px 14px rgba(0,0,0,.12);
+    }
+
+    /* Contenido */
+    .content{
+      position:relative;
+      height:100%;
+      padding: 24mm 26mm;
+      display:flex;
+      flex-direction:column;
+      justify-content:space-between;
+      gap: 10mm;
+    }
+
+    header{
+      display:flex;
+      align-items:flex-start;
+      justify-content:space-between;
+      gap: 10mm;
+    }
+
+    .brand{
+      display:flex;
+      gap: 10mm;
+      align-items:center;
+    }
+    .logo{
+      width: 34mm;
+      height: 34mm;
+      border-radius: 8mm;
+      border: 1px dashed rgba(11,61,145,.35);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      color: var(--muted);
+      font-size: 12px;
+      text-align:center;
+      padding: 6px;
+    }
+    .org{
+      line-height:1.1;
+    }
+    .org .name{
+      font-weight:700;
+      font-size: 18px;
+      letter-spacing:.3px;
+      color: var(--primary);
+    }
+    .org .sub{
+      margin-top: 4px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .meta{
+      text-align:right;
+      font-size: 12px;
+      color: var(--muted);
+      line-height:1.6;
+    }
+    .meta strong{ color: var(--text); }
+
+    main{
+      text-align:center;
+      padding: 0 10mm;
+    }
+
+    .title{
+      font-family: "Playfair Display", serif;
+      font-size: 44px;
+      color: var(--primary);
+      letter-spacing: 1px;
+      margin: 0;
+    }
+    .subtitle{
+      margin: 6px 0 18px;
+      font-weight:600;
+      color: rgba(28,28,28,.72);
+      letter-spacing: .5px;
+      text-transform: uppercase;
+      font-size: 12px;
+    }
+
+    .presented{
+      font-size: 15px;
+      color: rgba(28,28,28,.78);
+      margin: 0 0 10px;
+    }
+
+    .person{
+      font-family: "Playfair Display", serif;
+      font-size: 34px;
+      margin: 0;
+      color: var(--text);
+    }
+
+    .desc{
+      margin: 12px auto 0;
+      max-width: 220mm;
+      font-size: 15px;
+      line-height: 1.7;
+      color: rgba(28,28,28,.82);
+    }
+
+    .highlight{
+      color: var(--primary);
+      font-weight: 700;
+    }
+
+    footer{
+      display:flex;
+      justify-content:space-between;
+      align-items:flex-end;
+      gap: 10mm;
+      padding-top: 4mm;
+    }
+
+    .sign{
+      width: 80mm;
+      text-align:center;
+    }
+    .sign .line{
+      height: 1px;
+      background: rgba(28,28,28,.35);
+      margin-bottom: 6px;
+    }
+    .sign .who{
+      font-weight:600;
+      font-size: 13px;
+    }
+    .sign .role{
+      font-size: 12px;
+      color: var(--muted);
+      margin-top: 2px;
+    }
+
+    .qr{
+      width: 42mm;
+      text-align:center;
+      color: var(--muted);
+      font-size: 11px;
+    }
+    .qr .box{
+      width: 42mm;
+      height: 42mm;
+      border: 1px dashed rgba(11,61,145,.35);
+      border-radius: 6mm;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      margin-bottom: 6px;
+    }
+
+    /* Botones */
+    .actions{
+      width: 297mm;
+      margin: 0 auto 18px;
+      display:flex;
+      justify-content:center;
+      gap: 10px;
+    }
+    button{
+      border: 0;
+      padding: 10px 14px;
+      border-radius: 10px;
+      cursor:pointer;
+      font-weight:600;
+      background: var(--primary);
+      color:#fff;
+    }
+    button.secondary{
+      background: #e9eef8;
+      color: var(--primary);
+      border: 1px solid rgba(11,61,145,.25);
+    }
+  </style>
+</head>
+
+<body>
+
+  <div class="actions no-print">
+    <button onclick="window.print()">Imprimir / Guardar en PDF</button>
+    <button class="secondary" onclick="alert('Tip: abre este archivo en Chrome y usa Imprimir → Guardar como PDF.')">Ayuda</button>
+  </div>
+
+  <section class="sheet" aria-label="Certificado">
+    <div class="bg-ribbon"></div>
+    <div class="seal" title="Sello"></div>
+    <div class="frame"></div>
+
+    <div class="content">
+      <header>
+        <div class="brand">
+          <div class="logo">
+            TU LOGO<br/>AQUÍ
+          </div>
+          <div class="org">
+            <div class="name">{{NOMBRE_INSTITUCIÓN}}</div>
+            <div class="sub">{{DEPARTAMENTO / UNIDAD}}</div>
+          </div>
+        </div>
+
+        <div class="meta">
+          <div><strong>Código:</strong> {{CODIGO_CERTIFICADO}}</div>
+          <div><strong>Fecha:</strong> {{FECHA}}</div>
+          <div><strong>Ciudad:</strong> {{CIUDAD}}</div>
+        </div>
+      </header>
+
+      <main>
+        <h1 class="title">CERTIFICADO</h1>
+        <div class="subtitle">DE PARTICIPACIÓN / APROBACIÓN</div>
+
+        <p class="presented">Se otorga el presente certificado a:</p>
+        <p class="person">{{NOMBRE_COMPLETO}}</p>
+
+        <p class="desc">
+          Por haber <span class="highlight">{{TIPO_RECONOCIMIENTO}}</span> en
+          <span class="highlight">{{NOMBRE_EVENTO_CURSO}}</span>, con una duración de
+          <span class="highlight">{{HORAS}} horas</span>, realizado el día {{FECHA_EVENTO}}.
+        </p>
+      </main>
+
+      <footer>
+        <div class="sign">
+          <div class="line"></div>
+          <div class="who">{{NOMBRE_FIRMANTE_1}}</div>
+          <div class="role">{{CARGO_FIRMANTE_1}}</div>
+        </div>
+
+        <div class="sign">
+          <div class="line"></div>
+          <div class="who">{{NOMBRE_FIRMANTE_2}}</div>
+          <div class="role">{{CARGO_FIRMANTE_2}}</div>
+        </div>
+
+        <div class="qr">
+          <div class="box">QR / VALIDACIÓN</div>
+          <div>{{URL_VALIDACIÓN}}</div>
+        </div>
+      </footer>
+    </div>
+  </section>
+
+</body>
+</html>

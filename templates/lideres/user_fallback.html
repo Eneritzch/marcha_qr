@@ -1,0 +1,14 @@
+<script>
+    // Fallback: Ensure user object exists and has is_staff if not defined
+    if (typeof user !== 'undefined' && user.is_staff === undefined) {
+        user.is_staff = {{ user.is_staff|yesno:"true,false" }};
+    } else if (typeof user === 'undefined') {
+        window.user = {
+            id: {{ user.id|default:"null" }},
+            username: "{{ user.username|default:'' }}",
+            is_superuser: {{ user.is_superuser|yesno:"true,false" }},
+            is_staff: {{ user.is_staff|yesno:"true,false" }},
+            lider_profile: {% if user.lider_profile %}true{% else %}false{% endif %}
+        };
+    }
+</script>
