@@ -44,6 +44,56 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     }
 
+    // SYNC USER: If window.user is present (from fallback), update localStorage
+    // This fixes the issue where localStorage has stale data lacking lider_profile
+    if (window.user && window.user.id) {
+        console.log("Syncing window.user to localStorage:", window.user);
+        // Merge seamlessly
+        const merged = { ...user, ...window.user };
+        localStorage.setItem('user', JSON.stringify(merged));
+        // Update current reference if needed
+        Object.assign(user, merged);
+    }
+
+    // Show "Config. Certificados" and "Mi Certificado" based on Token Permissions
+    // Show "Config. Certificados" and "Mi Certificado" based on Token Permissions
+    console.log("Checking permissions for buttons:", user);
+
+    // Helper to show element
+    const showEl = (id, displayType = 'flex') => {
+        const el = document.getElementById(id);
+        if (el) {
+            el.style.display = displayType;
+            el.classList.remove('hidden'); // Just in case
+        }
+    };
+
+    if (user.is_superuser || user.is_staff) {
+        // Show Config Certs
+        showEl('sidebar-nav-certificados');
+        const mobCert = document.getElementById('mobile-nav-certificados');
+        if (mobCert) {
+            const wrapper = mobCert.closest('.nav-item-wrapper');
+            if (wrapper) {
+                wrapper.style.display = 'flex';
+                wrapper.classList.remove('hidden');
+            }
+        }
+    }
+
+    if (user.is_superuser || user.is_staff || user.lider_profile) {
+        // Show Mi Certificado
+        showEl('sidebar-nav-mi-certificado');
+        const mobMiCert = document.getElementById('mobile-nav-mi-certificado');
+        if (mobMiCert) {
+            const wrapper = mobMiCert.closest('.nav-item-wrapper');
+            if (wrapper) {
+                wrapper.style.display = 'flex';
+                wrapper.classList.remove('hidden');
+            }
+        }
+    }
+
     // Hide "Registrar Manual" if not admin
     if (!user.is_superuser) {
         // Hide in sidebar
@@ -81,7 +131,20 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     // Initial Fetch & View Restore
-    const lastView = localStorage.getItem('lastView') || 'overview';
+    let lastView = localStorage.getItem('lastView');
+
+    // REDIRECT STRATEGY:
+    // If user is a LEADER (and not superuser/staff) and no specific view is saved, OR if they are at overview,
+    // force them to 'mi-certificado'.
+    if (!user.is_superuser && !user.is_staff && user.lider_profile) {
+        if (!lastView || lastView === 'overview') {
+            lastView = 'mi-certificado';
+        }
+    }
+
+    // Fallback to overview if nothing else
+    if (!lastView) lastView = 'overview';
+
     switchView(lastView);
 
     // Initial UI Update for Offline Mode
@@ -184,10 +247,10 @@ function logout() {
 
 // === VIEW SWITCHING ===
 window.switchView = function (viewName) {
-    const views = ['overview', 'scanner', 'registrar-manual', 'registros', 'lideres', 'importar-exportar', 'control-escaneo', 'sorteos'];
+    const views = ['overview', 'scanner', 'registrar-manual', 'registros', 'lideres', 'importar-exportar', 'control-escaneo', 'sorteos', 'certificados', 'mi-certificado'];
 
     // Prevent non-admin users from accessing restricted views
-    if ((viewName === 'registrar-manual' || viewName === 'control-escaneo' || viewName === 'sorteos') && !user.is_superuser) {
+    if ((viewName === 'registrar-manual' || viewName === 'control-escaneo' || viewName === 'sorteos' || viewName === 'certificados') && !user.is_superuser && !user.is_staff) {
         console.warn(`Acceso denegado: Solo administradores pueden acceder a ${viewName}`);
         // Redirect to overview
         viewName = 'overview';
@@ -269,7 +332,9 @@ window.switchView = function (viewName) {
         'lideres': 'Gestión de Líderes',
         'importar-exportar': 'Importar/Exportar Datos',
         'control-escaneo': 'Control de Escaneo',
-        'sorteos': 'Sistema de Sorteos'
+        'control-escaneo': 'Control de Escaneo',
+        'sorteos': 'Sistema de Sorteos',
+        'certificados': 'Configuración de Certificados'
     };
     if (document.getElementById('page-title')) {
         document.getElementById('page-title').textContent = titles[viewName];
@@ -307,6 +372,10 @@ window.switchView = function (viewName) {
     } else if (viewName === 'sorteos') {
         loadSorteoStats();
         cargarGanadores();
+    } else if (viewName === 'certificados') {
+        fetchCertificateConfig();
+    } else if (viewName === 'mi-certificado') {
+        loadLeaderCertificateView();
     }
 
     lucide.createIcons();
@@ -3588,3 +3657,175 @@ window.resetearSorteo = async function () {
     }
 }
 
+// === CERTIFICATE CONFIG LOGIC ===
+
+window.fetchCertificateConfig = async function () {
+    if (!user.is_superuser) return;
+
+    try {
+        window.showLoader && window.showLoader();
+        const response = await axios.get('/api/v1/certificados/config/', {
+            headers: { 'Authorization': `Token ${token}` }
+        });
+
+        const config = response.data;
+
+        // Populate inputs
+        const setVal = (id, val) => {
+            const el = document.getElementById(id);
+            if (el) el.value = val || '';
+        };
+
+        setVal('cert-titulo', config.titulo_certificado);
+        setVal('cert-subtitulo', config.subtitulo);
+        setVal('cert-texto', config.texto_cuerpo);
+
+        // Leader Messages
+        setVal('cert-lider-titulo', config.mensaje_lideres_titulo);
+        setVal('cert-lider-cuerpo', config.mensaje_lideres_cuerpo);
+        setVal('cert-lider-texto-cert', config.texto_certificado_lideres);
+
+        setVal('cert-firma1-nombre', config.firma_1_nombre);
+        setVal('cert-firma1-cargo', config.firma_1_cargo);
+        setVal('cert-firma2-nombre', config.firma_2_nombre);
+        setVal('cert-firma2-cargo', config.firma_2_cargo);
+        setVal('cert-firma3-nombre', config.firma_3_nombre);
+        setVal('cert-firma3-cargo', config.firma_3_cargo);
+
+        // Preview Images
+        const showPreview = (id, url) => {
+            const container = document.getElementById(id);
+            if (!container) return;
+
+            if (url) {
+                container.classList.remove('hidden');
+                container.querySelector('img').src = url;
+            } else {
+                container.classList.add('hidden');
+            }
+        };
+
+        showPreview('cert-firma1-preview', config.firma_1_imagen);
+        showPreview('cert-firma2-preview', config.firma_2_imagen);
+        showPreview('cert-firma3-preview', config.firma_3_imagen);
+
+        showPreview('cert-logo1-preview', config.logo_izquierda);
+        showPreview('cert-logo2-preview', config.logo_centro);
+        showPreview('cert-logo3-preview', config.logo_derecha);
+
+    } catch (error) {
+        console.error("Error fetching cert config:", error);
+        // No alert here to avoid spam if it fails silently or 404 on first run
+    } finally {
+        window.hideLoader && window.hideLoader();
+    }
+}
+
+// Bind form submission
+document.addEventListener('DOMContentLoaded', () => {
+    const certForm = document.getElementById('certificados-config-form');
+    if (certForm) {
+        certForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            try {
+                window.showLoader && window.showLoader();
+
+                const formData = new FormData(certForm);
+
+                await axios.put('/api/v1/certificados/config/', formData, {
+                    headers: {
+                        'Authorization': `Token ${token}`,
+                        'Content-Type': 'multipart/form-data'
+                    }
+                });
+
+                Swal.fire({
+                    title: '¡Guardado!',
+                    text: 'La configuración del certificado ha sido actualizada.',
+                    icon: 'success',
+                    timer: 2000,
+                    showConfirmButton: false
+                });
+
+                // Refresh to show updated images
+                fetchCertificateConfig();
+
+            } catch (error) {
+                console.error("Error saving cert config:", error);
+                Swal.fire('Error', 'No se pudo guardar la configuración.', 'error');
+            } finally {
+                window.hideLoader && window.hideLoader();
+            }
+        });
+    }
+
+    // File Input Previews
+    const setupFilePreview = (inputId, previewId) => {
+        const input = document.getElementById(inputId);
+        const preview = document.getElementById(previewId);
+        // Create preview container if needed (mostly for logos if we add them later)
+
+        if (!input) return;
+
+        input.addEventListener('change', function () {
+            const file = this.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function (e) {
+                    if (preview) {
+                        preview.classList.remove('hidden');
+                        const img = preview.querySelector('img');
+                        if (img) img.src = e.target.result;
+                    }
+                }
+                reader.readAsDataURL(file);
+            }
+        });
+    };
+
+    setupFilePreview('cert-firma1-img', 'cert-firma1-preview');
+    setupFilePreview('cert-firma2-img', 'cert-firma2-preview');
+    setupFilePreview('cert-firma3-img', 'cert-firma3-preview');
+    setupFilePreview('cert-logo1', 'cert-logo1-preview');
+    setupFilePreview('cert-logo2', 'cert-logo2-preview');
+    setupFilePreview('cert-logo3', 'cert-logo3-preview');
+});
+
+
+window.loadLeaderCertificateView = async function () {
+    try {
+        window.showLoader && window.showLoader();
+
+        // 1. Fetch Config Message
+        const response = await axios.get('/api/v1/certificados/leader-info/', {
+            headers: { 'Authorization': `Token ${token}` }
+        });
+
+        const data = response.data;
+
+        document.getElementById('lider-msg-title').textContent = data.titulo || '¡Gracias!';
+        document.getElementById('lider-msg-body').textContent = data.cuerpo || '';
+
+        // 2. Set Iframe Source
+        // Using identifier (email) to allow public-style lookup and avoid session issues in iframes
+        const identifier = data.identifier || 'mi-certificado';
+        const iframe = document.querySelector('#view-mi-certificado iframe');
+        if (iframe) {
+            iframe.src = `/api/v1/certificados/descargar/${identifier}/#toolbar=0&navpanes=0&scrollbar=0`;
+        }
+
+        // 3. Set Download Link
+        const downloadLink = document.querySelector('#view-mi-certificado a');
+        if (downloadLink) {
+            downloadLink.href = `/api/v1/certificados/descargar/${identifier}/`;
+        }
+
+    } catch (error) {
+        console.error("Error loading leader cert info:", error);
+        document.getElementById('lider-msg-title').textContent = 'Error';
+        document.getElementById('lider-msg-body').textContent = 'No se pudo cargar la información del certificado.';
+    } finally {
+        window.hideLoader && window.hideLoader();
+    }
+}
