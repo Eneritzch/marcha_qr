@@ -161,7 +161,7 @@
                     
                     <!-- Download Section -->
                     <div id="download-section" class="hidden mt-6 fade-in">
-                        <a id="download-btn" href="#" target="_blank" class="w-full bg-gradient-to-r from-unemi-orange to-amber-500 hover:from-amber-400 hover:to-orange-500 shadow-xl shadow-orange-500/30 text-white font-black py-4 px-8 rounded-2xl transition-all flex items-center justify-center gap-4 text-xl transform hover:-translate-y-1">
+                        <a id="download-btn" href="#" class="w-full bg-gradient-to-r from-unemi-orange to-amber-500 hover:from-amber-400 hover:to-orange-500 shadow-xl shadow-orange-500/30 text-white font-black py-4 px-8 rounded-2xl transition-all flex items-center justify-center gap-4 text-xl transform hover:-translate-y-1">
                             <i data-lucide="download-cloud" class="w-6 h-6"></i>
                             <span>Descargar Certificado PDF</span>
                         </a>
@@ -292,8 +292,11 @@ document.addEventListener('DOMContentLoaded', function() {
         pdfIframe.classList.remove('hidden');
         pdfIframe.src = url;
         pdfPreviewContainer.classList.add('has-pdf');
+        
+        // Update download button
         downloadSection.classList.remove('hidden');
-        downloadBtn.href = url;
+        downloadBtn.href = `${url}?download=1`;
+        downloadBtn.setAttribute('download', `Certificado_UNEMI_${identifier}.pdf`);
     }
 
     function hidePdfPreview() {

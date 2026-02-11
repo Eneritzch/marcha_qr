@@ -152,11 +152,15 @@ class CertificateDescargarView(views.APIView):
             content_type='application/pdf'
         )
         
-        # Sanitize filename
         # Sanitize filename - Use ID/Cedula to avoid encoding issues entirely
         filename = f"Certificado_UNEMI_25_{alumno.cedula}.pdf"
         
-        response['Content-Disposition'] = f'inline; filename="{filename}"'
+        # User feedback: "este boton nome manda a descargar directo el archivo si no que abre otra ventana"
+        # If 'download=1' is passed, force attachment disposition
+        force_download = request.query_params.get('download') == '1'
+        disposition = 'attachment' if force_download else 'inline'
+        
+        response['Content-Disposition'] = f'{disposition}; filename="{filename}"'
         
         # PDF buffer will be garbage collected after response
         return response
