@@ -118,16 +118,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (wrapperControl) wrapperControl.style.display = 'none';
         }
 
-        // Hide Sorteos in sidebar
-        const sorteosBtn = document.getElementById('sidebar-nav-sorteos');
-        if (sorteosBtn) sorteosBtn.style.display = 'none';
 
-        // Hide Sorteos in mobile nav
-        const mobileSorteosNav = document.getElementById('mobile-nav-sorteos');
-        if (mobileSorteosNav) {
-            const wrapperSorteos = mobileSorteosNav.closest('.nav-item-wrapper');
-            if (wrapperSorteos) wrapperSorteos.style.display = 'none';
-        }
     }
 
     // Initial Fetch & View Restore
@@ -171,16 +162,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
 
     // Safe Event Listeners for other modules
-    safeBind('search-registros', 'input', (e) => filterRegistros(e.target.value));
-    safeBind('filter-estado', 'change', () => {
-        const el = document.getElementById('search-registros');
-        filterRegistros(el ? el.value : '');
-    });
-    safeBind('filter-vinculo', 'change', () => {
-        const el = document.getElementById('search-registros');
-        filterRegistros(el ? el.value : '');
-    });
-    safeBind('excel-form', 'submit', handleExcelUpload);
+
 
     // Leaders Events (Safe Binding)
     safeBind('search-lideres', 'input', (e) => filterLideres(e.target.value));
@@ -250,11 +232,7 @@ window.switchView = function (viewName) {
     const views = ['overview', 'scanner', 'registrar-manual', 'registros', 'lideres', 'importar-exportar', 'control-escaneo', 'sorteos', 'certificados', 'mi-certificado'];
 
     // Prevent non-admin users from accessing restricted views
-    if ((viewName === 'registrar-manual' || viewName === 'control-escaneo' || viewName === 'sorteos' || viewName === 'certificados') && !user.is_superuser && !user.is_staff) {
-        console.warn(`Acceso denegado: Solo administradores pueden acceder a ${viewName}`);
-        // Redirect to overview
-        viewName = 'overview';
-    }
+
 
     // Save state
     localStorage.setItem('lastView', viewName);
@@ -332,8 +310,6 @@ window.switchView = function (viewName) {
         'lideres': 'Gestión de Líderes',
         'importar-exportar': 'Importar/Exportar Datos',
         'control-escaneo': 'Control de Escaneo',
-        'control-escaneo': 'Control de Escaneo',
-        'sorteos': 'Sistema de Sorteos',
         'certificados': 'Configuración de Certificados'
     };
     if (document.getElementById('page-title')) {
@@ -369,9 +345,7 @@ window.switchView = function (viewName) {
         fetchScanConfig();
     } else if (viewName === 'scanner') {
         checkScannerPhase();
-    } else if (viewName === 'sorteos') {
-        loadSorteoStats();
-        cargarGanadores();
+
     } else if (viewName === 'certificados') {
         fetchCertificateConfig();
     } else if (viewName === 'mi-certificado') {
@@ -414,177 +388,7 @@ let currentRegistrosPage = 1;
 const registrosPageSize = 50;
 
 // === TABLES ===
-function filterRegistros(query) {
-    console.log("filterRegistros called", { query });
-    const q = (query || '').toLowerCase();
-    const statusEl = document.getElementById('filter-estado');
-    const vinculoEl = document.getElementById('filter-vinculo');
 
-    if (!statusEl || !vinculoEl) {
-        console.error("Filtros no encontrados!", { statusEl, vinculoEl });
-        return;
-    }
-    const status = statusEl.value;
-    const vinculo = vinculoEl.value;
-
-    const filtered = allAlumnos.filter(a => {
-        if (!a) return false;
-        const nombre = (a.nombre_completo || '').toLowerCase();
-        const cedula = (a.cedula || '');
-
-        const matchesSearch = nombre.includes(q) || cedula.includes(q);
-        const matchesStatus = status === 'all' ||
-            (status === 'completed' && a.ha_finalizado) ||
-            (status === 'started' && a.ha_iniciado && !a.ha_finalizado) ||
-            (status === 'absent' && !a.ha_iniciado);
-
-        const matchesVinculo = vinculo === 'all' ||
-            (vinculo === 'unemi' && !a.es_externo) ||
-            (vinculo === 'externo' && a.es_externo);
-
-        return matchesSearch && matchesStatus && matchesVinculo;
-    });
-
-    currentRegistrosPage = 1; // Reset to page 1 on filter
-    renderRegistrosTable(filtered);
-}
-
-function renderRegistrosTable(data) {
-    console.log("renderRegistrosTable called", { items: data ? data.length : 0 });
-    const tbody = document.getElementById('tbody-registros');
-    const pagination = document.getElementById('pagination-registros');
-
-    if (!tbody) {
-        console.error("tbody-registros no encontrado!");
-        return;
-    }
-
-    tbody.innerHTML = '';
-    if (pagination) pagination.innerHTML = '';
-
-    // Update column header based on user role
-    const col4Header = document.getElementById('registros-col-4-header');
-    if (col4Header) {
-        col4Header.textContent = (user.is_superuser || user.is_staff) ? 'Líder / Grupo' : 'Carrera';
-    }
-
-    if (!data || data.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="6" class="p-8 text-center text-slate-400">No se encontraron registros.</td></tr>`;
-        return;
-    }
-
-    // Pagination Logic
-    const totalItems = data.length;
-    const totalPages = Math.ceil(totalItems / registrosPageSize);
-
-    // Clamp current page
-    if (currentRegistrosPage > totalPages) currentRegistrosPage = totalPages;
-    if (currentRegistrosPage < 1) currentRegistrosPage = 1;
-
-    const startIdx = (currentRegistrosPage - 1) * registrosPageSize;
-    const endIdx = Math.min(startIdx + registrosPageSize, totalItems);
-    const pageData = data.slice(startIdx, endIdx);
-
-    pageData.forEach((a, index) => {
-        if (!a) return;
-        const globalIndex = startIdx + index + 1;
-        const tr = document.createElement('tr');
-        tr.className = 'bg-white border-b hover:bg-slate-50 transition-colors';
-        tr.innerHTML = `
-            <td class="px-4 py-4 text-center font-bold text-slate-400 text-xs">${globalIndex}</td>
-            <td class="px-6 py-4 font-medium text-slate-900">
-                <div class="flex flex-col">
-                    <span>${escapeHTML(a.nombre_completo)}</span>
-                    <div class="flex gap-1">
-                        ${a.es_externo ? '<span class="text-[9px] font-black text-orange-500 uppercase tracking-tighter">● Externo</span>' : ''}
-                        ${a.grupo === 0 ? '<span class="text-[9px] font-black text-slate-400 uppercase tracking-tighter">● Sin Grupo</span>' : ''}
-                    </div>
-                </div>
-            </td>
-            <td class="px-6 py-4 font-mono text-xs">${escapeHTML(a.cedula)}</td>
-            <td class="px-6 py-4">
-                ${(user.is_superuser || user.is_staff) ? `
-                <div class="flex flex-col gap-1">
-                    <span class="text-xs font-bold text-unemi-blue">${escapeHTML(a.lider_nombre || 'Sin líder')}</span>
-                    <select onchange="changeStudentGroup('${a.cedula}', this.value)" class="appearance-none bg-orange-50 border border-orange-200 text-unemi-orange text-[10px] font-black px-2 py-1 rounded-lg focus:ring-2 focus:ring-unemi-orange focus:border-unemi-orange cursor-pointer transition-all hover:border-unemi-orange hover:shadow-sm bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20fill%3D%22none%22%20viewBox%3D%220%200%2024%2024%22%20stroke%3D%22%23EF7D00%22%20stroke-width%3D%222.5%22%3E%3Cpath%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%20d%3D%22m19.5%208.25-7.5%207.5-7.5-7.5%22%2F%3E%3C%2Fsvg%3E')] bg-[length:0.8rem_0.8rem] bg-[right_0.3rem_center] bg-no-repeat pr-5 uppercase tracking-tighter">
-                        <option value="0" ${a.grupo == 0 ? 'selected' : ''} class="text-slate-700 bg-white">SIN GRUPO</option>
-                        ${Array.from({ length: 15 }, (_, i) => i + 1).map(g => `<option value="${g}" ${a.grupo == g ? 'selected' : ''} class="text-slate-700 bg-white">Grupo ${g}</option>`).join('')}
-                    </select>
-                </div>
-                ` : `
-                <span class="text-xs">${escapeHTML(a.carrera) || (a.es_externo ? '<span class="text-slate-400 italic">No aplica</span>' : '-')}</span>
-                `}
-            </td>
-            <td class="px-6 py-4 text-center">
-                 ${a.ha_finalizado ? `
-                    <span class="px-2 py-1 rounded text-[10px] font-bold uppercase bg-green-100 text-green-700">
-                        Completado
-                    </span>
-                 ` : a.ha_iniciado ? `
-                    <span class="px-2 py-1 rounded text-[10px] font-bold uppercase bg-orange-100 text-unemi-orange">
-                        Iniciado
-                    </span>
-                 ` : `
-                    <span class="px-2 py-1 rounded text-[10px] font-bold uppercase bg-slate-100 text-slate-400">
-                        Ausente
-                    </span>
-                 `}
-            </td>
-             <td class="px-6 py-4 text-center">
-                 <div class="flex items-center justify-center gap-2">
-                     <button onclick="downloadFile('/api/v1/alumnos/descargar-qr/${a.cedula}/', 'qr_${a.cedula}.png', 'qr', {cedula: '${a.cedula}', nombre_completo: '${a.nombre_completo}'})" class="flex items-center gap-1 px-2 py-1 bg-blue-50 text-unemi-blue rounded hover:bg-unemi-blue hover:text-white transition-colors text-xs font-bold border border-blue-100">
-                        <i data-lucide="qr-code" class="w-3 h-3"></i> QR
-                     </button>
-                     <button onclick='downloadFile("/api/v1/alumnos/descargar-credencial/${a.cedula}/", "credencial_${a.cedula}.pdf", "pdf", ${JSON.stringify(a).replace(/'/g, "&#39;")})' class="flex items-center gap-1 px-2 py-1 bg-orange-50 text-unemi-orange rounded hover:bg-unemi-orange hover:text-white transition-colors text-xs font-bold border border-orange-100">
-                        <i data-lucide="file-text" class="w-3 h-3"></i> PDF
-                     </button>
-                     <button onclick='openStudentEdit(${JSON.stringify(a).replace(/'/g, "&#39;")})' class="flex items-center gap-1 px-2 py-1 bg-emerald-50 text-emerald-600 rounded hover:bg-emerald-600 hover:text-white transition-colors text-xs font-bold border border-emerald-100">
-                        <i data-lucide="edit-2" class="w-3 h-3"></i>
-                     </button>
-                     ${user.is_superuser ? `
-                     <button onclick="eliminarEntidad('alumno', '${a.cedula}', '${a.nombre_completo}')" class="flex items-center gap-1 px-2 py-1 bg-red-50 text-red-600 rounded hover:bg-red-600 hover:text-white transition-colors text-xs font-bold border border-red-100">
-                        <i data-lucide="trash-2" class="w-3 h-3"></i>
-                    </button>` : ''}
-                </div>
-            </td>
-        `;
-        tbody.appendChild(tr);
-    });
-
-    // Render Pagination Controls
-    if (totalPages > 1) {
-        const createPageBtn = (label, page, isActive = false, isDisabled = false) => {
-            const btn = document.createElement('button');
-            btn.textContent = label;
-            btn.className = `px-3 py-1 text-xs font-bold rounded-lg transition-all ${isActive ? 'bg-unemi-blue text-white shadow-md' : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'}`;
-            if (isDisabled) {
-                btn.disabled = true;
-                btn.className += ' opacity-50 cursor-not-allowed';
-            } else {
-                btn.onclick = () => {
-                    currentRegistrosPage = page;
-                    renderRegistrosTable(data);
-                    document.getElementById('view-registros').scrollIntoView({ behavior: 'smooth' });
-                };
-            }
-            return btn;
-        };
-
-        // Previous
-        pagination.appendChild(createPageBtn('←', currentRegistrosPage - 1, false, currentRegistrosPage === 1));
-
-        // Info
-        const info = document.createElement('span');
-        info.className = 'text-xs text-slate-500 flex items-center px-2';
-        info.textContent = `Pág ${currentRegistrosPage} de ${totalPages}`;
-        pagination.appendChild(info);
-
-        // Next
-        pagination.appendChild(createPageBtn('→', currentRegistrosPage + 1, false, currentRegistrosPage === totalPages));
-    }
-
-    lucide.createIcons();
-}
 
 
 
@@ -593,8 +397,7 @@ window.refreshData = async function () {
     // Renderización inmediata desde caché para UX instantánea y modo offline
     if (allAlumnos && allAlumnos.length > 0) {
         updateKPIs();
-        renderRegistrosTable(allAlumnos);
-        renderRegistrosTable(allAlumnos);
+
         // Render charts from cache
         if (window.DashboardCharts && allLideres.length > 0) {
             DashboardCharts.render(allAlumnos, allLideres);
@@ -624,8 +427,7 @@ window.refreshData = async function () {
 
         // Initial Render
         updateKPIs();
-        renderRegistrosTable(allAlumnos);
-        renderRegistrosTable(allAlumnos);
+
 
 
         // Also fetch leaders for the chart if not already
@@ -648,29 +450,7 @@ window.refreshData = async function () {
 }
 
 // === EXCEL UPLOAD ===
-async function handleExcelUpload(e) {
-    e.preventDefault();
-    const fileInput = document.getElementById('excel-file');
-    const statusDiv = document.getElementById('upload-status');
-    const formData = new FormData();
-    formData.append('file', fileInput.files[0]);
-    statusDiv.classList.remove('hidden');
 
-    try {
-        await axios.post('/api/v1/alumnos/upload-excel/', formData, {
-            headers: { Authorization: `Token ${token}`, 'Content-Type': 'multipart/form-data' }
-        });
-        statusDiv.textContent = "Carga Exitosa!";
-        statusDiv.className = "text-green-500 font-bold text-center";
-        setTimeout(() => {
-            document.getElementById('excel-upload-modal').classList.add('hidden');
-            refreshData();
-        }, 1000);
-    } catch (err) {
-        statusDiv.textContent = "Error al cargar archivo.";
-        statusDiv.className = "text-red-500 font-bold text-center";
-    }
-}
 
 
 // === LIDERES LOGIC ===
@@ -2041,11 +1821,7 @@ window.downloadExport = async function () {
 }
 
 // Global expose wrapper for inline cancels
-window.toggleCamera = function () {
-    if (window.DashboardScanner) {
-        DashboardScanner.toggleCamera();
-    }
-};
+
 
 window.toggleTorch = function () {
     if (window.DashboardScanner) {
@@ -2518,638 +2294,7 @@ window.updateOfflineUI = function () {
     }
 };
 
-// ===== REGISTRO MANUAL DE ALUMNOS =====
-let allLeaders = []; // Flat array for leader search
-let leadersData = {}; // Cache map
 
-document.addEventListener('DOMContentLoaded', () => {
-    const registroForm = document.getElementById('manual-registro-form');
-    if (!registroForm) return;
-
-    // Load Leaders for search
-    loadLeadersForManualForm();
-
-    // Load Academic Data
-    if (window.ACADEMIC_DATA) {
-        initManualAcademicFilters();
-    } else {
-        window.addEventListener('academicDataReady', initManualAcademicFilters);
-    }
-
-    // Initialize step navigation (which includes external checkbox listener)
-    initManualStepNavigation();
-
-    // Initialize external checkbox state (show academic section by default)
-    handleManualExternoChange();
-
-    // Setup leader search handlers
-    setupManualLiderSearch();
-
-    registroForm.addEventListener('submit', (e) => {
-        e.preventDefault();
-        registrarAlumnoManual();
-    });
-
-    // Setup cédula validation
-    const cedulaInput = document.getElementById('manual-cedula');
-    if (cedulaInput) {
-        cedulaInput.addEventListener('blur', () => {
-            const val = cedulaInput.value.trim();
-            if (val.length === 10 && !/^\d+$/.test(val)) {
-                showManualFieldFeedback(cedulaInput, false, "Solo se permiten números");
-            } else if (val.length > 0 && val.length !== 10) {
-                showManualFieldFeedback(cedulaInput, false, "Debe tener 10 dígitos");
-            } else if (val.length === 10) {
-                showManualFieldFeedback(cedulaInput, true);
-            }
-        });
-    }
-});
-
-// Step Navigation for Manual Registration
-let manualCurrentStep = 1;
-let manualTotalSteps = 2; // Always 2 steps: Datos + Líder (+ Académico si no externo)
-
-function initManualStepNavigation() {
-    const prevBtn = document.getElementById('manual-prev-btn');
-    const nextBtn = document.getElementById('manual-next-btn');
-    const submitBtn = document.getElementById('manual-submit-btn');
-
-    if (prevBtn) prevBtn.addEventListener('click', manualPrevStep);
-    if (nextBtn) nextBtn.addEventListener('click', manualNextStep);
-
-    // Set initial visibility
-    updateManualStepDisplay();
-}
-
-function updateManualStepDisplay() {
-    // Hide all steps
-    for (let i = 1; i <= manualTotalSteps; i++) {
-        const step = document.getElementById(`manual-step-${i}`);
-        if (step) step.classList.add('hidden');
-    }
-
-    // Show current step
-    const currentStepEl = document.getElementById(`manual-step-${manualCurrentStep}`);
-    if (currentStepEl) {
-        currentStepEl.classList.remove('hidden');
-    }
-
-    // Update buttons visibility
-    const prevBtn = document.getElementById('manual-prev-btn');
-    const nextBtn = document.getElementById('manual-next-btn');
-    const submitBtn = document.getElementById('manual-submit-btn');
-
-    if (prevBtn) {
-        if (manualCurrentStep === 1) {
-            prevBtn.classList.add('hidden');
-        } else {
-            prevBtn.classList.remove('hidden');
-        }
-    }
-
-    if (nextBtn) {
-        if (manualCurrentStep === manualTotalSteps) {
-            nextBtn.classList.add('hidden');
-        } else {
-            nextBtn.classList.remove('hidden');
-        }
-    }
-
-    if (submitBtn) {
-        if (manualCurrentStep === manualTotalSteps) {
-            submitBtn.classList.remove('hidden');
-        } else {
-            submitBtn.classList.add('hidden');
-        }
-    }
-
-    // Update progress bar and step indicators
-    updateManualProgress();
-}
-
-function updateManualProgress() {
-    // Calculate progress percentage (always 2 steps)
-    const progress = (manualCurrentStep / manualTotalSteps) * 100;
-    const progressBar = document.getElementById('manual-progress-bar');
-    if (progressBar) {
-        progressBar.style.width = progress + '%';
-    }
-
-    // Update step indicators (only first 2 steps)
-    document.querySelectorAll('.manual-step-item').forEach((item, idx) => {
-        const stepNum = idx + 1;
-
-        // Hide step-3 indicator always
-        if (stepNum === 3) {
-            item.style.display = 'none';
-            return;
-        }
-
-        item.style.display = 'flex';
-
-        if (stepNum < manualCurrentStep) {
-            // Completed
-            item.classList.remove('active');
-            const circle = item.querySelector('div');
-            if (circle) {
-                circle.className = 'w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm border-2 bg-green-500 border-green-500 text-white shadow-lg shadow-green-500/30 transition-all';
-                circle.innerHTML = '<i data-lucide="check" class="w-4 h-4"></i>';
-                window.lucide?.createIcons();
-            }
-            const span = item.querySelector('span');
-            if (span) span.classList.remove('text-unemi-blue', 'text-slate-400');
-            if (span) span.classList.add('text-green-500');
-        } else if (stepNum === manualCurrentStep) {
-            // Current
-            item.classList.add('active');
-            const circle = item.querySelector('div');
-            if (circle) {
-                circle.className = 'w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm border-2 bg-unemi-blue border-unemi-blue text-white shadow-lg shadow-blue-500/30 transition-all';
-                circle.innerHTML = stepNum;
-            }
-            const span = item.querySelector('span');
-            if (span) span.classList.remove('text-slate-400', 'text-green-500');
-            if (span) span.classList.add('text-unemi-blue');
-        } else {
-            // Not yet
-            item.classList.remove('active');
-            const circle = item.querySelector('div');
-            if (circle) {
-                circle.className = 'w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm border-2 bg-white border-slate-300 text-slate-400 transition-all';
-                circle.innerHTML = stepNum;
-            }
-            const span = item.querySelector('span');
-            if (span) span.classList.remove('text-unemi-blue', 'text-green-500');
-            if (span) span.classList.add('text-slate-400');
-        }
-    });
-}
-
-function validateManualStep(step) {
-    let isValid = true;
-    let errorMsg = '';
-
-    if (step === 1) {
-        // Validate personal info
-        const cedula = document.getElementById('manual-cedula').value.trim();
-        const nombre = document.getElementById('manual-nombre').value.trim();
-        const email = document.querySelector('input[name="email"]').value.trim();
-        const telefono = document.querySelector('input[name="telefono"]').value.trim();
-
-        if (!cedula || cedula.length !== 10 || !/^\d+$/.test(cedula)) {
-            isValid = false;
-            errorMsg = 'Cédula inválida (debe tener 10 dígitos)';
-        } else if (!nombre) {
-            isValid = false;
-            errorMsg = 'Nombre completo es requerido';
-        } else if (!email || !email.includes('@')) {
-            isValid = false;
-            errorMsg = 'Correo electrónico inválido';
-        } else if (!telefono) {
-            isValid = false;
-            errorMsg = 'Teléfono es requerido';
-        }
-    } else if (step === 2) {
-        // Validate leader selection
-        const liderSelect = document.getElementById('manual-lider-select').value;
-        const noLiderCheck = document.getElementById('manual-check-no-lider').checked;
-
-        if (!liderSelect && !noLiderCheck) {
-            isValid = false;
-            errorMsg = 'Debes seleccionar un líder o marcar la opción de asignación inteligente';
-            if (!isValid) showManualFormFeedback('error', errorMsg);
-            return isValid;
-        }
-
-        // Validate academic info only if NOT external
-        const esExterno = document.getElementById('manual-check-externo').checked;
-
-        if (!esExterno) {
-            const modalidad = document.getElementById('manual-modalidad').value;
-            const facultad = document.getElementById('manual-facultad').value;
-            const carrera = document.getElementById('manual-carrera').value;
-
-            if (!modalidad) {
-                isValid = false;
-                errorMsg = 'Modalidad es requerida';
-            } else if (!facultad) {
-                isValid = false;
-                errorMsg = 'Facultad es requerida';
-            } else if (!carrera) {
-                isValid = false;
-                errorMsg = 'Carrera es requerida';
-            }
-        }
-    }
-
-    if (!isValid) {
-        showManualFormFeedback('error', errorMsg);
-    }
-
-    return isValid;
-}
-
-function manualNextStep() {
-    if (!validateManualStep(manualCurrentStep)) {
-        return;
-    }
-
-    if (manualCurrentStep < manualTotalSteps) {
-        manualCurrentStep++;
-        updateManualStepDisplay();
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-    }
-}
-
-function manualPrevStep() {
-    if (manualCurrentStep > 1) {
-        manualCurrentStep--;
-        updateManualStepDisplay();
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-    }
-}
-
-async function loadLeadersForManualForm() {
-    try {
-        const res = await axios.get('/api/v1/lideres/activos/', {
-            headers: {
-                'Authorization': `Token ${localStorage.getItem('token')}`
-            }
-        });
-        // Structure is { "1": [leader, ...], "2": ... }
-        Object.values(res.data).flat().forEach(l => {
-            allLeaders.push(l);
-            leadersData[l.id] = l; // Keep cache map
-        });
-    } catch (e) {
-        console.error("Error loading leaders for manual form", e);
-    }
-}
-
-function setupManualLiderSearch() {
-    const searchInput = document.getElementById('manual-lider-search');
-    const hiddenInput = document.getElementById('manual-lider-select');
-    const dropdown = document.getElementById('manual-lider-dropdown');
-    const clearBtn = document.getElementById('manual-clear-search');
-    const checkNoLider = document.getElementById('manual-check-no-lider');
-    const grupoPreview = document.getElementById('manual-grupo-preview');
-
-    if (!searchInput) return;
-
-    // Search Event
-    searchInput.addEventListener('input', (e) => {
-        const q = e.target.value.toLowerCase().trim();
-
-        // Show/Hide Clear Button
-        clearBtn.classList.toggle('hidden', q.length === 0);
-
-        if (q.length < 1) {
-            dropdown.classList.add('hidden');
-            return;
-        }
-
-        const matches = allLeaders.filter(l => l.nombre_completo.toLowerCase().includes(q));
-        renderManualDropdown(matches, searchInput, hiddenInput, dropdown, grupoPreview);
-    });
-
-    // Clear Event
-    if (clearBtn) {
-        clearBtn.addEventListener('click', () => {
-            searchInput.value = '';
-            hiddenInput.value = '';
-            dropdown.classList.add('hidden');
-            clearBtn.classList.add('hidden');
-            grupoPreview.textContent = '--';
-            grupoPreview.className = 'text-2xl sm:text-3xl font-black text-slate-300';
-        });
-    }
-
-    // No Leader Logic
-    if (checkNoLider) {
-        checkNoLider.addEventListener('change', async (e) => {
-            const isChecked = e.target.checked;
-
-            // Toggle Inputs
-            searchInput.disabled = isChecked;
-            if (isChecked) {
-                searchInput.classList.add('bg-slate-100', 'text-slate-400', 'cursor-not-allowed');
-                searchInput.classList.remove('bg-white');
-                searchInput.value = '';
-
-                // Update Preview
-                grupoPreview.textContent = 'ASIGNANDO...';
-                grupoPreview.className = 'text-2xl sm:text-3xl font-black text-slate-300 animate-pulse';
-
-                // Fetch Random Leader (uses smart distribution)
-                try {
-                    const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
-                    const res = await axios.get(`/api/v1/lideres/random/?grupo=${currentUser.grupo}`, {
-                        headers: {
-                            'Authorization': `Token ${localStorage.getItem('token')}`
-                        }
-                    });
-                    const leader = res.data;
-
-                    hiddenInput.value = leader.id;
-                    searchInput.value = leader.nombre_completo;
-
-                    // Update Preview
-                    grupoPreview.textContent = `GRUPO ${leader.grupo}`;
-                    grupoPreview.className = 'text-2xl sm:text-3xl font-black text-unemi-orange animate-bounce';
-                } catch (e) {
-                    console.error("Error fetching random leader", e);
-                    grupoPreview.textContent = 'ERROR';
-                    grupoPreview.className = 'text-xl font-bold text-red-500';
-                }
-
-                searchInput.classList.remove('border-red-500');
-            } else {
-                searchInput.classList.remove('bg-slate-100', 'text-slate-400', 'cursor-not-allowed');
-                searchInput.classList.add('bg-white');
-                searchInput.value = '';
-                hiddenInput.value = '';
-                grupoPreview.textContent = '--';
-                grupoPreview.className = 'text-2xl sm:text-3xl font-black text-slate-300';
-            }
-        });
-    }
-
-    // Close dropdown on click outside
-    document.addEventListener('click', (e) => {
-        if (!searchInput.contains(e.target) && !dropdown.contains(e.target)) {
-            dropdown.classList.add('hidden');
-        }
-    });
-}
-
-function renderManualDropdown(matches, searchInput, hiddenInput, dropdown, grupoPreview) {
-    dropdown.innerHTML = '';
-    if (matches.length === 0) {
-        dropdown.innerHTML = `<div class="p-4 text-center text-slate-400 text-sm">No se encontraron resultados</div>`;
-    } else {
-        matches.forEach(l => {
-            const item = document.createElement('div');
-            item.className = 'p-3 hover:bg-blue-50 cursor-pointer flex items-center justify-between group';
-            item.innerHTML = `
-                <span class="font-bold text-slate-700 group-hover:text-unemi-blue transition-colors">${l.nombre_completo}</span>
-                <span class="text-xs bg-slate-100 text-slate-500 px-2 py-1 rounded hidden group-hover:inline-block">Grupo ${l.grupo}</span>
-            `;
-            item.addEventListener('click', () => {
-                selectManualLeader(l, searchInput, hiddenInput, dropdown, grupoPreview);
-            });
-            dropdown.appendChild(item);
-        });
-    }
-    dropdown.classList.remove('hidden');
-}
-
-function selectManualLeader(leader, searchInput, hiddenInput, dropdown, grupoPreview) {
-    searchInput.value = leader.nombre_completo;
-    hiddenInput.value = leader.id;
-    dropdown.classList.add('hidden');
-
-    // Update Group Preview
-    grupoPreview.textContent = `GRUPO ${leader.grupo}`;
-    grupoPreview.className = 'text-2xl sm:text-3xl font-black text-unemi-orange animate-pulse';
-
-    // Clear error styles
-    searchInput.classList.remove('border-red-500');
-
-    // Uncheck "No Leader" if it was checked
-    const checkNoLider = document.getElementById('manual-check-no-lider');
-    if (checkNoLider && checkNoLider.checked) {
-        checkNoLider.checked = false;
-    }
-}
-
-function initManualAcademicFilters() {
-    if (!window.ACADEMIC_DATA) return;
-
-    const data = window.ACADEMIC_DATA;
-    const selModalidad = document.getElementById('manual-modalidad');
-    const selFacultad = document.getElementById('manual-facultad');
-    const selCarrera = document.getElementById('manual-carrera');
-
-    if (!selModalidad) return;
-
-    // Populate modalidades
-    Object.keys(data).forEach(modalidad => {
-        if (modalidad !== 'default') {
-            const modalidadLabel = {
-                'PRESENCIAL': 'Presencial',
-                'EN_LINEA': 'En Línea',
-                'SEMIPRESENCIAL': 'Semipresencial',
-                'EGRESADO': 'Egresado',
-                'POSGRADO': 'Posgrado'
-            }[modalidad] || modalidad;
-            const option = document.createElement('option');
-            option.value = modalidad;
-            option.textContent = modalidadLabel;
-            selModalidad.appendChild(option);
-        }
-    });
-
-    // Modalidad change
-    selModalidad.addEventListener('change', function () {
-        const mod = this.value;
-        selFacultad.innerHTML = '<option value="">Seleccione Facultad...</option>';
-        selCarrera.innerHTML = '<option value="">Primero seleccione Facultad...</option>';
-        selFacultad.disabled = true;
-        selCarrera.disabled = true;
-
-        if (mod === 'EGRESADO' || mod === 'POSGRADO') {
-            selFacultad.innerHTML = `<option value="${mod}">${mod}</option>`;
-            selCarrera.innerHTML = `<option value="${mod}">${mod}</option>`;
-            selFacultad.value = mod;
-            selCarrera.value = mod;
-            return;
-        }
-
-        if (mod && data[mod]) {
-            selFacultad.disabled = false;
-            Object.keys(data[mod]).forEach(f => {
-                selFacultad.add(new Option(f, f));
-            });
-        }
-    });
-
-    // Facultad change
-    selFacultad.addEventListener('change', function () {
-        const mod = selModalidad.value;
-        const fac = this.value;
-        selCarrera.innerHTML = '<option value="">Seleccione Carrera...</option>';
-        selCarrera.disabled = true;
-
-        if (mod && fac && data[mod][fac]) {
-            selCarrera.disabled = false;
-            data[mod][fac].forEach(c => {
-                selCarrera.add(new Option(c, c));
-            });
-        }
-    });
-}
-
-function handleManualExternoChange() {
-    const isExterno = document.getElementById('manual-check-externo').checked;
-    const academicSection = document.getElementById('manual-academic-section');
-
-    if (isExterno) {
-        // Hide academic section
-        if (academicSection) academicSection.classList.add('hidden');
-        // Clear academic fields
-        document.getElementById('manual-modalidad').value = '';
-        document.getElementById('manual-facultad').value = '';
-        document.getElementById('manual-carrera').value = '';
-    } else {
-        // Show academic section
-        if (academicSection) academicSection.classList.remove('hidden');
-    }
-}
-
-function showManualFieldFeedback(input, isValid, message) {
-    if (isValid) {
-        input.classList.remove('border-red-500', 'ring-red-500');
-        input.classList.add('border-green-500', 'ring-green-500');
-    } else {
-        input.classList.remove('border-green-500', 'ring-green-500');
-        input.classList.add('border-red-500', 'ring-red-500');
-    }
-}
-
-function showManualFormFeedback(type, message) {
-    const feedback = document.getElementById('manual-form-feedback');
-    if (!feedback) return;
-
-    feedback.className = `rounded-xl p-4 flex items-start space-x-3 border`;
-
-    if (type === 'error') {
-        feedback.classList.add('bg-red-50', 'text-red-800', 'border-red-200');
-        feedback.innerHTML = `
-            <i data-lucide="alert-circle" class="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5"></i>
-            <p class="font-bold">${message}</p>
-        `;
-    }
-
-    feedback.classList.remove('hidden');
-    window.lucide?.createIcons();
-
-    setTimeout(() => {
-        feedback.classList.add('hidden');
-    }, 4000);
-}
-
-async function registrarAlumnoManual() {
-    const form = document.getElementById('manual-registro-form');
-
-    try {
-        const cedula = document.getElementById('manual-cedula').value.trim();
-        const nombre = document.getElementById('manual-nombre').value.trim();
-        const email = document.querySelector('input[name="email"]').value.trim();
-        const telefono = document.querySelector('input[name="telefono"]').value.trim();
-        const modalidad = document.getElementById('manual-modalidad').value || null;
-        const facultad = document.getElementById('manual-facultad').value || null;
-        const carrera = document.getElementById('manual-carrera').value || null;
-        const esExterno = document.getElementById('manual-check-externo').checked;
-        const liderInvitador = document.getElementById('manual-lider-select').value || null;
-
-        // Validation
-        if (!cedula || cedula.length !== 10 || !/^\d+$/.test(cedula)) {
-            showManualFormFeedback('error', 'Cédula inválida (debe tener 10 dígitos)');
-            return;
-        }
-        if (!nombre) {
-            showManualFormFeedback('error', 'Nombre completo es requerido');
-            return;
-        }
-        if (!email || !email.includes('@')) {
-            showManualFormFeedback('error', 'Correo electrónico inválido');
-            return;
-        }
-        if (!telefono) {
-            showManualFormFeedback('error', 'Teléfono es requerido');
-            return;
-        }
-        if (!esExterno && !modalidad) {
-            showManualFormFeedback('error', 'Modalidad es requerida para estudiantes internos');
-            return;
-        }
-        if (!esExterno && !facultad) {
-            showManualFormFeedback('error', 'Facultad es requerida para estudiantes internos');
-            return;
-        }
-        if (!esExterno && !carrera) {
-            showManualFormFeedback('error', 'Carrera es requerida para estudiantes internos');
-            return;
-        }
-
-        const submitBtn = document.getElementById('manual-submit-btn');
-        const originalHTML = submitBtn.innerHTML;
-        submitBtn.disabled = true;
-        submitBtn.innerHTML = '<i data-lucide="loader-2" class="w-5 h-5 animate-spin"></i> <span>Registrando...</span>';
-        window.lucide?.createIcons();
-
-        const response = await axios.post('/api/v1/alumnos/registrar-manual/', {
-            cedula,
-            nombre_completo: nombre,
-            email,
-            telefono,
-            modalidad: esExterno ? null : modalidad,
-            facultad: esExterno ? null : facultad,
-            carrera: esExterno ? null : carrera,
-            es_externo: esExterno,
-            lider_invitador: liderInvitador  // Optional: if null, use smart distribution
-        }, {
-            headers: {
-                'Authorization': `Token ${token}`
-            }
-        });
-
-        // Success modal
-        Swal.fire({
-            title: '¡Registro Exitoso!',
-            html: `
-                <div class="space-y-3 text-left">
-                    <p><strong>${response.data.alumno.nombre_completo}</strong></p>
-                    <p class="text-sm">Código QR: <strong class="font-mono">${response.data.alumno.codigo_qr}</strong></p>
-                    <p class="text-sm">Grupo asignado: <strong class="text-unemi-orange">${response.data.alumno.grupo}</strong></p>
-                </div>
-            `,
-            icon: 'success',
-            confirmButtonColor: '#0F1E4B',
-            confirmButtonText: 'Continuar'
-        });
-
-        form.reset();
-        // Reset academic section visibility and leader selection
-        handleManualExternoChange();
-        document.getElementById('manual-lider-search').value = '';
-        document.getElementById('manual-lider-select').value = '';
-        document.getElementById('manual-grupo-preview').textContent = '--';
-        document.getElementById('manual-grupo-preview').className = 'text-2xl sm:text-3xl font-black text-slate-300';
-
-        setTimeout(() => {
-            submitBtn.disabled = false;
-            submitBtn.innerHTML = originalHTML;
-            window.lucide?.createIcons();
-        }, 1500);
-
-    } catch (error) {
-        let errorMsg = 'Error al registrar';
-
-        if (error.response?.data?.error) {
-            errorMsg = error.response.data.error;
-        }
-
-        showManualFormFeedback('error', errorMsg);
-        console.error('Error:', error);
-
-        const submitBtn = document.getElementById('manual-submit-btn');
-        submitBtn.disabled = false;
-        submitBtn.innerHTML = '<span>Registrar Alumno</span> <i data-lucide="check" class="w-5 h-5"></i>';
-        window.lucide?.createIcons();
-    }
-}
 
 // === CONTROL DE ESCANEO LOGIC ===
 
@@ -3291,371 +2436,7 @@ window.checkScannerPhase = async function () {
     }
 }
 
-// === SORTEOS LOGIC ===
-let currentSorteoTipo = 'PREMIO';
 
-window.loadSorteoStats = async function () {
-    try {
-        const response = await axios.get('/api/v1/sorteos/stats/', {
-            headers: { 'Authorization': `Token ${token}` }
-        });
-        const data = response.data;
-
-        document.getElementById('sorteo-stat-elegibles').textContent = data.elegibles_en_alumnos || 0;
-        document.getElementById('sorteo-stat-pool').textContent = data.activos_para_sorteo || 0;
-        document.getElementById('sorteo-stat-ganadores-premio').textContent = data.ganadores_premio || 0;
-        document.getElementById('sorteo-stat-ganadores-iphone').textContent = data.ganadores_iphone || 0;
-
-    } catch (error) {
-        console.error("Error loading sorteo stats:", error);
-    }
-}
-
-window.inicializarPoolSorteo = async function () {
-    const confirm = await Swal.fire({
-        title: '¿Inicializar Pool de Sorteo?',
-        text: 'Esto copiará todos los participantes elegibles (que completaron inicio Y fin) a la tabla de sorteos.',
-        icon: 'question',
-        showCancelButton: true,
-        confirmButtonColor: '#0F1E4B',
-        confirmButtonText: 'Sí, inicializar',
-        cancelButtonText: 'Cancelar'
-    });
-
-    if (!confirm.isConfirmed) return;
-
-    showLoader();
-    try {
-        const response = await axios.post('/api/v1/sorteos/inicializar/', {}, {
-            headers: { 'Authorization': `Token ${token}` }
-        });
-
-        Swal.fire({
-            title: '¡Pool Inicializado!',
-            html: `<b>${response.data.nuevos_agregados}</b> participantes agregados.<br>Total activos: <b>${response.data.total_activos}</b>`,
-            icon: 'success'
-        });
-
-        loadSorteoStats();
-    } catch (error) {
-        Swal.fire('Error', 'No se pudo inicializar el pool.', 'error');
-    } finally {
-        hideLoader();
-    }
-}
-
-window.switchSorteoTab = function (tipo) {
-    currentSorteoTipo = tipo;
-    const tabPremio = document.getElementById('tab-premio');
-    const tabIphone = document.getElementById('tab-iphone');
-
-    if (tipo === 'PREMIO') {
-        tabPremio.classList.add('text-unemi-orange', 'border-unemi-orange');
-        tabPremio.classList.remove('text-slate-400', 'border-transparent');
-        tabIphone.classList.remove('text-unemi-orange', 'border-unemi-orange');
-        tabIphone.classList.add('text-slate-400', 'border-transparent');
-    } else {
-        tabIphone.classList.add('text-unemi-orange', 'border-unemi-orange');
-        tabIphone.classList.remove('text-slate-400', 'border-transparent');
-        tabPremio.classList.remove('text-unemi-orange', 'border-unemi-orange');
-        tabPremio.classList.add('text-slate-400', 'border-transparent');
-    }
-}
-
-window.ejecutarSorteo = async function () {
-    const cantidad = parseInt(document.getElementById('sorteo-cantidad').value) || 1;
-    const modoPrueba = false; // Modo prueba deshabilitado en producción
-
-    const confirm = await Swal.fire({
-        title: '<i data-lucide="sparkles" class="w-8 h-8 text-amber-500 inline"></i> ¡Ejecutar Sorteo!',
-        html: `Se seleccionarán <b>${cantidad}</b> ganador(es) para <b>${currentSorteoTipo === 'PREMIO' ? 'Premios' : 'iPhones'}</b>.`,
-        icon: 'warning',
-        showCancelButton: true,
-        confirmButtonColor: '#EF7D00',
-        confirmButtonText: '¡Sortear!',
-        cancelButtonText: 'Cancelar',
-        didOpen: () => { if (window.lucide) lucide.createIcons(); }
-    });
-
-    if (!confirm.isConfirmed) return;
-
-    const winnerDisplay = document.getElementById('sorteo-winner-display');
-
-    // Iniciar animación de ruleta
-    await startRouletteAnimation(winnerDisplay);
-
-    try {
-        const response = await axios.post('/api/v1/sorteos/ejecutar/', {
-            tipo: currentSorteoTipo,
-            cantidad: cantidad,
-            descripcion: '',
-            modo_prueba: modoPrueba
-        }, {
-            headers: { 'Authorization': `Token ${token}` }
-        });
-
-        const ganadores = response.data.ganadores;
-
-        // Animate winner reveal después de la ruleta
-        await animateWinnerReveal(ganadores, winnerDisplay);
-
-        loadSorteoStats();
-        cargarGanadores();
-
-    } catch (error) {
-        console.error("Sorteo error:", error);
-        winnerDisplay.innerHTML = `
-            <div class="text-center">
-                <i data-lucide="alert-circle" class="w-16 h-16 mx-auto text-red-400 mb-4"></i>
-                <p class="text-red-300">${error.response?.data?.error || 'Error al ejecutar sorteo'}</p>
-            </div>
-        `;
-        lucide.createIcons();
-    }
-}
-
-// Lista de nombres ficticios para la animación de ruleta
-const nombresFicticios = [
-    'María García López', 'Juan Carlos Pérez', 'Ana Martínez Silva',
-    'Carlos Eduardo Ruiz', 'Laura Fernández Castro', 'Diego Ramírez Torres',
-    'Sofía Morales Paredes', 'Andrés Vargas Mendoza', 'Valentina Rojas Díaz',
-    'Gabriel Herrera Núñez', 'Camila Ortiz Reyes', 'Sebastián Castro Flores',
-    'Isabella Guzmán Mora', 'Mateo Jiménez Luna', 'Lucía Sánchez Vera',
-    'Daniel Acosta Parra', 'Emma Delgado Rivas', 'Nicolás Romero Cruz'
-];
-
-async function startRouletteAnimation(container) {
-    return new Promise((resolve) => {
-        // Crear estructura de la ruleta
-        container.innerHTML = `
-            <div class="text-center">
-                <p class="text-amber-400 text-sm font-bold uppercase tracking-widest mb-4">Sorteando...</p>
-                <div class="relative h-24 overflow-hidden rounded-xl bg-white/10 border-2 border-amber-400/50">
-                    <div class="absolute inset-x-0 top-0 h-8 bg-gradient-to-b from-indigo-900 to-transparent z-10"></div>
-                    <div class="absolute inset-x-0 bottom-0 h-8 bg-gradient-to-t from-indigo-900 to-transparent z-10"></div>
-                    <div id="roulette-names" class="transition-transform" style="transform: translateY(0);">
-                    </div>
-                </div>
-                <div class="mt-4 flex justify-center gap-1">
-                    <span class="w-2 h-2 bg-amber-400 rounded-full animate-bounce" style="animation-delay: 0ms"></span>
-                    <span class="w-2 h-2 bg-amber-400 rounded-full animate-bounce" style="animation-delay: 150ms"></span>
-                    <span class="w-2 h-2 bg-amber-400 rounded-full animate-bounce" style="animation-delay: 300ms"></span>
-                </div>
-            </div>
-        `;
-
-        const rouletteContainer = document.getElementById('roulette-names');
-
-        // Generar lista larga de nombres aleatorios
-        let namesHtml = '';
-        for (let i = 0; i < 30; i++) {
-            const randomName = nombresFicticios[Math.floor(Math.random() * nombresFicticios.length)];
-            namesHtml += `<div class="h-8 flex items-center justify-center text-white font-bold text-lg">${randomName}</div>`;
-        }
-        rouletteContainer.innerHTML = namesHtml;
-
-        // Animación de scroll
-        let offset = 0;
-        let speed = 8; // Velocidad inicial rápida
-        const totalDuration = 3000; // 3 segundos
-        const startTime = Date.now();
-
-        function animate() {
-            const elapsed = Date.now() - startTime;
-            const progress = elapsed / totalDuration;
-
-            // Desacelerar gradualmente
-            speed = Math.max(1, 8 * (1 - Math.pow(progress, 2)));
-            offset -= speed;
-
-            // Reset cuando se acaba la lista
-            if (offset < -800) {
-                offset = 0;
-                // Regenerar nombres aleatorios
-                let newHtml = '';
-                for (let i = 0; i < 30; i++) {
-                    const randomName = nombresFicticios[Math.floor(Math.random() * nombresFicticios.length)];
-                    newHtml += `<div class="h-8 flex items-center justify-center text-white font-bold text-lg">${randomName}</div>`;
-                }
-                rouletteContainer.innerHTML = newHtml;
-            }
-
-            rouletteContainer.style.transform = `translateY(${offset}px)`;
-
-            if (elapsed < totalDuration) {
-                requestAnimationFrame(animate);
-            } else {
-                resolve();
-            }
-        }
-
-        requestAnimationFrame(animate);
-    });
-}
-
-async function animateWinnerReveal(ganadores, winnerDisplay) {
-    // Pequeña pausa dramática
-    await new Promise(r => setTimeout(r, 300));
-
-    if (ganadores.length === 1) {
-        const g = ganadores[0];
-        const grupoText = g.grupo ? `Grupo ${g.grupo}` : 'Sin grupo';
-        winnerDisplay.innerHTML = `
-            <div class="text-center animate-scale-in">
-                <i data-lucide="trophy" class="w-20 h-20 mx-auto text-amber-400 mb-4 animate-bounce"></i>
-                <p class="text-amber-400 text-sm font-bold uppercase tracking-widest mb-2">¡GANADOR!</p>
-                <p class="text-emerald-400 text-lg font-bold mb-1">Del ${grupoText}</p>
-                <h3 class="text-3xl font-black mb-2 animate-pulse">${escapeHTML(g.nombre_completo)}</h3>
-                <p class="text-slate-300 font-mono">${escapeHTML(g.cedula)}</p>
-                <p class="text-slate-400 text-sm mt-2">${escapeHTML(g.email)}</p>
-            </div>
-        `;
-    } else {
-        let html = `<div class="text-center"><p class="text-amber-400 text-sm font-bold uppercase mb-4">${ganadores.length} GANADORES</p><div class="space-y-2 max-h-60 overflow-y-auto">`;
-        ganadores.forEach((g, i) => {
-            const grupoText = g.grupo ? `G${g.grupo}` : 'S/G';
-            html += `
-                <div class="bg-white/10 rounded-lg p-3 text-left flex items-center gap-2 animate-fade-in" style="animation-delay: ${i * 100}ms">
-                    <span class="text-amber-400 font-bold">#${g.numero_premio}</span>
-                    <span class="bg-emerald-500/20 text-emerald-400 text-xs font-bold px-2 py-0.5 rounded">${grupoText}</span>
-                    <span class="font-bold">${escapeHTML(g.nombre_completo)}</span>
-                    <span class="text-slate-400 text-xs ml-auto">${escapeHTML(g.cedula)}</span>
-                </div>
-            `;
-        });
-        html += '</div></div>';
-        winnerDisplay.innerHTML = html;
-    }
-    lucide.createIcons();
-}
-
-window.cargarGanadores = async function () {
-    try {
-        const response = await axios.get('/api/v1/sorteos/ganadores/', {
-            headers: { 'Authorization': `Token ${token}` }
-        });
-
-        const tbody = document.getElementById('tbody-ganadores');
-        const ganadores = response.data;
-
-        // Guardar ganadores globalmente para filtrado
-        window.ganadoresData = ganadores;
-
-        if (!ganadores || ganadores.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="6" class="px-4 py-8 text-center text-slate-400">No hay ganadores aún</td></tr>';
-            return;
-        }
-
-        renderGanadores(ganadores);
-        setupBuscadorGanadores();
-
-    } catch (error) {
-        console.error("Error loading winners:", error);
-    }
-}
-
-function renderGanadores(ganadores) {
-    const tbody = document.getElementById('tbody-ganadores');
-
-    if (!ganadores || ganadores.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="6" class="px-4 py-8 text-center text-slate-400">No se encontraron resultados</td></tr>';
-        return;
-    }
-
-    tbody.innerHTML = '';
-    ganadores.forEach(g => {
-        const tr = document.createElement('tr');
-        tr.className = 'hover:bg-slate-50';
-        tr.innerHTML = `
-            <td class="px-4 py-3 font-bold text-center">${g.numero_premio}</td>
-            <td class="px-4 py-3">
-                <span class="px-2 py-1 rounded text-xs font-bold ${g.tipo_sorteo === 'IPHONE' ? 'bg-purple-100 text-purple-700' : 'bg-emerald-100 text-emerald-700'}">
-                    ${g.tipo_sorteo_display}
-                </span>
-            </td>
-            <td class="px-4 py-3 font-medium">${escapeHTML(g.nombre_completo)}</td>
-            <td class="px-4 py-3 font-mono text-xs">${escapeHTML(g.cedula)}</td>
-            <td class="px-4 py-3 text-xs">${escapeHTML(g.email)}</td>
-            <td class="px-4 py-3 text-xs text-slate-500">${escapeHTML(g.descripcion_premio || '-')}</td>
-        `;
-        tbody.appendChild(tr);
-    });
-}
-
-function setupBuscadorGanadores() {
-    const searchInput = document.getElementById('search-ganadores');
-    if (!searchInput || searchInput.dataset.listenerAdded) return;
-
-    searchInput.dataset.listenerAdded = 'true';
-    searchInput.addEventListener('input', (e) => {
-        const query = e.target.value.toLowerCase().trim();
-
-        if (!window.ganadoresData) return;
-
-        if (!query) {
-            renderGanadores(window.ganadoresData);
-            return;
-        }
-
-        const filtered = window.ganadoresData.filter(g =>
-            g.nombre_completo.toLowerCase().includes(query) ||
-            g.cedula.toLowerCase().includes(query) ||
-            g.email.toLowerCase().includes(query)
-        );
-
-        renderGanadores(filtered);
-    });
-}
-
-window.exportarGanadores = function () {
-    window.open(`/api/v1/sorteos/exportar/?token=${token}`, '_blank');
-}
-
-window.resetearSorteo = async function () {
-    const confirm = await Swal.fire({
-        title: '¿Resetear TODO?',
-        html: '<span class="text-red-600 font-bold">Esta acción eliminará TODOS los ganadores y el pool de sorteo.</span><br><br>Escribe <b>CONFIRMAR</b> para proceder:',
-        input: 'text',
-        inputPlaceholder: 'CONFIRMAR',
-        icon: 'warning',
-        showCancelButton: true,
-        confirmButtonColor: '#dc2626',
-        confirmButtonText: 'Eliminar Todo',
-        cancelButtonText: 'Cancelar',
-        preConfirm: (value) => {
-            if (value !== 'CONFIRMAR') {
-                Swal.showValidationMessage('Debes escribir CONFIRMAR exactamente');
-                return false;
-            }
-            return true;
-        }
-    });
-
-    if (!confirm.isConfirmed) return;
-
-    showLoader();
-    try {
-        await axios.post('/api/v1/sorteos/reset/', { confirmar: true }, {
-            headers: { 'Authorization': `Token ${token}` }
-        });
-
-        Swal.fire('Reseteado', 'Todos los datos del sorteo han sido eliminados.', 'success');
-        loadSorteoStats();
-        cargarGanadores();
-
-        // Reset winner display
-        document.getElementById('sorteo-winner-display').innerHTML = `
-            <i data-lucide="trophy" class="w-16 h-16 mx-auto text-amber-400 mb-4 opacity-30"></i>
-            <p class="text-slate-300">Los ganadores aparecerán aquí</p>
-        `;
-        lucide.createIcons();
-
-    } catch (error) {
-        Swal.fire('Error', 'No se pudo resetear el sorteo.', 'error');
-    } finally {
-        hideLoader();
-    }
-}
 
 // === CERTIFICATE CONFIG LOGIC ===
 
@@ -3803,28 +2584,58 @@ window.loadLeaderCertificateView = async function () {
         });
 
         const data = response.data;
+        const container = document.getElementById('view-mi-certificado');
+        const msgTitle = document.getElementById('lider-msg-title');
+        const msgBody = document.getElementById('lider-msg-body');
 
-        document.getElementById('lider-msg-title').textContent = data.titulo || '¡Gracias!';
-        document.getElementById('lider-msg-body').textContent = data.cuerpo || '';
-
-        // 2. Set Iframe Source
-        // Using identifier (email) to allow public-style lookup and avoid session issues in iframes
-        const identifier = data.identifier || 'mi-certificado';
-        const iframe = document.querySelector('#view-mi-certificado iframe');
-        if (iframe) {
-            iframe.src = `/api/v1/certificados/descargar/${identifier}/#toolbar=0&navpanes=0&scrollbar=0`;
+        // Check if user is eligible for a certificate
+        if (!data.has_cedula) {
+            msgTitle.textContent = 'Certificado No Disponible';
+            msgBody.textContent = 'Tu usuario no tiene un perfil de líder asociado o no es elegible para certificado en este momento.';
+            // Hide download/preview elements (iframe and button)
+            if (container) {
+                const iframe = container.querySelector('iframe');
+                const btn = container.querySelector('a');
+                if (iframe) iframe.style.display = 'none';
+                if (btn) btn.style.display = 'none';
+            }
+            return;
         }
 
-        // 3. Set Download Link
-        const downloadLink = document.querySelector('#view-mi-certificado a');
-        if (downloadLink) {
-            downloadLink.href = `/api/v1/certificados/descargar/${identifier}/`;
+        // Show standard message
+        msgTitle.textContent = data.titulo || '¡Gracias!';
+        msgBody.textContent = data.cuerpo || '';
+
+        // 2. Set Iframe Source & Download Link
+        // Using identifier (email) to allow public-style lookup and avoid session issues
+        // We use the identifier if provided, fallback to 'mi-certificado' (which requires session)
+        const identifier = data.identifier;
+        if (!identifier) {
+            console.error("No identifier for certificate");
+            return;
+        }
+
+        if (container) {
+            const iframe = container.querySelector('iframe');
+            const btn = container.querySelector('a');
+
+            // Ensure visible
+            if (iframe) {
+                iframe.style.display = 'block';
+                iframe.src = `/api/v1/certificados/descargar/${identifier}/?preview=true`;
+            }
+            if (btn) {
+                btn.style.display = 'inline-flex'; // Restore default flex
+                btn.href = `/api/v1/certificados/descargar/${identifier}/`;
+            }
         }
 
     } catch (error) {
         console.error("Error loading leader cert info:", error);
-        document.getElementById('lider-msg-title').textContent = 'Error';
-        document.getElementById('lider-msg-body').textContent = 'No se pudo cargar la información del certificado.';
+        const msgTitle = document.getElementById('lider-msg-title');
+        const msgBody = document.getElementById('lider-msg-body');
+        if (msgTitle) msgTitle.textContent = 'Error';
+        if (msgBody) msgBody.textContent = 'No se pudo cargar la información del certificado.';
     } finally {
         window.hideLoader && window.hideLoader();
     }

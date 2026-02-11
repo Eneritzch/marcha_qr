@@ -8,6 +8,7 @@ from reportlab.pdfbase.ttfonts import TTFont
 from io import BytesIO
 import os
 import datetime
+import textwrap
 from django.conf import settings
 
 
@@ -49,11 +50,12 @@ class CertificateGenerator:
         width, height = landscape(A4) 
         c = canvas.Canvas(buffer, pagesize=landscape(A4))
         
-        # === COLORS (from css :root) ===
-        PRIMARY = HexColor("#0B3D91")   # Azul institucional
-        ACCENT = HexColor("#D4AF37")    # Dorado
-        TEXT = HexColor("#1c1c1c")
-        MUTED = HexColor("#666666")
+        # === COLORS ===
+        PRIMARY = HexColor("#0F1E4B")   # Azul UNEMI
+        ACCENT = HexColor("#D4AF37")    # Dorado/Naranja (Ribbon)
+        RIBBON_COLOR = HexColor("#E39C42") # Color aproximado del ribbon en la imagen
+        TEXT = HexColor("#000000")
+        MUTED = HexColor("#333333")
         PAPER = HexColor("#ffffff")
         
         # Define Fonts
@@ -73,9 +75,9 @@ class CertificateGenerator:
         c.setFillColor(PAPER)
         c.rect(0, 0, width, height, fill=1, stroke=0)
         
-        # === DECORATIVE ELEMENTS ===
+        # === DECORATIVE ELEMENTS (CLASSIC ELEGANT STYLE) ===
         
-        # 1. Ribbon Background (Top Right)
+        # 1. Ribbon Background (Top Right Design Element)
         c.saveState()
         c.translate(width - 60*mm, height - 40*mm) 
         c.rotate(18)
@@ -85,182 +87,294 @@ class CertificateGenerator:
         c.roundRect(-110*mm, -60*mm, 220*mm, 120*mm, 30*mm, fill=1, stroke=0)
         c.restoreState()
 
-        # 2. Seal (Top Left) - REMOVED
-
-        # 3. Frames
-        margin_frame = 12*mm
+        # 2. Frames (Refined Double Border)
+        # Outer frame - primary color
+        # 2. Frames (Refined Double Border - Reduced Margins)
+        # Outer frame - primary color
+        margin_frame = 6*mm # Reduced from 10mm
         frame_w = width - 2 * margin_frame
         frame_h = height - 2 * margin_frame
         
         c.saveState()
-        c.setStrokeColor(PRIMARY, alpha=0.35)
-        c.setLineWidth(2)
+        c.setStrokeColor(PRIMARY, alpha=0.55)
+        c.setLineWidth(3)
         c.roundRect(margin_frame, margin_frame, frame_w, frame_h, 3*mm, fill=0, stroke=1)
         
-        margin_inner = 18*mm
+        # Inner frame - gold, elegant 
+        margin_inner = 12*mm # Reduced from 16mm
         inner_w = width - 2 * margin_inner
         inner_h = height - 2 * margin_inner
-        c.setStrokeColor(ACCENT, alpha=0.55)
-        c.setLineWidth(1)
+        c.setStrokeColor(ACCENT, alpha=0.7)
+        c.setLineWidth(1.5)
         c.roundRect(margin_inner, margin_inner, inner_w, inner_h, 2.5*mm, fill=0, stroke=1)
         c.restoreState()
+        
+        # 3. Corner Diamond Ornaments
+        c.saveState()
+        diamond_size = 4*mm
+        # Coordinates for corners of the inner frame
+        corners = [
+            (margin_inner, margin_inner), 
+            (width - margin_inner, margin_inner),
+            (margin_inner, height - margin_inner),
+            (width - margin_inner, height - margin_inner),
+        ]
+        
+        for cx_d, cy_d in corners:
+            # Outer Diamond Part
+            c.setFillColor(ACCENT)
+            p = c.beginPath()
+            p.moveTo(cx_d, cy_d + diamond_size)
+            p.lineTo(cx_d + diamond_size, cy_d)
+            p.lineTo(cx_d, cy_d - diamond_size)
+            p.lineTo(cx_d - diamond_size, cy_d)
+            p.close()
+            c.drawPath(p, fill=1, stroke=0)
+            
+            # Inner Diamond Part
+            inner_d = diamond_size * 0.5
+            c.setFillColor(PRIMARY)
+            p2 = c.beginPath()
+            p2.moveTo(cx_d, cy_d + inner_d)
+            p2.lineTo(cx_d + inner_d, cy_d)
+            p2.lineTo(cx_d, cy_d - inner_d)
+            p2.lineTo(cx_d - inner_d, cy_d)
+            p2.close()
+            c.drawPath(p2, fill=1, stroke=0)
+        c.restoreState()
+        
+        # === HEADER CONTENT (ALIGNED LOGOS) ===
+        
+        # User feedback: "los 4 logos deben estar arriba el de 25 sale mas abjo que el reesto"
+        # Meaning the '25' logo is LOWER than the others.
+        # I need to raise the '25' logo more, or lower the others?
+        # "el 25 subelo mas" -> Raise 25.
+        # "los 4 logos deben estar arriba" -> All high up.
+        
+        # User feedback: "EL LOGO DE 25 CALAJO ARREGLALO PONLO ARRIBA ARRIBA... O SEA EL 25 SUBELO MAS"
+        # "UNE MAS LOS OTROS 3"
+        # "REUBICA TODOS LOS DEMAS LOGOS ... LOS 4 ALLA ARRIBA"
+        
+        # 1. Raising the 25 banner significantly.
+        # It likely has top whitespace. 
+        # I will start drawing it at y_top_alignment + 15mm.
+        
+        # User feedback: "se fue muy arriba el logo del 25... ponlo mas a la izquierda"
+        # 1. Lower banner from +60mm to +45mm.
+        # 2. Shift content center to the left.
+        
+        y_top_alignment = height - margin_inner
+        
+        # 4. Left Sidebar (Vertical Banner with 25 Años Logo)
+        sidebar_width = 45*mm
+        banner_x = margin_inner 
+        # Lowered to +32mm per "un poco mas abajo del borde para abajo"
+        banner_y_top = y_top_alignment + 32*mm 
+        banner_w = 40*mm
+        banner_h = 130*mm 
+        
+        logo_25_path = os.path.join(settings.BASE_DIR, 'static', 'img', '25.png')
+        if os.path.exists(logo_25_path):
+             c.drawImage(logo_25_path, banner_x, banner_y_top - banner_h, width=banner_w, height=banner_h, mask='auto', preserveAspectRatio=True)
 
-        # === HEADER CONTENT (3 LOGOS) ===
+
+        # 5. Header Logos (UNEMI - MUC - FEUE)
+        # Content Area available for logos (Header follows sidebar indentation)
+        header_content_start_x = margin_inner + banner_w + 5*mm
+        header_content_width = (width - margin_inner) - header_content_start_x
         
-        header_y_top = height - 16*mm 
+        logo_h = 22*mm 
+        logo_w_max = 50*mm
+        logo_spacing = 5*mm 
         
-        # Sizes
-        side_logo_size = 50*mm 
-        center_logo_size = 35*mm 
+        # Group logos in header space
+        group_total_width = (3 * logo_w_max) + (2 * logo_spacing)
+        group_start_x = header_content_start_x + (header_content_width - group_total_width) / 2
         
-        # Left Logo
-        logo1_x = 30*mm 
-        # Default fallback
-        logo1_path = os.path.join(settings.BASE_DIR, 'static', 'img', 'muc.png')
-        if config.logo_izquierda:
-            logo1_path = config.logo_izquierda.path
-            
-        if os.path.exists(logo1_path):
-            c.drawImage(logo1_path, logo1_x, header_y_top - side_logo_size, width=side_logo_size, height=side_logo_size, mask='auto', preserveAspectRatio=True)
-            
-        # Center Logo
-        logo2_x = width/2 - center_logo_size/2
-        logo2_y_offset = 8*mm 
-        logo2_path = os.path.join(settings.BASE_DIR, 'static', 'img', 'icono.webp')
-        if config.logo_centro:
-            logo2_path = config.logo_centro.path
-            
-        if os.path.exists(logo2_path):
-             c.drawImage(logo2_path, logo2_x, header_y_top - center_logo_size - logo2_y_offset, width=center_logo_size, height=center_logo_size, mask='auto', preserveAspectRatio=True)
-             
-        # Right Logo
-        logo3_x = width - 30*mm - side_logo_size
-        logo3_path = os.path.join(settings.BASE_DIR, 'static', 'img', 'feue.png')
-        if config.logo_derecha:
-            logo3_path = config.logo_derecha.path
-            
-        if os.path.exists(logo3_path):
-             c.drawImage(logo3_path, logo3_x, header_y_top - side_logo_size, width=side_logo_size, height=side_logo_size, mask='auto', preserveAspectRatio=True)
+        logos_y = y_top_alignment - logo_h - 2*mm
+        
+        # Draw Logos
+        curr_x = group_start_x
+        
+        # MUC (Now on the Left)
+        logo_muc_path = os.path.join(settings.BASE_DIR, 'static', 'img', 'muc.png')
+        if config.logo_izquierda: logo_muc_path = config.logo_izquierda.path 
+        if os.path.exists(logo_muc_path):
+             c.drawImage(logo_muc_path, curr_x, logos_y, width=logo_w_max, height=logo_h, mask='auto', preserveAspectRatio=True, anchor='c')
+
+        curr_x += logo_w_max + logo_spacing
+        
+        # UNEMI (Now in the Center)
+        logo_unemi_path = os.path.join(settings.BASE_DIR, 'static', 'img', 'logo-unemi-removebg-preview.png')
+        if config.logo_centro: logo_unemi_path = config.logo_centro.path
+        if os.path.exists(logo_unemi_path):
+            c.drawImage(logo_unemi_path, curr_x, logos_y, width=logo_w_max, height=logo_h, mask='auto', preserveAspectRatio=True, anchor='c')
+
+        curr_x += logo_w_max + logo_spacing
+
+        logo_feue_path = os.path.join(settings.BASE_DIR, 'static', 'img', 'feue.png')
+        if config.logo_derecha: logo_feue_path = config.logo_derecha.path
+        if os.path.exists(logo_feue_path):
+             c.drawImage(logo_feue_path, curr_x, logos_y, width=logo_w_max, height=logo_h, mask='auto', preserveAspectRatio=True, anchor='c')
 
 
-        # Meta Info (Below header)
-        c.setFont(SANS_FONT, 8)
-        c.setFillColor(MUTED)
+        # === CENTER X FOR BODY TEXT ===
+        # User: "este contenido ponlo mas a la izquierda"
+        # Shift center line left by 15mm.
+        center_x = (header_content_start_x + header_content_width / 2) - 15*mm
+
+        # === TITLE (CLASSIC TEXT STYLE) ===
+        # Position Title below logos
+        title_y = logos_y - 25*mm
         
-        fecha_str = datetime.date.today().strftime("%d/%m/%Y")
-        codigo = f"CERT-{alumno.id}-{datetime.date.today().year}"
+        # Main Title - "CERTIFICADO DE PARTICIPACIÓN" (Correct Attribute: titulo_certificado)
+        main_title = config.titulo_certificado if config.titulo_certificado else "CERTIFICADO"
         
-        # Adjust meta position based on largest logo
-        # meta_y = header_y_top - side_logo_size - 4*mm
-        # c.drawRightString(width - 25*mm, meta_y, f"Código: {codigo}")
-        # c.drawRightString(width - 25*mm, meta_y - 10, f"Fecha: {fecha_str}")
+        c.setFont("Times-Bold", 42)
+        c.setFillColor(ACCENT) # Gold
+        # Check title length to adjust font size?
+        if len(main_title) > 20: 
+             c.setFont("Times-Bold", 32)
+        c.drawCentredString(center_x, title_y, main_title.upper())
         
-        # === MAIN CONTENT ===
-        main_y_start = height - 75*mm # Adjusted for larger header
-        center_x = width / 2
+        # Subtitle
+        subtitle_text = config.subtitulo if config.subtitulo else "Se certifica a:"
         
-        # TITLE
-        c.setFont(TITLE_FONT, 32)
-        c.setFillColor(PRIMARY)
-        c.drawCentredString(center_x, main_y_start, config.titulo_certificado)
+        c.setFont(SANS_FONT, 14) 
+        c.setFillColor(TEXT)
+        c.drawCentredString(center_x, title_y - 12*mm, subtitle_text)
         
-        # SUBTITLE
-        c.setFont(SANS_BOLD, 9)
-        c.setFillColor(HexColor("#1c1c1cb8")) 
-        c.drawCentredString(center_x, main_y_start - 8*mm, config.subtitulo)
-        
-        # PRESENTED TO
-        c.setFont(BODY_FONT, 12)
-        c.setFillColor(HexColor("#1c1c1cc7")) 
-        c.drawCentredString(center_x, main_y_start - 20*mm, "Se otorga el presente certificado a:")
-        
-        # PERSON NAME (Script Font)
-        name_font_size = 42 if SCRIPT_FONT == 'GreatVibes' else 28
+        # === NAME ===
+        name_y = title_y - 35*mm
+        name_font_size = 50 if SCRIPT_FONT == 'GreatVibes' else 40 # Increased size
         c.setFont(SCRIPT_FONT, name_font_size) 
         c.setFillColor(TEXT)
-        name_y = main_y_start - 35*mm
         nombre = alumno.nombre_completo.title()
         c.drawCentredString(center_x, name_y, nombre)
         
-        # DESCRIPTION
-        desc_y = name_y - 18*mm
-        c.setFont(BODY_FONT, 12)
-        c.setFillColor(HexColor("#1c1c1cd1")) 
+        # Separator Line
+        c.setStrokeColor(ACCENT)
+        c.setLineWidth(1)
+        c.line(center_x - 70*mm, name_y - 4*mm, center_x + 70*mm, name_y - 4*mm)
         
-        # Construct text - Use config.texto_cuerpo
-        # Note: The original code had hardcoded text construction.
-        # We should try to use the placeholder from config if possible, 
-        # or stick to the specific format requested earlier. 
-        # The user said "el mensaje... desde alla", implying dynamic text.
-        # But for now, let's keep the structured "Por haber X..." format but maybe use config parts if they exist?
-        # Actually, let's enable full body text from config if it contains placeholder, 
-        # otherwise use the hardcoded logic?
-        # The prompt says "mensaje... desde alla". 
-        # So we should use `config.texto_cuerpo`.
+        # === BODY TEXT ===
+        # User: "el cuerpo del texto del certificado no dejalo com estaba"
+        # "ponlo mas grande" -> Likely means the wrapping was too wide/overflowing or font was weird.
+        # I used divisor 3.5 which allows TOO MANY chars for 14pt font.
+        # 14pt font avg char width is ~7pt. Text width in pt / 7 = chars.
+        # So divisor should be ~7. Let's use 6 to be safe (slightly wider lines than 7).
+        # "fuente mas bonita" -> Times-Roman. "letra mas grande" -> 16pt.
+        # "ocupe mas espacio para abajo" -> Increase leading.
         
-        # Custom Body Text Logic
+        body_y = name_y - 20*mm # Lower start
+        c.setFont("Times-Roman", 16) # Changed from Helvetica 14 to Times 16
+        c.setFillColor(TEXT)
+        
+        # Body wrapping
+        text_width = header_content_width - 20*mm # More margin "que no se mezcle con el borde"
+        line_height = 8*mm # Increased spacing
+        
         text_template = custom_body_text if custom_body_text else config.texto_cuerpo
         
-        # Replacements
-        body = text_template.replace("{nombre}", nombre)
+        # Construct message using replace for safety
+        body_text = text_template.replace("{nombre}", nombre)
         if hasattr(alumno, 'grupo'):
-             body = body.replace("{grupo}", str(alumno.grupo))
-        # If body is just one long string, we might need to wrap it.
-        # Simple wrap:
-        from textwrap import wrap
-        lines = wrap(body, width=85) # Adjust width
+             body_text = body_text.replace("{grupo}", str(alumno.grupo))
         
-        y_text = desc_y
+        # Correct wrapping for 14pt font
+        # Width roughly 170mm = 480pt. 480/6 = 80 chars.
+        # Times-Roman 16pt avg char width ~8pt?
+        # Width ~160mm = 450pt. 450/8 = 56 chars?
+        # Let's try divisor 5.5
+        lines = textwrap.wrap(body_text, width=int(text_width/6.0)) # Keeping 6.0 for now, times is narrower than helvetica?
+        
+        current_y = body_y
         for line in lines:
-            c.drawCentredString(center_x, y_text, line)
-            y_text -= 6*mm
+            c.drawCentredString(center_x, current_y, line)
+            current_y -= line_height
+            
+        # Date (Right aligned)
+        # "fecha horrible... cortada" -> Move it away from edge.
+        # date_y = current_y - 15*mm # Removed
+        c.setFont("Helvetica-Bold", 10)
+        c.setFillColor(TEXT) 
+        date_text = "MILAGRO, 06 Febrero 2026" 
+        # c.drawRightString(width - margin_inner - 10*mm, date_y, date_text) # Removed
+        # Verify if Date should be strictly right aligned in content or full page?
+        # Let's keep it in HEADER alignment for now (indent) or full? 
+        # User accepted signature changes (full). Date usually goes with signatures.
+        # I'll put Date with signatures below.
         
-        # === FOOTER (3 SIGNATURES) ===
-        footer_y = 35*mm
-        sig_y_line = footer_y + 10*mm
+        # === SIGNATURES ===
+        # User: "usa mas espacio a la izquierda" -> Full Width.
         
-        # Col centers:
-        col_w = width / 3
-        c1_x = col_w * 0.5
-        c2_x = col_w * 1.5
-        c3_x = col_w * 2.5
+        sig_y_line = 32*mm 
         
-        # Helper to draw signature
-        def draw_sig(x, name, role, img_field):
-            # Draw Image if exists
-            if img_field:
+        # Full width for signatures
+        sig_area_start_x = margin_inner
+        sig_area_width = width - 2*margin_inner
+        
+        # 3 Columns in full width
+        col_width = sig_area_width / 3
+        
+        # Centers for columns
+        x_sig_1 = sig_area_start_x + col_width/2  # Left (Rector)
+        x_sig_2 = sig_area_start_x + col_width*1.5 # Center (MUC)
+        x_sig_3 = sig_area_start_x + col_width*2.5 # Right (FEUE)
+        
+        # Draw Signature Block Helper
+        def draw_signature_block(x_center, name, cargo, image_field):
+            # Draw Image
+            if image_field:
                 try:
-                    sig_path = img_field.path
-                    if os.path.exists(sig_path):
-                         c.drawImage(sig_path, x - 20*mm, sig_y_line + 2*mm, width=40*mm, height=15*mm, mask='auto', preserveAspectRatio=True)
-                except:
+                    img_path = image_field.path
+                    if os.path.exists(img_path):
+                        img_w = 40*mm
+                        img_h = 20*mm
+                        c.drawImage(img_path, x_center - img_w/2, sig_y_line + 2*mm, width=img_w, height=img_h, mask='auto', preserveAspectRatio=True)
+                except Exception:
                     pass
-
+            
             # Line
-            c.setStrokeColor(TEXT, alpha=0.35)
-            c.setLineWidth(1)
-            c.line(x - 22*mm, sig_y_line, x + 22*mm, sig_y_line)
+            # User: "mas grandes esas lineas"
+            c.setStrokeColor(ACCENT)
+            c.setLineWidth(1.5)
+            line_w = 55*mm # Increased from 28mm to 55mm
+            c.line(x_center - line_w/2, sig_y_line, x_center + line_w/2, sig_y_line) 
             
-            # Text
-            c.setFont(SANS_BOLD, 9)
+            # Dots
+            c.setFillColor(ACCENT)
+            c.circle(x_center - line_w/2, sig_y_line, 1.5*mm, fill=1, stroke=0)
+            c.circle(x_center + line_w/2, sig_y_line, 1.5*mm, fill=1, stroke=0)
+            
+            # Name
+            c.setFont("Times-Bold", 11) 
             c.setFillColor(TEXT)
-            c.drawCentredString(x, sig_y_line - 5*mm, name)
+            c.drawCentredString(x_center, sig_y_line - 5*mm, name)
             
-            c.setFont(SANS_FONT, 7)
-            c.setFillColor(MUTED)
-            c.drawCentredString(x, sig_y_line - 9*mm, role)
+            # Cargo
+            c.setFont("Helvetica-Bold", 9)
+            c.setFillColor(TEXT)
+            cargo_lines = cargo.split('\n')
+            cy = sig_y_line - 10*mm 
+            for cline in cargo_lines:
+                c.drawCentredString(x_center, cy, cline)
+                cy -= 4*mm
 
-        # 1. Left (Firma 1)
-        draw_sig(c1_x, config.firma_1_nombre, config.firma_1_cargo, config.firma_1_imagen)
+        # Draw 3 blocks
+        draw_signature_block(x_sig_1, config.firma_1_nombre, config.firma_1_cargo, config.firma_1_imagen)
+        draw_signature_block(x_sig_2, config.firma_2_nombre, config.firma_2_cargo, config.firma_2_imagen)
+        draw_signature_block(x_sig_3, config.firma_3_nombre, config.firma_3_cargo, config.firma_3_imagen)
+
+        # Draw date near signatures?
+        # User said "esa fecha horrible... cortada".
+        # I'll put it Right Aligned but with ample padding.
+        # "entre el logo 25 y el borde de arriba".
+        # Date is usually at bottom right.
+        # I'll put it at `width - margin_inner - 10mm`.
         
-        # 2. Center (Firma 2)
-        draw_sig(c2_x, config.firma_2_nombre, config.firma_2_cargo, config.firma_2_imagen)
-        
-        # 3. Right (Firma 3)
-        draw_sig(c3_x, config.firma_3_nombre, config.firma_3_cargo, config.firma_3_imagen)
-        
-        # QR Code - REMOVED
-        
+        c.drawRightString(width - margin_inner - 10*mm, 48*mm, date_text) # Fixed Date per user request previously
+
         c.showPage()
         c.save()
         buffer.seek(0)

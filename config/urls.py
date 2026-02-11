@@ -6,13 +6,14 @@ from django.conf.urls.static import static
 from drf_spectacular.views import SpectacularAPIView, SpectacularRedocView, SpectacularSwaggerView
 from alumnos.excel_import_export_views import ExcelImportExportView
 
+
 urlpatterns = [
     path('admin/', admin.site.urls),
     
     # API V1
     path('api/v1/alumnos/', include('alumnos.urls')),
     path('api/v1/lideres/', include('lideres_app.urls')),
-    path('api/v1/sorteos/', include('sorteos.urls')),
+
     path('api/v1/certificados/', include('core.certificate_urls')),
     
     # API Documentation
@@ -25,13 +26,14 @@ urlpatterns = [
     path('dashboard/', TemplateView.as_view(template_name='lideres/dashboard.html'), name='dashboard'),
     path('importar-exportar/', ExcelImportExportView.as_view(), name='importar-exportar'),
     # path('registro/', TemplateView.as_view(template_name='alumnos/registro_cerrado.html'), name='registro'),
-    # path('recuperar/', TemplateView.as_view(template_name='alumnos/recuperar.html'), name='recuperar'),
     path('certificados/', TemplateView.as_view(template_name='alumnos/certificados.html'), name='certificados'),
     path('', TemplateView.as_view(template_name='alumnos/landing.html'), name='home'),
     
     # PWA Service Worker & Manifest served from root
     path('sw.js', TemplateView.as_view(template_name='sw.js', content_type='application/javascript'), name='sw.js'),
     path('manifest.json', TemplateView.as_view(template_name='manifest.json', content_type='application/json'), name='manifest.json'),
+
+
 ]
 
 

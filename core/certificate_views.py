@@ -55,6 +55,16 @@ class CertificateDescargarView(views.APIView):
     
     @method_decorator(xframe_options_exempt)
     def get(self, request, cedula):
+        # Support for Token Auth via Query Param (for iframes/links)
+        if 'token' in request.query_params and not request.user.is_authenticated:
+            from rest_framework.authtoken.models import Token
+            try:
+                token_key = request.query_params['token']
+                token = Token.objects.get(key=token_key)
+                request.user = token.user
+            except:
+                pass
+
         try:
             # Check if it's a leader or admin requesting their own certificate
             if cedula == 'mi-certificado' and request.user.is_authenticated:
@@ -92,6 +102,10 @@ class CertificateDescargarView(views.APIView):
                     try:
                         lider = Lider.objects.get(email__iexact=cedula)
                         
+                        # Only allow ACTIVE leaders
+                        if not lider.activo:
+                            raise Alumno.DoesNotExist
+
                         # Use PseudoAlumno for Leader found by email
                         class PseudoLeader:
                             def __init__(self, lider):
@@ -106,6 +120,7 @@ class CertificateDescargarView(views.APIView):
                         
                     except Lider.DoesNotExist:
                          raise Alumno.DoesNotExist 
+ 
 
         except Alumno.DoesNotExist:
             return Response({
@@ -154,6 +169,13 @@ class CertificateConfigView(views.APIView):
     
     def get(self, request):
         config = ConfiguracionCertificado.get_config()
+        
+        # Helper to format base64 for frontend
+        def format_sig(sig_base64):
+            if sig_base64:
+                return f"data:image/png;base64,{sig_base64}"
+            return None
+
         return Response({
             'titulo_certificado': config.titulo_certificado,
             'subtitulo': config.subtitulo,
@@ -162,17 +184,17 @@ class CertificateConfigView(views.APIView):
             'mensaje_lideres_titulo': config.mensaje_lideres_titulo,
             'mensaje_lideres_cuerpo': config.mensaje_lideres_cuerpo,
             'texto_certificado_lideres': config.texto_certificado_lideres,
-            # Signatures
+            # Signatures (Base64)
             'firma_1_nombre': config.firma_1_nombre,
             'firma_1_cargo': config.firma_1_cargo,
-            'firma_1_imagen': config.firma_1_imagen.url if config.firma_1_imagen else None,
+            'firma_1_imagen': format_sig(config.firma_1_imagen),
             'firma_2_nombre': config.firma_2_nombre,
             'firma_2_cargo': config.firma_2_cargo,
-            'firma_2_imagen': config.firma_2_imagen.url if config.firma_2_imagen else None,
+            'firma_2_imagen': format_sig(config.firma_2_imagen),
             'firma_3_nombre': config.firma_3_nombre,
             'firma_3_cargo': config.firma_3_cargo,
-            'firma_3_imagen': config.firma_3_imagen.url if config.firma_3_imagen else None,
-            # Logos
+            'firma_3_imagen': format_sig(config.firma_3_imagen),
+            # Logos (URLs)
             'logo_izquierda': config.logo_izquierda.url if config.logo_izquierda else '/static/img/muc.png',
             'logo_centro': config.logo_centro.url if config.logo_centro else '/static/img/icono.webp',
             'logo_derecha': config.logo_derecha.url if config.logo_derecha else '/static/img/feue.png',
@@ -181,6 +203,7 @@ class CertificateConfigView(views.APIView):
         })
     
     def put(self, request):
+        import base64
         config = ConfiguracionCertificado.get_config()
         
         # Update text fields
@@ -219,15 +242,19 @@ class CertificateConfigView(views.APIView):
         if 'color_secundario' in request.data:
             config.color_secundario = request.data['color_secundario']
         
-        # Handle file uploads (Signatures)
-        if 'firma_1_imagen' in request.FILES:
-            config.firma_1_imagen = request.FILES['firma_1_imagen']
-        if 'firma_2_imagen' in request.FILES:
-            config.firma_2_imagen = request.FILES['firma_2_imagen']
-        if 'firma_3_imagen' in request.FILES:
-            config.firma_3_imagen = request.FILES['firma_3_imagen']
+        # Handle file uploads (Signatures -> Base64)
+        for i in range(1, 4):
+            key = f'firma_{i}_imagen'
+            if key in request.FILES:
+                file_obj = request.FILES[key]
+                try:
+                    # Convert to Base64
+                    encoded = base64.b64encode(file_obj.read()).decode('utf-8')
+                    setattr(config, key, encoded)
+                except Exception as e:
+                    print(f"Error encoding signature {i}: {e}")
 
-        # Handle file uploads (Logos)
+        # Handle file uploads (Logos -> ImageField)
         if 'logo_izquierda' in request.FILES:
             config.logo_izquierda = request.FILES['logo_izquierda']
         if 'logo_centro' in request.FILES:
@@ -247,13 +274,21 @@ class LeaderCertificateInfoView(views.APIView):
         
         # Get identifier (Email for leaders, 'mi-certificado' as fallback for superusers)
         identifier = 'mi-certificado'
+        has_cedula = False
+        
         if hasattr(request.user, 'lider_profile') and request.user.lider_profile:
-            identifier = request.user.lider_profile.email
+            # Only if active
+            if request.user.lider_profile.activo:
+                identifier = request.user.lider_profile.email
+                has_cedula = True
+        elif request.user.is_superuser:
+            has_cedula = True
             
         return Response({
             'titulo': config.mensaje_lideres_titulo,
             'cuerpo': config.mensaje_lideres_cuerpo,
-            'has_cedula': bool(hasattr(request.user, 'lider_profile') or request.user.is_superuser),
+            'has_cedula': has_cedula,
             'identifier': identifier
         })
+
 

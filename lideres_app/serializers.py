@@ -11,8 +11,4 @@ class LiderSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = ['total_invitados', 'total_asistencias']
 
-class LiderPublicSerializer(serializers.ModelSerializer):
-    """Serializer for the registration select group."""
-    class Meta:
-        model = Lider
-        fields = ['id', 'nombre_completo', 'grupo']
+

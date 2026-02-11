@@ -6,7 +6,7 @@ from rest_framework.parsers import MultiPartParser
 from django.db.models import Count, Q
 from django.contrib.auth.models import User
 from .models import Lider
-from .serializers import LiderSerializer, LiderPublicSerializer
+from .serializers import LiderSerializer
 from alumnos.models import Alumno
 
 class LiderViewSet(viewsets.ModelViewSet):
@@ -18,21 +18,7 @@ class LiderViewSet(viewsets.ModelViewSet):
             return [permissions.IsAdminUser()]
         return [permissions.IsAuthenticated()]
 
-class ActiveLiderListView(views.APIView):
-    """Returns a list of active leaders grouped by their group for the registration form."""
-    def get(self, request):
-        lideres = Lider.objects.filter(activo=True, visible_en_registro=True)
-        serializer = LiderPublicSerializer(lideres, many=True)
-        
-        # Group by group number
-        grouped_data = {}
-        for item in serializer.data:
-            g = item['grupo']
-            if g not in grouped_data:
-                grouped_data[g] = []
-            grouped_data[g].append(item)
-            
-        return Response(grouped_data)
+
 
 from django.contrib.auth import authenticate, login
 from rest_framework.authtoken.models import Token
@@ -174,25 +160,6 @@ class LeaderExcelUploadView(views.APIView):
             
         except Exception as e:
             return Response({"error": f"Error al procesar el archivo: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-class RandomLeaderView(views.APIView):
-    """Returns a random active leader for automatic assignment."""
-    permission_classes = [permissions.AllowAny]
-
-    def get(self, request):
-        import random
-        lideres_activos = list(Lider.objects.filter(activo=True))
-        
-        if not lideres_activos:
-             return Response({"error": "No hay líderes activos disponibles"}, status=status.HTTP_404_NOT_FOUND)
-             
-        lider = random.choice(lideres_activos)
-        return Response({
-            "id": lider.id,
-            "nombre_completo": lider.nombre_completo,
-            "grupo": lider.grupo
-        })
-
 
 class RedistribuirAlumnosView(views.APIView):
     """Redistribuye equitativamente los alumnos entre los líderes del mismo grupo."""

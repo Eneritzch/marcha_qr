@@ -17,7 +17,7 @@ class ConfiguracionCertificado(models.Model):
         verbose_name="Subtítulo"
     )
     texto_cuerpo = models.TextField(
-        default="Se certifica que {nombre} participó en la Marcha conmemorativa por los 25 años de vida institucional de la Universidad Estatal de Milagro, realizada el 8 de febrero de 2026.",
+        default="Por haber participado en la Marcha por la Excelencia, evidenciando liderazgo, compromiso y una actitud proactiva en favor del crecimiento, la calidad y los valores que fortalecen nuestra alma mater.",
         help_text="Usa {nombre} como placeholder para el nombre del participante",
         verbose_name="Texto del Certificado"
     )
@@ -62,63 +62,65 @@ class ConfiguracionCertificado(models.Model):
     )
 
     # Firmas (PNG)
-    # Firma 1 (Izquierda - Directora)
+    # Firmas (Base64)
+    # Firmas (PNG)
+    # Firma 1 (Izquierda - Rector)
     firma_1_imagen = models.ImageField(
-        upload_to='certificados/firmas/', 
+        upload_to='certificados/firmas/',
         null=True, 
         blank=True,
-        verbose_name="Firma 1 (Izquierda - P. Palacios)"
+        verbose_name="Firma 1 (Rector) - Subir PNG con fondo transparente"
     )
     firma_1_nombre = models.CharField(
         max_length=150, 
         blank=True, 
-        default="Paola Palacios",
+        default="PhD. Fabricio Guevara Viejó",
         verbose_name="Nombre Firmante 1"
     )
     firma_1_cargo = models.CharField(
         max_length=150, 
         blank=True, 
-        default="DIRECTORA DE MARCHA",
+        default="RECTOR",
         verbose_name="Cargo Firmante 1"
     )
     
-    # Firma 2 (Centro - Rector)
+    # Firma 2 (Centro - MUC)
     firma_2_imagen = models.ImageField(
-        upload_to='certificados/firmas/', 
+        upload_to='certificados/firmas/',
         null=True, 
         blank=True,
-        verbose_name="Firma 2 (Centro - Rector)"
+        verbose_name="Firma 2 (MUC) - Subir PNG con fondo transparente"
     )
     firma_2_nombre = models.CharField(
         max_length=150, 
         blank=True, 
-        default="Fabricio Guevara Viejó",
+        default="Paola Palacios P.",
         verbose_name="Nombre Firmante 2"
     )
     firma_2_cargo = models.CharField(
         max_length=150, 
         blank=True, 
-        default="RECTOR UNEMI",
+        default="REPRESENTANTE OCS\nPRESIDENTE MUC",
         verbose_name="Cargo Firmante 2"
     )
 
-    # Firma 3 (Derecha - Coordinadora)
+    # Firma 3 (Derecha - FEUE)
     firma_3_imagen = models.ImageField(
-        upload_to='certificados/firmas/', 
+        upload_to='certificados/firmas/',
         null=True, 
         blank=True,
-        verbose_name="Firma 3 (Derecha - R. Jurado)"
+        verbose_name="Firma 3 (FEUE) - Subir PNG con fondo transparente"
     )
     firma_3_nombre = models.CharField(
         max_length=150, 
         blank=True, 
-        default="Roxana Jurado",
+        default="Roxana Jurado A.",
         verbose_name="Nombre Firmante 3"
     )
     firma_3_cargo = models.CharField(
         max_length=150, 
         blank=True, 
-        default="COORDINADORA",
+        default="PRESIDENTE FEUE",
         verbose_name="Cargo Firmante 3"
     )
     
