@@ -16,9 +16,9 @@ class AlumnoSerializer(serializers.ModelSerializer):
             'modalidad', 'facultad', 'carrera', 'es_externo', 'codigo_qr',
             'asistio', 'ha_iniciado', 'ha_finalizado', 'fecha_inicio', 'fecha_fin',
             'fecha_registro', 'lider_invitador', 
-            'lider_nombre', 'grupo', 'whatsapp_link'
+            'lider_nombre', 'grupo', 'whatsapp_link', 'certificado_entregado', 'fecha_entrega_certificado'
         ]
-        read_only_fields = ['codigo_qr', 'grupo', 'asistio', 'ha_iniciado', 'ha_finalizado', 'fecha_registro', 'whatsapp_link']
+        read_only_fields = ['codigo_qr', 'grupo', 'asistio', 'ha_iniciado', 'ha_finalizado', 'fecha_registro', 'whatsapp_link', 'certificado_entregado']
         extra_kwargs = {
             'lider_invitador': {'required': False, 'allow_null': True}
         }

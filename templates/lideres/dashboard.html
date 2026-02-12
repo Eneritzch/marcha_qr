@@ -186,8 +186,10 @@
                     <i data-lucide="crown" class="w-5 h-5"></i>
                     <span class="font-medium">Gestión Líderes</span>
                 </button>
-
-
+                <button onclick="switchView('registros')" id="sidebar-nav-registros" class="nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all hover:bg-white/10 text-left text-slate-300 hover:text-white">
+                    <i data-lucide="users" class="w-5 h-5"></i>
+                    <span class="font-medium">Registros</span>
+                </button>
             </nav>
         </div>
 
@@ -266,9 +268,20 @@
         </div>
 
         <!-- 6. Líderes -->
-
+        <div class="nav-item-wrapper relative flex-shrink-0 w-24 flex justify-center transition-all duration-300 snap-center" data-target="lideres">
+            <button onclick="switchView('lideres')" id="mobile-nav-lideres" class="nav-btn flex flex-col items-center gap-1 p-2 text-slate-400 transition-all rounded-full">
+                <i data-lucide="crown" class="w-6 h-6"></i>
+                <span class="text-[10px] font-bold">Líderes</span>
+            </button>
+        </div>
 
         <!-- 7. Registros -->
+        <div class="nav-item-wrapper relative flex-shrink-0 w-24 flex justify-center transition-all duration-300 snap-center" data-target="registros">
+            <button onclick="switchView('registros')" id="mobile-nav-registros" class="nav-btn flex flex-col items-center gap-1 p-2 text-slate-400 transition-all rounded-full">
+                <i data-lucide="users" class="w-6 h-6"></i>
+                <span class="text-[10px] font-bold">Registros</span>
+            </button>
+        </div>
 
     </nav>
     
@@ -299,112 +312,52 @@
             <section id="view-overview" class="space-y-6 fade-in">
                 <!-- KPI Cards -->
                 <!-- KPI Cards -->
-                <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    <div class="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm">
-                        <p class="text-xs font-bold text-slate-400 uppercase">Total Registrados</p>
-                        <p id="kpi-total" class="text-3xl font-black text-slate-800 mt-2">--</p>
+                <!-- KPI Cards -->
+                <!-- KPI Cards -->
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                    <!-- Total Registrados -->
+                    <div class="bg-gradient-to-br from-blue-600 to-blue-800 p-6 rounded-2xl shadow-lg relative overflow-hidden group hover:shadow-xl transition-all transform hover:-translate-y-1">
+                        <div class="absolute top-0 right-0 w-24 h-24 bg-white/10 rounded-full blur-2xl -mr-12 -mt-12 group-hover:bg-white/20 transition-colors"></div>
+                        <div class="relative z-10">
+                            <div class="flex items-center gap-3 mb-2">
+                                <div class="p-2 bg-white/20 rounded-lg backdrop-blur-sm">
+                                    <i data-lucide="users" class="w-5 h-5 text-white"></i>
+                                </div>
+                                <p class="text-xs font-bold text-blue-100 uppercase tracking-wider">Total Registrados</p>
+                            </div>
+                            <p id="kpi-total" class="text-4xl font-black text-white tracking-tight">--</p>
+                        </div>
                     </div>
-                    <div class="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm">
-                        <p class="text-xs font-bold text-unemi-orange uppercase">En Marcha</p>
-                        <p id="kpi-iniciados" class="text-3xl font-black text-unemi-orange mt-2">--</p>
-                    </div>
-                    <div class="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm">
-                        <p class="text-xs font-bold text-emerald-500 uppercase">Completados</p>
-                        <p id="kpi-completados" class="text-3xl font-black text-emerald-500 mt-2">--</p>
-                    </div>
-                    <div class="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm">
-                        <p class="text-xs font-bold text-slate-400 uppercase">Eficiencia</p>
-                        <p id="kpi-porcentaje" class="text-3xl font-black text-unemi-blue mt-2">--%</p>
+
+                    <!-- Certificados Entregados -->
+                    <div class="bg-gradient-to-br from-orange-400 to-orange-600 p-6 rounded-2xl shadow-lg relative overflow-hidden group hover:shadow-xl transition-all transform hover:-translate-y-1">
+                        <div class="absolute top-0 right-0 w-24 h-24 bg-white/10 rounded-full blur-2xl -mr-12 -mt-12 group-hover:bg-white/20 transition-colors"></div>
+                        <div class="relative z-10">
+                            <div class="flex items-center gap-3 mb-2">
+                                <div class="p-2 bg-white/20 rounded-lg backdrop-blur-sm">
+                                    <i data-lucide="award" class="w-5 h-5 text-white"></i>
+                                </div>
+                                <p class="text-xs font-bold text-orange-100 uppercase tracking-wider">Cert. Entregados</p>
+                            </div>
+                            <p id="kpi-certificados" class="text-4xl font-black text-white tracking-tight">--</p>
+                        </div>
                     </div>
                 </div>
 
-                <!-- UNEMI vs Externos Row (Admin only) -->
-                <div id="unemi-externos-row" class="grid grid-cols-2 md:grid-cols-4 gap-4 hidden">
+                <!-- Charts Section -->
+                <div class="grid grid-cols-1 mb-8">
+                    <!-- Line Chart: Certificates per Day -->
                     <div class="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm">
-                        <p class="text-xs font-bold text-unemi-blue uppercase">Estudiantes UNEMI</p>
-                        <div class="flex items-end justify-between mt-2">
-                            <p id="kpi-unemi" class="text-3xl font-black text-unemi-blue">--</p>
-                            <p id="pct-unemi" class="text-lg font-bold text-unemi-blue/60">--%</p>
+                        <div class="flex items-center justify-between mb-6">
+                            <h3 class="font-bold text-slate-700">Historial de Entregas</h3>
+                            <select id="chart-period" class="text-xs border-slate-200 rounded-lg focus:ring-unemi-blue focus:border-unemi-blue">
+                                <option value="7">Últimos 7 días</option>
+                                <option value="30">Últimos 30 días</option>
+                            </select>
                         </div>
-                    </div>
-                    <div class="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm">
-                        <p class="text-xs font-bold text-unemi-orange uppercase">Externos</p>
-                        <div class="flex items-end justify-between mt-2">
-                            <p id="kpi-externos" class="text-3xl font-black text-unemi-orange">--</p>
-                            <p id="pct-externos" class="text-lg font-bold text-unemi-orange/60">--%</p>
+                        <div class="h-80 w-full relative">
+                            <canvas id="certificadosChart"></canvas>
                         </div>
-                    </div>
-                    <div class="md:col-span-2 bg-white p-6 rounded-2xl border border-slate-100 shadow-sm flex flex-col justify-center">
-                        <p class="text-xs font-bold text-slate-400 uppercase text-center mb-2">Distribución por Vínculo</p>
-                        <div id="chart-vinculo-pie" class="w-full h-28"></div>
-                    </div>
-                </div>
-
-                <!-- Premium Charts Grid -->
-                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-                    
-                    <!-- Chart 1: Leader Performance (Scatter/Bubble) - Spans 2 cols -->
-                    <div class="lg:col-span-2 bg-white p-6 rounded-2xl border border-slate-100 shadow-sm">
-                        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
-                            <div>
-                                <h3 class="font-bold text-slate-800 text-lg">Rendimiento por Grupos</h3>
-                                <p class="text-slate-500 text-sm">Comparativa: Invitados vs Asistentes</p>
-                            </div>
-                            <div class="flex gap-2">
-                                <select id="chart-main-filter" class="appearance-none bg-white border border-slate-200 text-slate-700 text-sm font-bold py-2 px-4 pr-10 rounded-xl focus:ring-4 focus:ring-unemi-blue/10 focus:border-unemi-blue focus:outline-none transition-all hover:border-unemi-blue/50 shadow-sm bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20fill%3D%22none%22%20viewBox%3D%220%200%2024%2024%22%20stroke%3D%22%230F1E4B%22%20stroke-width%3D%222%22%3E%3Cpath%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%20d%3D%22m19.5%208.25-7.5%207.5-7.5-7.5%22%2F%3E%3C%2Fsvg%3E')] bg-[length:1.1rem_1.1rem] bg-[right_0.75rem_center] bg-no-repeat cursor-pointer">
-                                    <option value="all">Todos los Grupos</option>
-                                <script>
-                                        for(let i=1; i<=15; i++) {
-                                            document.write(`<option value="${i}">Grupo ${i}</option>`);
-                                        }
-                                    </script>
-                                </select>
-                            </div>
-                        </div>
-                        <div id="chart-leaders-scatter" class="w-full h-80"></div>
-                    </div>
-
-                    <!-- Chart 2: Attendance Radial (Gauge) - Spans 1 col -->
-                    <div class="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm flex flex-col">
-                        <div class="mb-2">
-                             <h3 class="font-bold text-slate-800 text-lg">Tasa de Asistencia</h3>
-                             <p class="text-slate-500 text-sm">Resumen global</p>
-                        </div>
-                        <div class="flex flex-col items-center justify-center flex-1">
-                            <div id="chart-attendance-radial" class="w-full flex justify-center"></div>
-                            <div class="text-center mt-[-20px]">
-                                <p class="text-slate-400 text-xs uppercase font-bold tracking-wider">Total Invitados</p>
-                                <p class="text-2xl font-bold text-slate-700" id="radial-total-label">0</p>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Chart 3: Top Careers (Horizontal Bar) - Spans 3 cols (Full Width) -->
-                    <div class="lg:col-span-3 bg-white p-6 rounded-2xl border border-slate-100 shadow-sm">
-                         <h3 class="font-bold text-slate-800 text-lg mb-4">Top 5 Carreras</h3>
-                         <div id="chart-careers-bar" class="w-full h-64"></div>
-                    </div>
-                </div>
-
-                <!-- TOP 10 LEADERS TABLE -->
-                <div class="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm">
-                    <h3 class="font-bold text-slate-800 text-lg mb-4">Top 10 Líderes (Mayor Efectividad)</h3>
-                    <div class="overflow-x-auto">
-                        <table class="w-full text-sm text-left text-slate-600">
-                            <thead class="text-xs text-slate-400 uppercase bg-slate-50">
-                                <tr>
-                                    <th class="px-4 py-3 rounded-l-lg">#</th>
-                                    <th class="px-4 py-3">Líder</th>
-                                    <th class="px-4 py-3 hidden md:table-cell">Grupo</th>
-                                    <th class="px-4 py-3 text-center hidden md:table-cell">Invitados</th>
-                                    <th class="px-4 py-3 text-center hidden md:table-cell text-xs">Asistieron</th>
-                                    <th class="px-4 py-3 text-right rounded-r-lg">Efectividad</th>
-                                </tr>
-                            </thead>
-                            <tbody id="tbody-top-leaders" class="divide-y divide-slate-50">
-                                <!-- Populated by JS -->
-                            </tbody>
-                        </table>
                     </div>
                 </div>
             </section>
@@ -584,8 +537,77 @@
                 </div>
             </section>
 
+            <!-- VIEW: REGISTROS (BASE DE DATOS) -->
+            <section id="view-registros" class="hidden space-y-6 fade-in">
+                <div class="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+                    <div class="p-6 border-b border-slate-100 flex flex-col md:flex-row gap-4 justify-between items-center bg-blue-50/30">
+                        <div class="flex items-center gap-2">
+                             <div class="bg-blue-100 p-2 rounded-lg">
+                                <i data-lucide="database" class="text-unemi-blue w-5 h-5"></i>
+                             </div>
+                             <div>
+                                <h3 class="font-bold text-slate-800">Base de Registros</h3>
+                                <p class="text-xs text-slate-500">Estudiantes registrados</p>
+                             </div>
+                        </div>
+                         <div class="flex gap-2 w-full md:w-auto">
+                             <button onclick="openStudentModal()" id="btn-add-manual" class="flex-1 md:flex-none justify-center bg-unemi-blue text-white px-4 py-2 rounded-xl text-xs font-bold shadow hover:bg-slate-800 transition-all flex items-center gap-2">
+                                <i data-lucide="plus" class="w-4 h-4"></i> Nuevo Registro
+                            </button>
+                            <button onclick="showExportPreview('alumnos')" class="flex-1 md:flex-none justify-center bg-green-600/10 text-green-700 hover:bg-green-600 hover:text-white px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2">
+                                <i data-lucide="download" class="w-4 h-4"></i> Exportar
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="p-4 bg-slate-50 border-b border-slate-100 grid md:grid-cols-3 gap-4">
+                        <div class="relative md:col-span-2">
+                            <i data-lucide="search" class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4"></i>
+                            <input type="text" id="search-registros" placeholder="Buscar por cédula, nombre..." class="w-full pl-10 pr-4 py-2 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-unemi-blue transition-all shadow-sm">
+                        </div>
+                        <div>
+                             <select id="filter-registros-grupo" class="appearance-none w-full bg-white border border-slate-200 text-slate-700 text-sm font-bold py-2 px-4 pr-10 rounded-xl focus:ring-4 focus:ring-unemi-blue/10 focus:border-unemi-blue focus:outline-none transition-all cursor-pointer bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20fill%3D%22none%22%20viewBox%3D%220%200%2024%2024%22%20stroke%3D%22%2364748b%22%20stroke-width%3D%222%22%3E%3Cpath%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%20d%3D%22m19.5%208.25-7.5%207.5-7.5-7.5%22%2F%3E%3C%2Fsvg%3E')] bg-[length:1rem_1rem] bg-[right_0.75rem_center] bg-no-repeat">
+                                <option value="all">Todos los Grupos</option>
+                                <option value="0">Sin Grupo</option>
+                                <script>
+                                    for(let i=1; i<=15; i++) {
+                                        document.write(`<option value="${i}">Grupo ${i}</option>`);
+                                    }
+                                </script>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-sm text-left text-slate-500">
+                            <thead class="text-xs text-white uppercase bg-slate-800">
+                                <tr>
+                                    <th class="px-4 py-3 text-center w-12">#</th>
+                                    <th class="px-4 py-3">Estudiante</th>
+                                    <th class="px-4 py-3">Cédula</th>
+                                    <th class="px-4 py-3">Grupo</th>
+                                    <th class="px-4 py-3 text-center">Asistencia</th>
+                                    <th class="px-4 py-3 text-center">Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tbody-registros" class="divide-y divide-slate-100 font-mono text-xs">
+                                <!-- Populated by JS -->
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <!-- Pagination (Simple Footer) -->
+                    <div class="p-4 border-t border-slate-100 bg-slate-50 flex justify-between items-center text-xs text-slate-500">
+                        <span id="registros-count">Mostrando 0 registros</span>
+                        <div class="flex gap-2">
+                             <button id="btn-prev-page" class="px-3 py-1 bg-white border border-slate-200 rounded-lg hover:bg-slate-100 disabled:opacity-50">Anterior</button>
+                             <button id="btn-next-page" class="px-3 py-1 bg-white border border-slate-200 rounded-lg hover:bg-slate-100 disabled:opacity-50">Siguiente</button>
+                        </div>
+                    </div>
+                </div>
+
             <!-- VIEW: IMPORTAR/EXPORTAR -->
-            <section id="view-importar-exportar" class="hidden space-y-6 fade-in">
+            <section id="view-importar-exportar" class="hidden space-y-6">
                 <!-- Action Selection Cards -->
                 <div class="grid md:grid-cols-2 gap-6">
                     
@@ -645,7 +667,8 @@
                 </div>
             </section>
 
-            <section id="view-control-escaneo" class="hidden space-y-6 fade-in">
+            <!-- VIEW: CONTROL ESCANEO (Admin) -->
+            <section id="view-control-escaneo" class="hidden space-y-6">
                 <div class="bg-white rounded-3xl shadow-xl p-8 border border-slate-200 space-y-8">
                     <div class="flex flex-col md:flex-row md:items-center justify-between gap-6 border-b border-slate-100 pb-8">
                         <div class="flex items-center gap-4">
@@ -716,10 +739,11 @@
                         </div>
                     </div>
                 </div>
+                </div>
             </section>
 
             <!-- VIEW: CERTIFICADOS CONFIG (Admin) -->
-            <section id="view-certificados" class="hidden space-y-6 fade-in">
+            <section id="view-certificados" class="hidden space-y-6">
                 <div class="bg-white rounded-3xl shadow-xl p-8 border border-slate-200 space-y-8">
                     <!-- Header -->
                     <div class="flex flex-col md:flex-row md:items-center justify-between gap-6 border-b border-slate-100 pb-8">
@@ -965,7 +989,7 @@
             </section>
 
             <!-- VIEW: MI CERTIFICADO (LIDERES) -->
-            <section id="view-mi-certificado" class="hidden space-y-6 fade-in">
+            <section id="view-mi-certificado" class="hidden space-y-6">
                  <!-- Header -->
                 <div class="mb-8 p-8 bg-gradient-to-r from-unemi-blue to-slate-900 rounded-3xl text-white shadow-2xl relative overflow-hidden">
                     <div class="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full blur-3xl -mr-16 -mt-16"></div>
@@ -1022,6 +1046,7 @@
                         </div>
                     </div>
                 </div>
+            </section>
 
     <!-- IMPORT MODAL -->
     <div id="import-modal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 backdrop-blur-sm overflow-y-auto">
@@ -1246,117 +1271,7 @@
         </div>
     </div>
 
-    <!-- LIDER MODAL -->
-    <div id="lider-modal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
-        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden relative">
-             <div class="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50">
-                <h3 id="modal-lider-title" class="font-bold text-unemi-blue">Registrar Líder</h3>
-                <button onclick="document.getElementById('lider-modal').classList.add('hidden')" class="text-slate-400 hover:text-slate-600"><i data-lucide="x" class="w-6 h-6"></i></button>
-            </div>
-            <div class="p-8 space-y-4 max-h-[80vh] overflow-y-auto">
-                 <form id="lider-form" class="space-y-4">
-                    <input type="hidden" id="lider-id">
-                    
-                    <div class="grid md:grid-cols-2 gap-4">
-                        <div>
-                            <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Nombre Completo</label>
-                            <input type="text" id="lider-nombre" required class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-unemi-blue focus:outline-none font-bold">
-                        </div>
-                        <div>
-                            <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Cédula</label>
-                            <input type="text" id="lider-cedula" maxlength="10" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-unemi-blue focus:outline-none font-mono">
-                        </div>
-                        <div>
-                            <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Asignar Grupo</label>
-                            <select id="lider-grupo" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-unemi-blue focus:outline-none font-bold text-unemi-orange">
-                                <script>
-                                    for(let i=1; i<=15; i++) {
-                                        document.write(`<option value="${i}">Grupo ${i}</option>`);
-                                    }
-                                </script>
-                            </select>
-                        </div>
-                        <div>
-                            <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Teléfono</label>
-                            <input type="text" id="lider-telefono" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-unemi-blue focus:outline-none">
-                        </div>
-                        <div class="md:col-span-2">
-                             <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Correo Electrónico (Usuario)</label>
-                            <input type="email" id="lider-email" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-unemi-blue focus:outline-none">
-                        </div>
-                        <div class="md:col-span-2 flex justify-between items-center py-2 border-t border-slate-100 mt-2">
-                            <label class="flex items-center gap-2 cursor-pointer">
-                                <input type="checkbox" id="lider-activo" checked class="w-5 h-5 text-unemi-orange rounded focus:ring-unemi-orange">
-                                <span class="text-sm font-bold text-slate-700">Líder Activo</span>
-                            </label>
-                            <label class="flex items-center gap-2 cursor-pointer">
-                                <input type="checkbox" id="lider-visible" checked class="w-5 h-5 text-unemi-blue rounded focus:ring-unemi-blue">
-                                <span class="text-sm font-bold text-slate-700">Visible en Registro</span>
-                            </label>
-                        </div>
-                    </div>
-                    
-                    <button type="submit" class="w-full bg-unemi-blue hover:bg-slate-800 text-white font-black uppercase tracking-widest py-4 rounded-xl shadow-lg transition-all active:scale-95">
-                        Guardar Cambios
-                    </button>
-                 </form>
-            </div>
-        </div>
-    </div>
-
-    <!-- EDIT STUDENT MODAL -->
-    <div id="student-modal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
-        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden relative">
-             <div class="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50">
-                <h3 class="font-bold text-unemi-blue">Editar Estudiante</h3>
-                <button onclick="document.getElementById('student-modal').classList.add('hidden')" class="text-slate-400 hover:text-slate-600"><i data-lucide="x" class="w-6 h-6"></i></button>
-            </div>
-            <div class="p-8 space-y-4 max-h-[80vh] overflow-y-auto">
-                 <form id="student-form" class="space-y-4">
-                    <input type="hidden" id="edit-student-id"> <!-- Stores ID (cedula or PK) -->
-                    
-                    <div class="grid md:grid-cols-2 gap-4">
-                        <div class="md:col-span-2">
-                            <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Nombre Completo</label>
-                            <input type="text" id="edit-student-nombre" required class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-unemi-blue focus:outline-none font-bold">
-                        </div>
-                        <div>
-                            <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Cédula (No editable)</label>
-                            <input type="text" id="edit-student-cedula" disabled class="w-full p-3 bg-slate-100 border border-slate-200 rounded-xl text-slate-500 font-mono">
-                        </div>
-                        <div>
-                            <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Grupo Actual</label>
-                            <div id="edit-student-grupo-display" class="w-full p-3 bg-slate-100 border border-slate-200 rounded-xl font-black text-slate-500">
-                                --
-                            </div>
-                        </div>
-
-                        <!-- Leader Re-assignment -->
-                        <div class="md:col-span-2 bg-blue-50/50 p-4 rounded-xl border border-blue-100">
-                            <label class="block text-xs font-bold text-unemi-blue uppercase mb-2">Asignar Nuevo Líder</label>
-                            <div class="relative">
-                                <i data-lucide="search" class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4"></i>
-                                <input type="text" id="edit-student-leader-search" placeholder="Buscar líder..." class="w-full pl-9 pr-4 py-2 bg-white border border-blue-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-unemi-blue">
-                                <input type="hidden" id="edit-student-leader-id">
-                            </div>
-                            <!-- Leader Results Dropdown -->
-                            <div id="edit-student-leader-results" class="hidden mt-2 bg-white border border-slate-200 rounded-lg shadow-lg max-h-40 overflow-y-auto z-10"></div>
-                            
-                            <!-- Selected Leader Display -->
-                             <div id="edit-student-leader-selected" class="hidden mt-2 flex items-center justify-between bg-white p-2 rounded-lg border border-green-200 text-sm">
-                                <span class="font-bold text-green-700" id="selected-leader-name">--</span>
-                                <button type="button" onclick="clearSelectedLeader()" class="text-red-500 hover:text-red-700 p-1"><i data-lucide="x" class="w-4 h-4"></i></button>
-                             </div>
-                        </div>
-                    </div>
-                    
-                    <button type="submit" class="w-full bg-unemi-blue hover:bg-slate-800 text-white font-black uppercase tracking-widest py-4 rounded-xl shadow-lg transition-all active:scale-95">
-                        Guardar Cambios
-                    </button>
-                 </form>
-            </div>
-        </div>
-    </div>
+    <!-- Duplicate modals removed -->
 
 
     <!-- Modal: Importar Líderes Excel -->
@@ -1492,6 +1407,108 @@
         </div>
     </div>
 
+    <!-- MODAL: EDITAR ESTUDIANTE -->
+    <div id="student-modal" class="fixed inset-0 z-50 flex items-center justify-center hidden bg-slate-900/50 backdrop-blur-sm transition-all duration-300">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg mx-4 overflow-hidden transform transition-all scale-100">
+            <div class="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+                <h3 class="font-bold text-slate-800 text-lg flex items-center gap-2">
+                    <i data-lucide="user-cog" class="w-5 h-5 text-unemi-blue"></i>
+                    Editar Estudiante
+                </h3>
+                <button onclick="closeStudentModal()" class="text-slate-400 hover:text-slate-600 transition-colors">
+                    <i data-lucide="x" class="w-6 h-6"></i>
+                </button>
+            </div>
+            <div class="p-6 space-y-4">
+                <input type="hidden" id="edit-student-cedula">
+                
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 mb-1">Nombre Completo</label>
+                    <input type="text" id="edit-student-nombre" class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-700 focus:ring-2 focus:ring-unemi-blue focus:outline-none">
+                </div>
+
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-500 mb-1">Grupo</label>
+                        <select id="edit-student-grupo" class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-700 focus:ring-2 focus:ring-unemi-blue focus:outline-none">
+                            <option value="0">Sin Grupo</option>
+                            <script>
+                                for(let i=1; i<=15; i++) document.write(`<option value="${i}">Grupo ${i}</option>`);
+                            </script>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-500 mb-1">Teléfono</label>
+                        <input type="tel" id="edit-student-telefono" class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-700 focus:ring-2 focus:ring-unemi-blue focus:outline-none">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 mb-1">Correo Electrónico</label>
+                    <input type="email" id="edit-student-email" class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-700 focus:ring-2 focus:ring-unemi-blue focus:outline-none">
+                </div>
+            </div>
+            <div class="p-4 bg-slate-50 border-t border-slate-100 flex gap-3 justify-end">
+                <button onclick="closeStudentModal()" class="px-4 py-2 text-slate-500 font-bold text-sm hover:bg-slate-200 rounded-lg transition-colors">Cancelar</button>
+                <button onclick="saveStudent()" class="px-6 py-2 bg-unemi-blue text-white font-bold text-sm rounded-lg hover:bg-slate-800 transition-colors shadow-lg shadow-blue-900/20">Guardar Cambios</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: EDITAR LÍDER -->
+    <div id="lider-modal" class="fixed inset-0 z-50 flex items-center justify-center hidden bg-slate-900/50 backdrop-blur-sm transition-all duration-300">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg mx-4 overflow-hidden transform transition-all scale-100">
+            <div class="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+                <h3 class="font-bold text-slate-800 text-lg flex items-center gap-2">
+                    <i data-lucide="crown" class="w-5 h-5 text-unemi-orange"></i>
+                    Editar Líder
+                </h3>
+                <button onclick="closeLiderModal()" class="text-slate-400 hover:text-slate-600 transition-colors">
+                    <i data-lucide="x" class="w-6 h-6"></i>
+                </button>
+            </div>
+            <div class="p-6 space-y-4">
+                <input type="hidden" id="edit-lider-id">
+                
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 mb-1">Nombre Completo</label>
+                    <input type="text" id="edit-lider-nombre" class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-700 focus:ring-2 focus:ring-unemi-orange focus:outline-none">
+                </div>
+
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-500 mb-1">Grupo</label>
+                        <select id="edit-lider-grupo" class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-700 focus:ring-2 focus:ring-unemi-orange focus:outline-none">
+                            <option value="0">Sin Grupo</option>
+                            <script>
+                                for(let i=1; i<=15; i++) document.write(`<option value="${i}">Grupo ${i}</option>`);
+                            </script>
+                        </select>
+                    </div>
+                    <div>
+                         <label class="block text-xs font-bold text-slate-500 mb-1">Estado</label>
+                         <div class="flex items-center gap-2 mt-2">
+                            <label class="relative inline-flex items-center cursor-pointer">
+                                <input type="checkbox" id="edit-lider-activo" class="sr-only peer">
+                                <div class="w-11 h-6 bg-slate-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-orange-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-unemi-orange"></div>
+                                <span class="ml-3 text-sm font-bold text-slate-700">Activo</span>
+                            </label>
+                         </div>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 mb-1">Correo Electrónico</label>
+                    <input type="email" id="edit-lider-email" class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-700 focus:ring-2 focus:ring-unemi-orange focus:outline-none">
+                </div>
+            </div>
+            <div class="p-4 bg-slate-50 border-t border-slate-100 flex gap-3 justify-end">
+                <button onclick="closeLiderModal()" class="px-4 py-2 text-slate-500 font-bold text-sm hover:bg-slate-200 rounded-lg transition-colors">Cancelar</button>
+                <button onclick="saveLider()" class="px-6 py-2 bg-unemi-orange text-white font-bold text-sm rounded-lg hover:bg-orange-600 transition-colors shadow-lg shadow-orange-900/20">Guardar Cambios</button>
+            </div>
+        </div>
+    </div>
+
     <!-- GLOBAL LOADER -->
     <div id="global-loader" class="fixed inset-0 z-[100] flex items-center justify-center bg-transparent transition-opacity duration-300">
         <!-- Backdrop is transparent as requested, blocking clicks is handled by inset-0 -->
@@ -1565,6 +1582,7 @@
             if(loader) loader.classList.add('opacity-0', 'pointer-events-none');
         }
     </script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="/static/js/redistribuir.js?v=1.0"></script>
     <script src="/static/js/dashboard-charts.js?v=3.0"></script>
     <script src="/static/js/dashboard-scanner.js?v=3.0"></script>
@@ -1576,7 +1594,7 @@
         window.dispatchEvent(new CustomEvent('academicDataReady'));
     </script>
     {% include "lideres/user_fallback.html" %}
-    <script src="/static/js/dashboard.js?v=3.1"></script>
+    <script src="/static/js/dashboard.js?v=3.5"></script>
     <script>
         document.addEventListener('DOMContentLoaded', () => {
            try {

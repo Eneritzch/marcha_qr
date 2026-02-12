@@ -35,6 +35,10 @@ class Alumno(models.Model):
     fecha_inicio = models.DateTimeField(null=True, blank=True, verbose_name="Fecha/Hora de Inicio")
     fecha_fin = models.DateTimeField(null=True, blank=True, verbose_name="Fecha/Hora de Fin")
     
+    # Certificados
+    certificado_entregado = models.BooleanField(default=False, db_index=True, verbose_name="¿Certificado Entregado?")
+    fecha_entrega_certificado = models.DateTimeField(null=True, blank=True, verbose_name="Fecha de Entrega del Certificado")
+
     # Relación con Líder y Grupo (NUEVO)
     lider_invitador = models.ForeignKey(
         'lideres_app.Lider',

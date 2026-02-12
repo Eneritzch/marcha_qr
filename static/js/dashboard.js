@@ -47,7 +47,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     // SYNC USER: If window.user is present (from fallback), update localStorage
     // This fixes the issue where localStorage has stale data lacking lider_profile
     if (window.user && window.user.id) {
-        console.log("Syncing window.user to localStorage:", window.user);
+
         // Merge seamlessly
         const merged = { ...user, ...window.user };
         localStorage.setItem('user', JSON.stringify(merged));
@@ -57,7 +57,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // Show "Config. Certificados" and "Mi Certificado" based on Token Permissions
     // Show "Config. Certificados" and "Mi Certificado" based on Token Permissions
-    console.log("Checking permissions for buttons:", user);
+
 
     // Helper to show element
     const showEl = (id, displayType = 'flex') => {
@@ -361,9 +361,8 @@ window.switchView = function (viewName) {
 function updateKPIs() {
     if (!allAlumnos) return;
     const total = allAlumnos.length;
-    const iniciados = allAlumnos.filter(a => a.ha_iniciado && !a.ha_finalizado).length;
-    const completados = allAlumnos.filter(a => a.ha_finalizado).length;
-    const porcentaje = total > 0 ? ((completados / total) * 100).toFixed(1) : 0;
+    // Use the flag we set in backend
+    const certificados = allAlumnos.filter(a => a.certificado_entregado).length;
 
     const safeSet = (id, val) => {
         const el = document.getElementById(id);
@@ -371,16 +370,7 @@ function updateKPIs() {
     };
 
     safeSet('kpi-total', total);
-    safeSet('kpi-iniciados', iniciados);
-    safeSet('kpi-completados', completados);
-    safeSet('kpi-porcentaje', `${porcentaje}%`);
-
-    // New Counts
-    const externos = allAlumnos.filter(a => a.es_externo).length;
-    const unemi = total - externos;
-
-    safeSet('kpi-unemi', unemi);
-    safeSet('kpi-externos', externos);
+    safeSet('kpi-certificados', certificados);
 }
 
 // === DATA TABLES STATE ===
@@ -427,8 +417,7 @@ window.refreshData = async function () {
 
         // Initial Render
         updateKPIs();
-
-
+        renderRegistrosTable(allAlumnos);
 
         // Also fetch leaders for the chart if not already
         if (allLideres.length === 0) {
@@ -531,7 +520,7 @@ function renderLideresTable(data) {
              </td>
              <td class="px-6 py-4 text-center">
                  <div class="flex items-center justify-center gap-2">
-                     <button onclick='openLiderModal(${JSON.stringify(l)})' class="p-2 text-unemi-blue hover:bg-blue-50 rounded-lg transition-colors" title="Editar">
+                     <button onclick="openLiderModal('${l.id}')" class="p-2 text-unemi-blue hover:bg-blue-50 rounded-lg transition-colors" title="Editar">
                         <i data-lucide="edit-2" class="w-4 h-4"></i>
                      </button>
                      ${user.is_superuser ? `
@@ -545,6 +534,366 @@ function renderLideresTable(data) {
     });
     lucide.createIcons();
 }
+
+// === REGISTROS TABLE LOGIC ===
+let currentRegistrosSearch = '';
+let currentRegistrosGroupFilter = 'all';
+
+// Bind Events for Registros
+document.addEventListener('DOMContentLoaded', () => {
+    safeBind('search-registros', 'input', (e) => filterRegistros(e.target.value));
+    safeBind('filter-registros-grupo', 'change', (e) => {
+        currentRegistrosGroupFilter = e.target.value;
+        filterRegistros(document.getElementById('search-registros').value);
+    });
+
+    // Pagination
+    safeBind('btn-prev-page', 'click', () => {
+        if (currentRegistrosPage > 1) {
+            currentRegistrosPage--;
+            renderRegistrosTable(allAlumnos, true); // true = use current filters
+        }
+    });
+
+    safeBind('btn-next-page', 'click', () => {
+        const totalPages = Math.ceil(getFilteredRegistros().length / registrosPageSize);
+        if (currentRegistrosPage < totalPages) {
+            currentRegistrosPage++;
+            renderRegistrosTable(allAlumnos, true);
+        }
+    });
+});
+
+function getFilteredRegistros() {
+    if (!allAlumnos) return [];
+
+    const q = currentRegistrosSearch.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    const group = currentRegistrosGroupFilter;
+
+    return allAlumnos.filter(a => {
+        const nameNorm = (a.nombre_completo || '').toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+        const cedula = (a.cedula || '').toString();
+
+        const matchesSearch = nameNorm.includes(q) || cedula.includes(q);
+        const matchesGroup = group === 'all' || (a.grupo || 0).toString() === group;
+
+        return matchesSearch && matchesGroup;
+    });
+}
+
+// === MODAL LOGIC: ESTUDIANTES ===
+window.openStudentModal = function (student) {
+
+    if (student) {
+        // EDIT MODE
+        document.getElementById('edit-student-cedula').value = student.cedula;
+        document.getElementById('edit-student-cedula').disabled = true;
+        document.getElementById('edit-student-nombre').value = student.nombre_completo;
+        document.getElementById('edit-student-grupo').value = student.grupo || 0;
+        document.getElementById('edit-student-email').value = student.email || '';
+        document.getElementById('edit-student-telefono').value = student.telefono || '';
+    } else {
+        // CREATE MODE
+        document.getElementById('edit-student-cedula').value = '';
+        document.getElementById('edit-student-cedula').disabled = false;
+        document.getElementById('edit-student-nombre').value = '';
+        document.getElementById('edit-student-grupo').value = '0';
+        document.getElementById('edit-student-email').value = '';
+        document.getElementById('edit-student-telefono').value = '';
+    }
+
+    const modal = document.getElementById('student-modal');
+    if (modal) {
+        modal.classList.remove('hidden');
+        modal.style.display = 'flex';
+    } else {
+        console.error("FATAL: #student-modal not found");
+    }
+}
+
+// Alias for backward compatibility
+window.openStudentEdit = window.openStudentModal;
+
+window.closeStudentModal = function () {
+    const modal = document.getElementById('student-modal');
+    if (modal) {
+        modal.classList.add('hidden');
+        modal.style.display = 'none';
+    }
+}
+
+window.saveStudent = async function () {
+    const cedula = document.getElementById('edit-student-cedula').value;
+    const nombre = document.getElementById('edit-student-nombre').value;
+    const grupo = parseInt(document.getElementById('edit-student-grupo').value);
+    const email = document.getElementById('edit-student-email').value;
+    const telefono = document.getElementById('edit-student-telefono').value;
+
+    // Check if we are editing (ID disabled) or creating (ID enabled)
+    const isEdit = document.getElementById('edit-student-cedula').disabled;
+
+    if (!nombre || !cedula) {
+        alert("El nombre y la cédula son obligatorios");
+        return;
+    }
+
+    try {
+        window.showLoader();
+
+        let response;
+        if (isEdit) {
+            // UDPATE
+            response = await axios.patch(`/api/v1/alumnos/alumnos/${cedula}/`, {
+                nombre_completo: nombre,
+                grupo: grupo,
+                email: email,
+                telefono: telefono
+            }, {
+                headers: { Authorization: `Token ${token}` }
+            });
+
+            // Update local cache
+            const idx = allAlumnos.findIndex(a => a.cedula === cedula);
+            if (idx !== -1) {
+                allAlumnos[idx].nombre_completo = response.data.nombre_completo;
+                allAlumnos[idx].grupo = response.data.grupo;
+                allAlumnos[idx].email = response.data.email;
+                allAlumnos[idx].telefono = response.data.telefono;
+            }
+            showSuccessToast('Estudiante actualizado');
+        } else {
+            // CREATE
+            try {
+                response = await axios.post(`/api/v1/alumnos/alumnos/`, {
+                    cedula: cedula,
+                    nombre_completo: nombre,
+                    grupo: grupo,
+                    email: email,
+                    telefono: telefono
+                }, {
+                    headers: { Authorization: `Token ${token}` }
+                });
+
+                allAlumnos.push(response.data);
+                showSuccessToast('Estudiante registrado');
+            } catch (e) {
+                if (e.response && e.response.status === 400 && e.response.data.cedula) {
+                    throw new Error("Ya existe un estudiante con esa cédula.");
+                }
+                throw e;
+            }
+        }
+
+        localStorage.setItem('allAlumnos', JSON.stringify(allAlumnos));
+        renderRegistrosTable(allAlumnos, true);
+        closeStudentModal();
+
+    } catch (e) {
+        console.error(e);
+        showErrorAlert(e.message || 'Error al guardar cambios');
+    } finally {
+        window.hideLoader();
+    }
+}
+
+// === MODAL LOGIC: LÍDERES ===
+// === MODAL LOGIC: LÍDERES ===
+window.openLiderModal = function (id) {
+    if (id) {
+        // EDIT MODE
+        const lider = allLideres.find(l => l.id == id);
+        if (!lider) {
+            console.error("Leader not found:", id);
+            return;
+        }
+
+        document.getElementById('edit-lider-id').value = lider.id;
+        document.getElementById('edit-lider-nombre').value = lider.nombre_completo;
+        document.getElementById('edit-lider-grupo').value = lider.grupo;
+        document.getElementById('edit-lider-email').value = lider.email || '';
+        document.getElementById('edit-lider-activo').checked = lider.activo;
+    } else {
+        // CREATE MODE
+        document.getElementById('edit-lider-id').value = '';
+        document.getElementById('edit-lider-nombre').value = '';
+        document.getElementById('edit-lider-grupo').value = '0';
+        document.getElementById('edit-lider-email').value = '';
+        document.getElementById('edit-lider-activo').checked = true;
+    }
+
+    const modal = document.getElementById('lider-modal');
+    if (modal) {
+        modal.classList.remove('hidden');
+        modal.style.display = 'flex'; // Force visibility
+    }
+}
+
+window.closeLiderModal = function () {
+    const modal = document.getElementById('lider-modal');
+    if (modal) {
+        modal.classList.add('hidden');
+        modal.style.display = 'none';
+    }
+}
+
+window.saveLider = async function () {
+    const id = document.getElementById('edit-lider-id').value;
+    const nombre = document.getElementById('edit-lider-nombre').value;
+    const grupo = parseInt(document.getElementById('edit-lider-grupo').value);
+    const email = document.getElementById('edit-lider-email').value;
+    const activo = document.getElementById('edit-lider-activo').checked;
+
+    if (!nombre) {
+        alert("El nombre es obligatorio");
+        return;
+    }
+
+    try {
+        window.showLoader();
+
+        let response;
+        if (id) {
+            // UPDATE
+            response = await axios.patch(`/api/v1/lideres/lideres/${id}/`, {
+                nombre_completo: nombre,
+                grupo: grupo,
+                email: email,
+                activo: activo
+            }, {
+                headers: { Authorization: `Token ${token}` }
+            });
+
+            // Update local cache
+            const idx = allLideres.findIndex(l => l.id == id);
+            if (idx !== -1) {
+                allLideres[idx] = response.data;
+                allLideres[idx].grupo = grupo;
+            }
+            showSuccessToast('Líder actualizado');
+        } else {
+            // CREATE
+            response = await axios.post(`/api/v1/lideres/lideres/`, {
+                nombre_completo: nombre,
+                grupo: grupo,
+                email: email,
+                activo: activo,
+                visible: true
+            }, {
+                headers: { Authorization: `Token ${token}` }
+            });
+            allLideres.push(response.data);
+            showSuccessToast('Líder creado');
+        }
+
+        localStorage.setItem('allLideres', JSON.stringify(allLideres));
+        renderLideresTable(allLideres);
+        closeLiderModal();
+        updateKPIs();
+
+    } catch (e) {
+        console.error(e);
+        showErrorAlert('Error al guardar cambios');
+    } finally {
+        window.hideLoader();
+    }
+}
+
+function filterRegistros(query) {
+    currentRegistrosSearch = query || '';
+    currentRegistrosPage = 1; // Reset to first page
+    renderRegistrosTable(allAlumnos, true);
+}
+
+window.renderRegistrosTable = function (data, useFilters = false) {
+    const tbody = document.getElementById('tbody-registros');
+    const countLabel = document.getElementById('registros-count');
+
+    if (!tbody) return; // Guard clause if view isn't active/present yet
+    tbody.innerHTML = '';
+
+    let localData = useFilters ? getFilteredRegistros() : (data || []);
+
+    const totalRecords = localData.length;
+    const totalPages = Math.ceil(totalRecords / registrosPageSize);
+
+    // Pagination Slicing
+    const startIndex = (currentRegistrosPage - 1) * registrosPageSize;
+    const endIndex = startIndex + registrosPageSize;
+    const pageData = localData.slice(startIndex, endIndex);
+
+    // Update Footer
+    if (countLabel) {
+        countLabel.textContent = `Mostrando ${Math.min(endIndex, totalRecords)} de ${totalRecords} registros (Página ${currentRegistrosPage} de ${totalPages || 1})`;
+    }
+
+    // Update Buttons
+    const btnPrev = document.getElementById('btn-prev-page');
+    const btnNext = document.getElementById('btn-next-page');
+    if (btnPrev) btnPrev.disabled = currentRegistrosPage === 1;
+    if (btnNext) btnNext.disabled = currentRegistrosPage >= totalPages || totalPages === 0;
+
+    if (pageData.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="6" class="p-8 text-center text-slate-400">No se encontraron registros.</td></tr>`;
+        return;
+    }
+
+    pageData.forEach((a, index) => {
+        const globalIndex = startIndex + index + 1;
+
+        // Group Color Logic
+        let groupBadge = '';
+        if (a.grupo === 0 || !a.grupo) {
+            groupBadge = `<span class="px-2 py-0.5 rounded bg-slate-100 text-slate-500 font-bold text-[10px]">SIN GRUPO</span>`;
+        } else {
+            groupBadge = `<span class="px-2 py-0.5 rounded bg-blue-50 text-unemi-blue font-black text-[10px] border border-blue-100">GRUPO ${a.grupo}</span>`;
+        }
+
+        // Status Badge (Asistió vs Pendiente vs Offline)
+        let statusBadge = '';
+        if (a.asistio) {
+            statusBadge = `<span class="flex items-center justify-center gap-1 text-emerald-600 font-bold"><i data-lucide="check-circle-2" class="w-3 h-3"></i> Asistió</span>`;
+        } else if (a.ha_iniciado) {
+            statusBadge = `<span class="flex items-center justify-center gap-1 text-orange-500 font-bold" title="Solo inicio marcado"><i data-lucide="clock" class="w-3 h-3"></i> En Marcha</span>`;
+        } else {
+            statusBadge = `<span class="text-slate-300 font-bold">-</span>`;
+        }
+
+        const tr = document.createElement('tr');
+        tr.className = 'bg-white hover:bg-slate-50 transition-colors group';
+        tr.innerHTML = `
+            <td class="px-4 py-3 text-center font-bold text-slate-400">${globalIndex}</td>
+            <td class="px-4 py-3 font-bold text-slate-700">
+                ${a.nombre_completo}
+                ${a.lider_nombre ? `<div class="text-[9px] text-slate-400 font-normal">Líder: ${a.lider_nombre}</div>` : ''}
+            </td>
+            <td class="px-4 py-3 font-mono text-slate-500 select-all">${a.cedula}</td>
+            <td class="px-4 py-3 text-center">${groupBadge}</td>
+            <td class="px-4 py-3 text-center text-[10px] uppercase tracking-wider">${statusBadge}</td>
+            <td class="px-4 py-3 text-center">
+                <div class="flex items-center justify-center gap-1 opacity-60 group-hover:opacity-100 transition-opacity">
+                    <!-- Edit -->
+                    <button onclick='openStudentEdit(${JSON.stringify(a).replace(/'/g, "&#39;")})' class="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors" title="Editar">
+                        <i data-lucide="edit-2" class="w-3.5 h-3.5"></i>
+                    </button>
+                    <!-- WhatsApp (if phone exists) -->
+                    ${a.telefono ? `
+                    <a href="https://wa.me/${a.telefono}" target="_blank" class="p-1.5 text-green-600 hover:bg-green-50 rounded-lg transition-colors" title="WhatsApp">
+                        <i data-lucide="message-circle" class="w-3.5 h-3.5"></i>
+                    </a>` : ''}
+                    <!-- Delete (Admin Only) -->
+                     ${user.is_superuser ? `
+                    <button onclick="eliminarEntidad('alumno', '${a.cedula}', '${a.nombre_completo}')" class="p-1.5 text-red-600 hover:bg-red-50 rounded-lg transition-colors" title="Eliminar">
+                        <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                    </button>` : ''}
+                </div>
+            </td>
+        `;
+        tbody.appendChild(tr);
+    });
+
+    // Re-init icons for new elements
+    if (window.lucide) lucide.createIcons();
+};
 
 window.updateLeaderGroup = async function (id, newGroup) {
     const numGroup = parseInt(newGroup);
@@ -649,256 +998,16 @@ window.changeStudentGroup = async function (cedula, newGroup) {
     }
 }
 
-function filterLideres(query) {
-    // Helper for accent-insensitive comparison
-    const normalize = (str) => (str || '').normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
-
-    const q = normalize(query);
-    const groupElement = document.getElementById('filter-lider-grupo');
-    const group = groupElement ? groupElement.value : 'all';
-
-    const filtered = allLideres.filter(l => {
-        const nameNorm = normalize(l.nombre_completo);
-        const emailNorm = normalize(l.email);
-
-        const matchesSearch = nameNorm.includes(q) || emailNorm.includes(q);
-        const matchesGroup = group === 'all' || l.grupo.toString() === group;
-
-        return matchesSearch && matchesGroup;
-    });
-    renderLideresTable(filtered);
-}
-
-function openLiderModal(lider = null) {
-    const modal = document.getElementById('lider-modal');
-    modal.classList.remove('hidden');
-
-    const title = document.getElementById('modal-lider-title');
-    const form = document.getElementById('lider-form');
-
-    if (lider) {
-        title.textContent = "Editar Líder";
-        document.getElementById('lider-id').value = lider.id;
-        document.getElementById('lider-nombre').value = lider.nombre_completo;
-        document.getElementById('lider-cedula').value = lider.cedula;
-        document.getElementById('lider-grupo').value = lider.grupo;
-        document.getElementById('lider-telefono').value = lider.telefono || '';
-        document.getElementById('lider-email').value = lider.email || '';
-        document.getElementById('lider-activo').checked = lider.activo;
-        document.getElementById('lider-visible').checked = lider.visible_en_registro;
-    } else {
-        title.textContent = "Registrar Nuevo Líder";
-        form.reset();
-        document.getElementById('lider-id').value = '';
-        document.getElementById('lider-activo').checked = true;
-        document.getElementById('lider-visible').checked = true;
-    }
-}
-
-async function saveLider(e) {
-    e.preventDefault();
-    const id = document.getElementById('lider-id').value;
-    const data = {
-        nombre_completo: document.getElementById('lider-nombre').value,
-        cedula: document.getElementById('lider-cedula').value || null,
-        grupo: parseInt(document.getElementById('lider-grupo').value),
-        telefono: document.getElementById('lider-telefono').value || null,
-        email: document.getElementById('lider-email').value || null,
-        activo: document.getElementById('lider-activo').checked,
-        visible_en_registro: document.getElementById('lider-visible').checked
-    };
-
-    // Optimistic local update/create for offline
-    if (id) {
-        const idx = allLideres.findIndex(l => l.id == id);
-        if (idx !== -1) {
-            allLideres[idx] = { ...allLideres[idx], ...data };
-        }
-    } else {
-        // Temporary ID for local-only entry
-        const tempLider = { ...data, id: 'temp_' + Date.now(), total_invitados: 0, total_asistencias: 0 };
-        allLideres.push(tempLider);
-    }
-    localStorage.setItem('allLideres', JSON.stringify(allLideres));
-    renderLideresTable(allLideres);
-    document.getElementById('lider-modal').classList.add('hidden');
-
-    if (offlineMode && !token) {
-        showOfflineToast("Líder guardado localmente (Modo Consulta).");
-        return;
-    }
-
-    try {
-        if (id && !id.startsWith('temp_')) {
-            await axios.patch(`/api/v1/lideres/lideres/${id}/`, data, {
-                headers: { Authorization: `Token ${token}` }
-            });
-        } else {
-            await axios.post('/api/v1/lideres/lideres/', data, {
-                headers: { Authorization: `Token ${token}` }
-            });
-        }
-        showSuccessToast('Líder guardado correctamente');
-        fetchLideres(); // Real refresh to get server IDs/stats
-    } catch (err) {
-        console.error("Error saving leader", err);
-        if (!navigator.onLine) {
-            showOfflineToast("Sin conexión. Los cambios son locales por ahora.");
-        } else {
-            showErrorAlert('Error al guardar. Verifique los datos.');
-        }
-    }
-}
 
 
-// === STUDENT EDIT LOGIC ===
-let selectedLeaderForStudent = null;
 
-window.openStudentEdit = function (student) {
-    // Reset State
-    selectedLeaderForStudent = null;
-    document.getElementById('edit-student-leader-search').value = '';
-    document.getElementById('edit-student-leader-id').value = '';
-    document.getElementById('edit-student-leader-selected').classList.add('hidden');
-    document.getElementById('edit-student-leader-results').innerHTML = '';
-    document.getElementById('edit-student-leader-results').classList.add('hidden');
 
-    // Populate Fields
-    document.getElementById('edit-student-id').value = student.id;
-    document.getElementById('edit-student-nombre').value = student.nombre_completo;
-    document.getElementById('edit-student-cedula').value = student.cedula;
 
-    // Group Display
-    const groupDisplay = document.getElementById('edit-student-grupo-display');
-    if (student.grupo === 0) {
-        groupDisplay.textContent = "SIN GRUPO";
-        groupDisplay.className = "w-full p-3 bg-red-50 border border-red-200 rounded-xl font-black text-red-500 uppercase";
-    } else {
-        groupDisplay.textContent = `GRUPO ${student.grupo}`;
-        groupDisplay.className = "w-full p-3 bg-blue-50 border border-blue-200 rounded-xl font-black text-unemi-blue uppercase";
-    }
-
-    // Pre-fill leader if exists
-    if (student.lider_invitador) {
-        // Need to find leader name. student object has 'lider_nombre' from serializer usually.
-        // If not, we try to find it in allLideres
-        let leaderName = student.lider_nombre || "Líder Asignado";
-        if (!leaderName && allLideres) {
-            const l = allLideres.find(x => x.id === student.lider_invitador);
-            if (l) leaderName = l.nombre_completo;
-        }
-
-        selectLeaderForStudent({
-            id: student.lider_invitador,
-            nombre_completo: leaderName
-        });
-    }
-
-    document.getElementById('student-modal').classList.remove('hidden');
-}
 
 // Leader Search inside Student Edit
-const studentLeaderSearch = document.getElementById('edit-student-leader-search');
-if (studentLeaderSearch) {
-    studentLeaderSearch.addEventListener('input', (e) => {
-        const q = e.target.value.toLowerCase().trim();
-        const resultsDiv = document.getElementById('edit-student-leader-results');
 
-        if (q.length < 2) {
-            resultsDiv.classList.add('hidden');
-            return;
-        }
 
-        const matches = allLideres.filter(l => l.nombre_completo.toLowerCase().includes(q));
 
-        if (matches.length > 0) {
-            resultsDiv.innerHTML = matches.map(l => `
-                <div onclick='selectLeaderForStudent(${JSON.stringify(l).replace(/'/g, "&#39;")})' class="p-3 hover:bg-slate-50 cursor-pointer border-b border-slate-100 last:border-0 flex justify-between items-center group">
-                    <span class="font-bold text-slate-700 group-hover:text-unemi-blue">${l.nombre_completo}</span>
-                    <span class="text-[10px] bg-slate-100 px-2 py-1 rounded text-slate-500">Grupo ${l.grupo}</span>
-                </div>
-            `).join('');
-            resultsDiv.classList.remove('hidden');
-        } else {
-            resultsDiv.innerHTML = `<div class="p-3 text-slate-400 text-xs text-center">No se encontraron líderes</div>`;
-            resultsDiv.classList.remove('hidden');
-        }
-    });
-}
-
-window.selectLeaderForStudent = function (leader) {
-    selectedLeaderForStudent = leader;
-    document.getElementById('edit-student-leader-id').value = leader.id;
-
-    // UI Update
-    document.getElementById('selected-leader-name').textContent = leader.nombre_completo;
-    document.getElementById('edit-student-leader-selected').classList.remove('hidden');
-    document.getElementById('edit-student-leader-results').classList.add('hidden');
-    document.getElementById('edit-student-leader-search').value = ''; // Clean search
-}
-
-window.clearSelectedLeader = function () {
-    selectedLeaderForStudent = null;
-    document.getElementById('edit-student-leader-id').value = '';
-    document.getElementById('selected-leader-name').textContent = '';
-    document.getElementById('edit-student-leader-selected').classList.add('hidden');
-}
-
-// Save Student
-safeBind('student-form', 'submit', async (e) => {
-    e.preventDefault();
-    const id = document.getElementById('edit-student-id').value; // Student PK or ID
-    const nombre = document.getElementById('edit-student-nombre').value;
-    const liderId = document.getElementById('edit-student-leader-id').value;
-
-    const payload = {
-        nombre_completo: nombre,
-        lider_invitador: liderId || null
-    };
-
-    try {
-        window.showLoader();
-        // Since we don't have the PK in the table row (only ID/Cedula usually), we need to ensure we use the correct ID.
-        // Django ModelViewSet uses lookup_field = 'cedula'. Wait, serializer uses 'id' (pk).
-        // Let's check the student object passed to openStudentEdit. It has 'id' (pk) and 'cedula'.
-        // Standard DRF route for update usually uses PK if not overridden, but ViewSet says lookup_field = 'cedula'.
-        // Let's reuse 'cedula' which is safer for this codebase based on previous delete logic.
-        const cedula = document.getElementById('edit-student-cedula').value;
-
-        await axios.patch(`/api/v1/alumnos/alumnos/${cedula}/`, payload, {
-            headers: { Authorization: `Token ${token}` }
-        });
-
-        // Update Local
-        const idx = allAlumnos.findIndex(a => a.cedula == cedula);
-        if (idx !== -1) {
-            allAlumnos[idx].nombre_completo = nombre;
-            allAlumnos[idx].lider_invitador = liderId ? parseInt(liderId) : null;
-            // Update group locally if leader assigned
-            if (liderId) {
-                const l = allLideres.find(x => x.id == liderId);
-                if (l) {
-                    allAlumnos[idx].grupo = l.grupo;
-                    allAlumnos[idx].lider_nombre = l.nombre_completo; // Helper for display
-                }
-            } else {
-                allAlumnos[idx].grupo = 0;
-            }
-        }
-
-        localStorage.setItem('allAlumnos', JSON.stringify(allAlumnos));
-        refreshData(); // Re-render table
-
-        document.getElementById('student-modal').classList.add('hidden');
-        showSuccessToast('Estudiante actualizado correctamente');
-
-    } catch (err) {
-        console.error("Error updating student", err);
-        showErrorAlert("Error al actualizar estudiante.");
-    } finally {
-        window.hideLoader();
-    }
-});
 
 
 // Helpers for cleaner code
@@ -2640,3 +2749,5 @@ window.loadLeaderCertificateView = async function () {
         window.hideLoader && window.hideLoader();
     }
 }
+
+

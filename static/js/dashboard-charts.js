@@ -4,469 +4,154 @@
  * Designed to fail gracefully without crashing other modules.
  */
 
-window.DashboardCharts = {
-    chartsInstances: {
-        scatter: null,
-        radial: null,
-        bar: null,
-        vinculoPie: null
-    },
+window.DashboardCharts = (function () {
+    let chartInstance = null;
 
-    render: function (allAlumnos, allLideres) {
-        try {
-            if (!allAlumnos || allAlumnos.length === 0) return;
+    function render(alumnos, lideres) {
+        const ctx = document.getElementById('certificadosChart');
+        if (!ctx) return;
 
-            // 1. DATA PREPARATION
-            // We calculate stats directly from allAlumnos to ensure Real-Time Sync
-            // regardless of whether leaders cache is stale.
+        // Process Data: Group by Date
+        const deliveryDates = {};
 
-            // A. Aggregate by Group
-            const groupsStats = {};
-
-            allAlumnos.forEach(a => {
-                const g = a.grupo || 0;
-                if (g > 0 && g <= 15) { // Only valid groups
-                    const gName = `G${g}`;
-                    if (!groupsStats[gName]) {
-                        groupsStats[gName] = { invited: 0, attended: 0, groupNum: g };
-                    }
-                    groupsStats[gName].invited++;
-                    if (a.asistio) groupsStats[gName].attended++;
-                }
-            });
-
-            // Ensure all groups 1-15 are present for smooth chart
-            for (let i = 1; i <= 15; i++) {
-                const gName = `G${i}`;
-                if (!groupsStats[gName]) {
-                    groupsStats[gName] = { invited: 0, attended: 0, groupNum: i };
+        alumnos.forEach(a => {
+            if (a.certificado_entregado && a.fecha_entrega_certificado) {
+                // Formatting date to YYYY-MM-DD
+                const dateObj = new Date(a.fecha_entrega_certificado);
+                if (!isNaN(dateObj)) {
+                    const dateStr = dateObj.toISOString().split('T')[0];
+                    deliveryDates[dateStr] = (deliveryDates[dateStr] || 0) + 1;
                 }
             }
+        });
 
-            // Filter if Main Filter is active
-            const groupFilter = document.getElementById('chart-main-filter') ? document.getElementById('chart-main-filter').value : 'all';
-            let chartGroups = Object.keys(groupsStats).map(k => groupsStats[k]);
+        // Filter by period if needed (Element id: 'chart-period')
+        const periodEl = document.getElementById('chart-period');
+        const periodDays = periodEl ? parseInt(periodEl.value) : 7;
 
-            if (groupFilter !== 'all') {
-                const targetG = parseInt(groupFilter);
-                chartGroups = chartGroups.filter(g => g.groupNum === targetG);
-            }
+        // Generate last N dates to ensure continuity
+        const today = new Date();
+        const labels = [];
+        const dataPoints = [];
 
-            // Sort by Group Number
-            chartGroups.sort((a, b) => a.groupNum - b.groupNum);
-
-            const leadersList = chartGroups.map(g => `G${g.groupNum}`);
-            const invitedData = chartGroups.map(g => g.invited);
-            const attendedData = chartGroups.map(g => g.attended);
-
-            const leadersBarOptions = {
-                series: [{
-                    name: 'Invitados',
-                    data: invitedData
-                }, {
-                    name: 'Asistieron',
-                    data: attendedData
-                }],
-                chart: {
-                    type: 'bar', // Stable Column Chart
-                    height: 380,
-                    toolbar: { show: false }, // Cleaner look
-                    fontFamily: 'Inter, sans-serif'
-                },
-                plotOptions: {
-                    bar: {
-                        horizontal: false,
-                        columnWidth: '55%',
-                        borderRadius: 5, // Rounded bars for premium look
-                        endingShape: 'rounded'
-                    },
-                },
-                dataLabels: { enabled: false },
-                stroke: {
-                    show: true,
-                    width: 2,
-                    colors: ['transparent']
-                },
-                xaxis: {
-                    categories: leadersList,
-                    labels: {
-                        style: { colors: '#64748b', fontSize: '12px', fontWeight: 600 }
-                    },
-                    axisBorder: { show: false },
-                    axisTicks: { show: false }
-                },
-                yaxis: {
-                    title: { text: 'Estudiantes', style: { color: '#64748b' } },
-                    labels: { style: { colors: '#64748b' } }
-                },
-                fill: {
-                    opacity: 1,
-                    colors: ['#3B82F6', '#EF7D00'] // Blue, Orange
-                },
-                colors: ['#3B82F6', '#EF7D00'], // Consistent with fill
-                tooltip: {
-                    theme: 'light',
-                    y: { formatter: (val) => val + " estudiantes" }
-                },
-                grid: {
-                    borderColor: '#f1f5f9',
-                    padding: { top: 0, right: 0, bottom: 0, left: 10 }
-                },
-                legend: {
-                    position: 'top',
-                    horizontalAlign: 'right'
-                }
-            };
-
-            if (document.getElementById('chart-leaders-scatter')) {
-                // Safe destroy/create logic
-                if (this.chartsInstances.scatter) {
-                    this.chartsInstances.scatter.destroy(); // Destroy previous instance completely
-                    this.chartsInstances.scatter = null;
-                }
-                try {
-                    this.chartsInstances.scatter = new ApexCharts(document.querySelector("#chart-leaders-scatter"), leadersBarOptions);
-                    this.chartsInstances.scatter.render();
-                } catch (e) { console.error("Chart render error:", e); }
-            }
-
-            // --- DATA PREPARATION (Attendance & Careers) ---
-            const total = allAlumnos.length;
-            const asistencias = allAlumnos.filter(a => a.asistio).length;
-            const pendientes = total - asistencias;
-
-            const attendanceRate = total > 0 ? ((asistencias / total) * 100).toFixed(1) : 0;
-            const pendingRate = total > 0 ? ((pendientes / total) * 100).toFixed(1) : 0;
-
-            const validAttendance = parseFloat(attendanceRate) || 0;
-            const validPending = parseFloat(pendingRate) || 0;
-
-            if (document.getElementById('radial-total-label')) {
-                document.getElementById('radial-total-label').textContent = total;
-            }
-
-            // --- UNEMI vs EXTERNOS PIE CHART (Admin only) ---
-            const rowUnemiExternos = document.getElementById('unemi-externos-row');
-            const isAdmin = typeof user !== 'undefined' && (user.is_superuser || user.is_staff);
-
-            if (rowUnemiExternos) {
-                if (isAdmin) {
-                    rowUnemiExternos.classList.remove('hidden');
-                } else {
-                    rowUnemiExternos.classList.add('hidden');
-                }
-            }
-
-            // Skip chart if not admin
-            if (!isAdmin) {
-                // Do nothing, section is hidden
-            } else {
-                const externos = allAlumnos.filter(a => a.es_externo).length;
-                const unemi = total - externos;
-
-                // Calculate percentages
-                const pctUnemi = total > 0 ? ((unemi / total) * 100).toFixed(1) : 0;
-                const pctExternos = total > 0 ? ((externos / total) * 100).toFixed(1) : 0;
-
-                // Update KPI cards
-                const elUnemi = document.getElementById('kpi-unemi');
-                const elExternos = document.getElementById('kpi-externos');
-                const elPctUnemi = document.getElementById('pct-unemi');
-                const elPctExternos = document.getElementById('pct-externos');
-
-                if (elUnemi) elUnemi.textContent = unemi;
-                if (elExternos) elExternos.textContent = externos;
-                if (elPctUnemi) elPctUnemi.textContent = pctUnemi + '%';
-                if (elPctExternos) elPctExternos.textContent = pctExternos + '%';
-
-                const pieOptions = {
-                    series: [unemi, externos],
-                    chart: {
-                        type: 'donut',
-                        height: 110,
-                        fontFamily: 'Inter, sans-serif'
-                    },
-                    labels: ['UNEMI', 'Externos'],
-                    colors: ['#153B50', '#EF7D00'],
-                    fill: {
-                        type: 'gradient',
-                        gradient: {
-                            shade: 'dark',
-                            type: 'horizontal',
-                            gradientToColors: ['#2563eb', '#f97316'],
-                            stops: [0, 100]
-                        }
-                    },
-                    plotOptions: {
-                        pie: {
-                            startAngle: -90,
-                            endAngle: 90,
-                            donut: {
-                                size: '70%',
-                                labels: {
-                                    show: true,
-                                    total: {
-                                        show: true,
-                                        label: 'Total',
-                                        fontSize: '11px',
-                                        fontWeight: 700,
-                                        color: '#64748b',
-                                        formatter: function (w) {
-                                            return w.globals.seriesTotals.reduce((a, b) => a + b, 0);
-                                        }
-                                    },
-                                    value: {
-                                        fontSize: '16px',
-                                        fontWeight: 800,
-                                        color: '#153B50',
-                                        offsetY: -5
-                                    }
-                                }
-                            }
-                        }
-                    },
-                    dataLabels: { enabled: false },
-                    legend: { show: false },
-                    stroke: { width: 0 },
-                    tooltip: {
-                        enabled: true,
-                        theme: 'light',
-                        fillSeriesColor: false,
-                        y: { formatter: (val) => val + " estudiantes" }
-                    }
-                };
-
-                if (document.getElementById('chart-vinculo-pie')) {
-                    if (this.chartsInstances.vinculoPie) {
-                        this.chartsInstances.vinculoPie.updateSeries([unemi, externos]);
-                    } else {
-                        this.chartsInstances.vinculoPie = new ApexCharts(document.querySelector("#chart-vinculo-pie"), pieOptions);
-                        this.chartsInstances.vinculoPie.render();
-                    }
-                }
-            } // End of admin-only UNEMI/Externos section
-
-            // Careers Data
-            const careerStats = {};
-            allAlumnos.forEach(a => {
-                const c = a.carrera || 'Sin Carrera';
-                if (!careerStats[c]) careerStats[c] = { invited: 0, attended: 0 };
-                careerStats[c].invited++;
-                if (a.asistio) careerStats[c].attended++;
-            });
-
-            const sortedCareers = Object.entries(careerStats)
-                .sort((a, b) => b[1].invited - a[1].invited)
-                .slice(0, 5);
-
-            const careerCategories = sortedCareers.map(c => c[0].length > 15 ? c[0].substring(0, 15) + '...' : c[0]);
-
-            const careerSeries = [
-                {
-                    name: 'Total Invitados',
-                    data: sortedCareers.map(c => -c[1].invited)
-                },
-                {
-                    name: 'Asistieron',
-                    data: sortedCareers.map(c => c[1].attended)
-                }
-            ];
-
-            // --- CHART 2: MULTI-RADIAL (Attendance) ---
-            const radialOptions = {
-                series: [validAttendance, validPending],
-                chart: {
-                    height: 350,
-                    type: 'radialBar',
-                    fontFamily: 'Inter, sans-serif'
-                },
-                plotOptions: {
-                    radialBar: {
-                        dataLabels: {
-                            name: { fontSize: '22px' },
-                            value: { fontSize: '16px', color: '#64748b' },
-                            total: {
-                                show: true,
-                                label: '',
-                                color: '#64748b',
-                                formatter: function (w) {
-                                    return total;
-                                }
-                            }
-                        },
-                        hollow: {
-                            margin: 5,
-                            size: '50%',
-                            background: 'transparent',
-                        },
-                        track: {
-                            show: true,
-                            background: '#f1f5f9',
-                            strokeWidth: '100%',
-                            opacity: 1,
-                            margin: 5
-                        },
-                    }
-                },
-                labels: [],
-                colors: ['#22C55E', '#F97316'], // Green, Orange
-                fill: {
-                    type: 'solid',
-                    colors: ['#22C55E', '#F97316'],
-                    opacity: 1
-                },
-                stroke: { lineCap: 'round' },
-                legend: {
-                    show: false,
-                    position: 'bottom',
-                    fontSize: '12px',
-                    markers: { radius: 12 },
-                    itemMargin: { horizontal: 10 }
-                }
-            };
-
-            if (document.getElementById('chart-attendance-radial')) {
-                if (this.chartsInstances.radial) {
-                    this.chartsInstances.radial.updateSeries([validAttendance, validPending]);
-                    this.chartsInstances.radial.updateOptions(radialOptions);
-                } else {
-                    this.chartsInstances.radial = new ApexCharts(document.querySelector("#chart-attendance-radial"), radialOptions);
-                    this.chartsInstances.radial.render();
-                }
-            }
-
-            // --- CHART 3: DIVERGING BAR (Careers) ---
-            const barOptions = {
-                series: careerSeries,
-                chart: {
-                    type: 'bar',
-                    height: 280,
-                    stacked: true,
-                    toolbar: { show: false },
-                    fontFamily: 'Inter, sans-serif'
-                },
-                colors: ['#3B82F6', '#22C55E'],
-                plotOptions: {
-                    bar: {
-                        horizontal: true,
-                        barHeight: '60%',
-                        borderRadius: 4
-                    }
-                },
-                dataLabels: {
-                    enabled: false
-                },
-                stroke: { width: 1, colors: ["#fff"] },
-                xaxis: {
-                    labels: {
-                        formatter: function (val) {
-                            return Math.abs(Math.round(val))
-                        },
-                        style: { colors: '#64748b' }
-                    },
-                    title: {
-                        text: 'Invitados (Izq) vs Asistieron (Der)',
-                        style: { fontSize: '10px' }
-                    }
-                },
-                yaxis: {
-                    labels: { style: { colors: '#64748b', fontSize: '11px' } }
-                },
-                tooltip: {
-                    shared: false,
-                    x: { formatter: function (val) { return val } },
-                    y: {
-                        formatter: function (val) {
-                            return Math.abs(val)
-                        }
-                    }
-                },
-                grid: { xaxis: { lines: { show: true } } }
-            };
-
-            if (document.getElementById('chart-careers-bar')) {
-                if (this.chartsInstances.bar) {
-                    this.chartsInstances.bar.updateOptions({
-                        series: careerSeries,
-                        xaxis: { categories: careerCategories }
-                    });
-                } else {
-                    barOptions.xaxis.categories = careerCategories;
-                    this.chartsInstances.bar = new ApexCharts(document.querySelector("#chart-careers-bar"), barOptions);
-                    this.chartsInstances.bar.render();
-                }
-            }
-
-            // --- TOP 10 LEADERS TABLE ---
-            // Calculate stats per leader from fresh students data
-            const leaderStatsMap = {}; // id -> { invited: 0, attended: 0 }
-
-            allAlumnos.forEach(a => {
-                if (a.lider_invitador) {
-                    const lid = a.lider_invitador;
-                    if (!leaderStatsMap[lid]) leaderStatsMap[lid] = { invited: 0, attended: 0 };
-                    leaderStatsMap[lid].invited++;
-                    if (a.asistio) leaderStatsMap[lid].attended++;
-                }
-            });
-
-            // Merge with allLideres (to get names/groups)
-            // Filter by Group if needed used leadersData which was filtered above? 
-            // Actually let's use allLideres and filter again if strictly needed, 
-            // but the table usually shows top overall or top in view.
-            // Let's stick to global top or filtered top.
-
-            let tableLeadersSource = allLideres;
-            // Apply filter filter again locally since we removed previous `leadersData` logic
-            if (groupFilter !== 'all') {
-                tableLeadersSource = allLideres.filter(l => l.grupo.toString() === groupFilter);
-            }
-
-            const topLeaders = tableLeadersSource.map(l => {
-                // Use fresh calculated stats if available, else 0
-                const stats = leaderStatsMap[l.id] || { invited: 0, attended: 0 };
-                const invited = stats.invited;
-                const attended = stats.attended;
-                const efficiency = invited > 0 ? Math.min((attended / invited) * 100, 100) : 0;
-
-                return { ...l, efficiency, invited, attended };
-            })
-                .sort((a, b) => b.efficiency - a.efficiency || b.attended - a.attended) // Sort by Efficiency then Attendance
-                .slice(0, 10);
-
-            const tbodyTop = document.getElementById('tbody-top-leaders');
-            if (tbodyTop) {
-                tbodyTop.innerHTML = '';
-                if (topLeaders.length === 0) {
-                    tbodyTop.innerHTML = `<tr><td colspan="6" class="p-4 text-center text-slate-400">Sin datos aún.</td></tr>`;
-                } else {
-                    topLeaders.forEach((l, i) => {
-                        const colorClass = l.efficiency >= 80 ? 'text-green-600 bg-green-50' : (l.efficiency >= 50 ? 'text-orange-600 bg-orange-50' : 'text-slate-600 bg-slate-50');
-
-                        const row = document.createElement('tr');
-                        row.className = 'hover:bg-slate-50 transition-colors';
-                        row.innerHTML = `
-                        <td class="px-4 py-3 font-bold text-slate-400 text-xs text-center">${i + 1}</td>
-                        <td class="px-4 py-3">
-                            <div class="font-bold text-slate-800 leading-tight">${l.nombre_completo}</div>
-                            <div class="text-[10px] text-slate-400 md:hidden">Inv: ${l.invited} | Asist: ${l.attended}</div>
-                        </td>
-                        <td class="px-4 py-3 font-mono text-xs hidden md:table-cell"><span class="bg-slate-100 px-2 py-1 rounded">G${l.grupo}</span></td>
-                        <td class="px-4 py-3 text-center font-mono text-xs text-slate-500 hidden md:table-cell">${l.invited}</td>
-                        <td class="px-4 py-3 text-center font-mono text-xs font-bold text-slate-700 hidden md:table-cell">${l.attended}</td>
-                        <td class="px-4 py-3 text-right">
-                            <span class="px-2 py-1 rounded-lg text-xs font-bold ${colorClass}">${l.efficiency.toFixed(1)}%</span>
-                        </td>
-                    `;
-                        tbodyTop.appendChild(row);
-                    });
-                }
-            }
-
-
-        } catch (error) {
-            console.error("CRITICAL: Error rendering charts. Dashboard functionality preserved.", error);
-            // Optional: Show error input specific chart containers
+        for (let i = periodDays - 1; i >= 0; i--) {
+            const d = new Date();
+            d.setDate(today.getDate() - i);
+            const dateKey = d.toISOString().split('T')[0];
+            labels.push(dateKey);
+            dataPoints.push(deliveryDates[dateKey] || 0);
         }
+
+        // SMART TRIM & PADDING:
+        // "unos dos o un dia antes nomas y uno depues y que se vaya formando de forma inteligente"
+        // Logic: Find first non-zero day, then include up to 2 days before it for context.
+        const firstDataIndex = dataPoints.findIndex(val => val > 0);
+
+        if (firstDataIndex !== -1) {
+            // Start 2 days before the first data point (or index 0 if not enough history)
+            const padding = 2;
+            const sliceIndex = Math.max(0, firstDataIndex - padding);
+
+            if (sliceIndex > 0) {
+                labels.splice(0, sliceIndex);
+                dataPoints.splice(0, sliceIndex);
+            }
+        }
+
+        // Destroy previous chart
+        if (chartInstance) {
+            chartInstance.destroy();
+        }
+
+        // Create Gradient
+        const context = ctx.getContext('2d');
+        const gradient = context.createLinearGradient(0, 0, 0, 400);
+        gradient.addColorStop(0, 'rgba(239, 125, 0, 0.5)'); // UNEMI Orange
+        gradient.addColorStop(1, 'rgba(239, 125, 0, 0.0)');
+
+        // Render Chart
+        chartInstance = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: labels.map(l => {
+                    const parts = l.split('-');
+                    return `${parts[2]}/${parts[1]}`;
+                }),
+                datasets: [{
+                    label: 'Certificados Entregados',
+                    data: dataPoints,
+                    borderColor: '#EF7D00',
+                    backgroundColor: gradient,
+                    borderWidth: 3,
+                    pointBackgroundColor: '#ffffff',
+                    pointBorderColor: '#EF7D00',
+                    pointBorderWidth: 2,
+                    pointRadius: 4,
+                    pointHoverRadius: 6,
+                    fill: true,
+                    tension: 0.4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    tooltip: {
+                        mode: 'index',
+                        intersect: false,
+                        backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                        titleColor: '#0F1E4B',
+                        bodyColor: '#334155',
+                        borderColor: '#e2e8f0',
+                        borderWidth: 1,
+                        padding: 10,
+                        displayColors: false,
+                        titleFont: {
+                            size: 13,
+                            weight: 'bold'
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        grid: {
+                            display: false
+                        },
+                        ticks: {
+                            font: {
+                                size: 10,
+                                family: "'Inter', sans-serif"
+                            },
+                            color: '#64748b'
+                        }
+                    },
+                    y: {
+                        beginAtZero: true,
+                        grid: {
+                            borderDash: [5, 5],
+                            color: '#f1f5f9'
+                        },
+                        ticks: {
+                            stepSize: 1,
+                            font: {
+                                size: 10
+                            },
+                            color: '#64748b'
+                        }
+                    }
+                },
+                interaction: {
+                    intersect: false,
+                    mode: 'index',
+                },
+            }
+        });
     }
-};
+
+    return {
+        render: render
+    };
+})();

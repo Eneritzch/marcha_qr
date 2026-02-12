@@ -1,4 +1,5 @@
 from django.http import HttpResponse
+from django.utils import timezone
 from rest_framework import views, status
 from rest_framework.response import Response
 from rest_framework.permissions import IsAdminUser, AllowAny, IsAuthenticated
@@ -142,6 +143,13 @@ class CertificateDescargarView(views.APIView):
         if is_leader_cert:
              config = ConfiguracionCertificado.get_config()
              custom_body_text = config.texto_certificado_lideres
+        
+        # Mark as delivered if it's a real student and hasn't been delivered yet
+        if isinstance(alumno, Alumno) and not getattr(alumno, 'es_lider_obj', False):
+            if not alumno.certificado_entregado:
+                alumno.certificado_entregado = True
+                alumno.fecha_entrega_certificado = timezone.now()
+                alumno.save(update_fields=['certificado_entregado', 'fecha_entrega_certificado'])
 
         # Generate PDF in memory
         pdf_buffer = CertificateGenerator.generate_certificate(alumno, custom_body_text=custom_body_text)
