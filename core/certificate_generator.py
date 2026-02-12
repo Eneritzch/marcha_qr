@@ -329,9 +329,17 @@ class CertificateGenerator:
                 try:
                     img_path = image_field.path
                     if os.path.exists(img_path):
-                        img_w = 40*mm
-                        img_h = 20*mm
-                        c.drawImage(img_path, x_center - img_w/2, sig_y_line + 2*mm, width=img_w, height=img_h, mask='auto', preserveAspectRatio=True)
+                        # User requested larger signature and "sobre la linea"
+                        img_w = 60*mm # Increased from 40mm
+                        img_h = 30*mm # Increased from 20mm
+                        # Draw slightly lower to sit "on" the line firmly (overlapping slightly if needed)
+                        # The line is at sig_y_line. We draw image bottom at sig_y_line - 10mm to create overlap/grounding
+                        # assuming signature images have some whitespace. 
+                        # Or just sig_y_line if we want it strictly above.
+                        # User said "sobre la linea" -> usually implies strictly above or resting on it.
+                        # But also "que se redimensione".
+                        # Let's align bottom of image with the line roughly.
+                        c.drawImage(img_path, x_center - img_w/2, sig_y_line, width=img_w, height=img_h, mask='auto', preserveAspectRatio=True, anchor='c')
                 except Exception:
                     pass
             
@@ -339,7 +347,7 @@ class CertificateGenerator:
             # User: "mas grandes esas lineas"
             c.setStrokeColor(ACCENT)
             c.setLineWidth(1.5)
-            line_w = 55*mm # Increased from 28mm to 55mm
+            line_w = 55*mm 
             c.line(x_center - line_w/2, sig_y_line, x_center + line_w/2, sig_y_line) 
             
             # Dots
@@ -367,13 +375,12 @@ class CertificateGenerator:
         draw_signature_block(x_sig_3, config.firma_3_nombre, config.firma_3_cargo, config.firma_3_imagen)
 
         # Draw date near signatures?
-        # User said "esa fecha horrible... cortada".
-        # I'll put it Right Aligned but with ample padding.
-        # "entre el logo 25 y el borde de arriba".
-        # Date is usually at bottom right.
-        # I'll put it at `width - margin_inner - 10mm`.
-        
-        c.drawRightString(width - margin_inner - 10*mm, 48*mm, date_text) # Fixed Date per user request previously
+        # User: "ubica mejor la fecha mas en el centro para que no se mezcle"
+        # Moving to center of page, above the signatures to avoid any overlap.
+        # But align with body text (center_x), not geometric page center.
+        date_y = sig_y_line + 35*mm # Approx 67mm from bottom
+        c.setFont("Helvetica-Bold", 11)
+        c.drawCentredString(center_x, date_y, date_text)
 
         c.showPage()
         c.save()

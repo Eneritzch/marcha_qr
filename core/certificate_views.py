@@ -174,12 +174,6 @@ class CertificateConfigView(views.APIView):
     def get(self, request):
         config = ConfiguracionCertificado.get_config()
         
-        # Helper to format base64 for frontend
-        def format_sig(sig_base64):
-            if sig_base64:
-                return f"data:image/png;base64,{sig_base64}"
-            return None
-
         return Response({
             'titulo_certificado': config.titulo_certificado,
             'subtitulo': config.subtitulo,
@@ -188,16 +182,16 @@ class CertificateConfigView(views.APIView):
             'mensaje_lideres_titulo': config.mensaje_lideres_titulo,
             'mensaje_lideres_cuerpo': config.mensaje_lideres_cuerpo,
             'texto_certificado_lideres': config.texto_certificado_lideres,
-            # Signatures (Base64)
+            # Signatures (URLs)
             'firma_1_nombre': config.firma_1_nombre,
             'firma_1_cargo': config.firma_1_cargo,
-            'firma_1_imagen': format_sig(config.firma_1_imagen),
+            'firma_1_imagen': config.firma_1_imagen.url if config.firma_1_imagen else None,
             'firma_2_nombre': config.firma_2_nombre,
             'firma_2_cargo': config.firma_2_cargo,
-            'firma_2_imagen': format_sig(config.firma_2_imagen),
+            'firma_2_imagen': config.firma_2_imagen.url if config.firma_2_imagen else None,
             'firma_3_nombre': config.firma_3_nombre,
             'firma_3_cargo': config.firma_3_cargo,
-            'firma_3_imagen': format_sig(config.firma_3_imagen),
+            'firma_3_imagen': config.firma_3_imagen.url if config.firma_3_imagen else None,
             # Logos (URLs)
             'logo_izquierda': config.logo_izquierda.url if config.logo_izquierda else '/static/img/muc.png',
             'logo_centro': config.logo_centro.url if config.logo_centro else '/static/img/icono.webp',
@@ -207,7 +201,6 @@ class CertificateConfigView(views.APIView):
         })
     
     def put(self, request):
-        import base64
         config = ConfiguracionCertificado.get_config()
         
         # Update text fields
@@ -246,17 +239,11 @@ class CertificateConfigView(views.APIView):
         if 'color_secundario' in request.data:
             config.color_secundario = request.data['color_secundario']
         
-        # Handle file uploads (Signatures -> Base64)
+        # Handle file uploads (Signatures -> ImageField)
         for i in range(1, 4):
             key = f'firma_{i}_imagen'
             if key in request.FILES:
-                file_obj = request.FILES[key]
-                try:
-                    # Convert to Base64
-                    encoded = base64.b64encode(file_obj.read()).decode('utf-8')
-                    setattr(config, key, encoded)
-                except Exception as e:
-                    print(f"Error encoding signature {i}: {e}")
+                setattr(config, key, request.FILES[key])
 
         # Handle file uploads (Logos -> ImageField)
         if 'logo_izquierda' in request.FILES:
