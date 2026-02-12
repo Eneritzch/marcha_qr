@@ -344,7 +344,7 @@ class CertificateGenerator:
         x_sig_3 = sig_area_start_x + col_width*2.5 # Right (FEUE)
         
         # Draw Signature Block Helper
-        def draw_signature_block(x_center, name, cargo, image_field):
+        def draw_signature_block(x_center, name, cargo, image_field, image_offset_y=0):
             # Draw Image
             if image_field:
                 try:
@@ -360,7 +360,7 @@ class CertificateGenerator:
                         # User said "sobre la linea" -> usually implies strictly above or resting on it.
                         # But also "que se redimensione".
                         # Let's align bottom of image with the line roughly.
-                        c.drawImage(img_path, x_center - img_w/2, sig_y_line, width=img_w, height=img_h, mask='auto', preserveAspectRatio=True, anchor='c')
+                        c.drawImage(img_path, x_center - img_w/2, sig_y_line - image_offset_y, width=img_w, height=img_h, mask='auto', preserveAspectRatio=True, anchor='c')
                 except Exception:
                     pass
             
@@ -393,7 +393,7 @@ class CertificateGenerator:
         # Draw 3 blocks
         draw_signature_block(x_sig_1, config.firma_1_nombre, config.firma_1_cargo, config.firma_1_imagen)
         draw_signature_block(x_sig_2, config.firma_2_nombre, config.firma_2_cargo, config.firma_2_imagen)
-        draw_signature_block(x_sig_3, config.firma_3_nombre, config.firma_3_cargo, config.firma_3_imagen)
+        draw_signature_block(x_sig_3, config.firma_3_nombre, config.firma_3_cargo, config.firma_3_imagen, image_offset_y=8*mm)
 
         # Draw date near signatures?
         # User: "la fecha debe salir asi al lado derecho y sobre la firma"
