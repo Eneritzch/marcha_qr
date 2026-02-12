@@ -963,68 +963,65 @@
                     <div id="cert-config-feedback" class="hidden"></div>
                 </div>
             </section>
-        </div>
-    </main>
 
-    <!-- VIEW: MI CERTIFICADO (LIDERES) -->
-    <section id="view-mi-certificado" class="py-8 hidden px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto w-full">
-         <!-- Header -->
-        <div class="mb-8 p-8 bg-gradient-to-r from-unemi-blue to-slate-900 rounded-3xl text-white shadow-2xl relative overflow-hidden">
-            <div class="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full blur-3xl -mr-16 -mt-16"></div>
-            <div class="relative z-10">
-                <h2 class="text-3xl font-black mb-2 tracking-tight">Mi Certificado de Liderazgo</h2>
-                <p class="text-white/70 text-lg font-light">Gracias por ser parte fundamental de este evento histórico.</p>
-            </div>
-        </div>
-
-        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
-            <!-- Left: Message & Actions -->
-            <div class="lg:col-span-4 space-y-6">
-                <!-- Message Card -->
-                <div class="bg-white p-8 rounded-3xl shadow-xl border border-slate-100 text-center relative overflow-hidden">
-                    <div class="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-unemi-orange to-amber-400"></div>
-                     <div class="inline-flex items-center justify-center w-16 h-16 bg-orange-100 text-orange-600 rounded-full mb-6 shadow-sm">
-                        <i data-lucide="award" class="w-8 h-8"></i>
+            <!-- VIEW: MI CERTIFICADO (LIDERES) -->
+            <section id="view-mi-certificado" class="hidden space-y-6 fade-in">
+                 <!-- Header -->
+                <div class="mb-8 p-8 bg-gradient-to-r from-unemi-blue to-slate-900 rounded-3xl text-white shadow-2xl relative overflow-hidden">
+                    <div class="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full blur-3xl -mr-16 -mt-16"></div>
+                    <div class="relative z-10">
+                        <h2 class="text-3xl font-black mb-2 tracking-tight">Mi Certificado de Liderazgo</h2>
+                        <p class="text-white/70 text-lg font-light">Gracias por ser parte fundamental de este evento histórico.</p>
                     </div>
-                    
-                    <h3 id="lider-msg-title" class="text-2xl font-black text-slate-800 mb-4 leading-tight">
-                        Cargando...
-                    </h3>
-                    
-                    <p id="lider-msg-body" class="text-slate-600 leading-relaxed mb-8">
-                        Por favor espera un momento mientras preparamos tu certificado...
-                    </p>
-                    
-                    <div class="p-4 bg-slate-50 rounded-xl border border-slate-100 text-left">
-                        <div class="flex gap-3">
-                            <i data-lucide="info" class="w-5 h-5 text-unemi-blue flex-shrink-0 mt-0.5"></i>
-                            <p class="text-xs text-slate-500 font-medium">
-                                Este certificado reconoce tu labor como líder en la organización y convocatoria.
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+                    <!-- Left: Message & Actions -->
+                    <div class="lg:col-span-4 space-y-6">
+                        <!-- Message Card -->
+                        <div class="bg-white p-6 md:p-8 rounded-3xl shadow-xl border border-slate-100 text-center relative overflow-hidden">
+                            <div class="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-unemi-orange to-amber-400"></div>
+                             <div class="inline-flex items-center justify-center w-16 h-16 bg-orange-100 text-orange-600 rounded-full mb-6 shadow-sm">
+                                <i data-lucide="award" class="w-8 h-8"></i>
+                            </div>
+                            
+                            <h3 id="lider-msg-title" class="text-2xl font-black text-slate-800 mb-4 leading-tight">
+                                Cargando...
+                            </h3>
+                            
+                            <p id="lider-msg-body" class="text-slate-600 leading-relaxed mb-8">
+                                Por favor espera un momento mientras preparamos tu certificado...
                             </p>
+                            
+                            <div class="p-4 bg-slate-50 rounded-xl border border-slate-100 text-left">
+                                <div class="flex gap-3">
+                                    <i data-lucide="info" class="w-5 h-5 text-unemi-blue flex-shrink-0 mt-0.5"></i>
+                                    <p class="text-xs text-slate-500 font-medium">
+                                        Este certificado reconoce tu labor como líder en la organización y convocatoria.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Download Action -->
+                        <a href="/api/v1/certificados/descargar/mi-certificado/?download=1" download="MiCerditificado_25_UNEMI.pdf"
+                           class="group block w-full bg-gradient-to-r from-unemi-orange to-amber-500 hover:from-amber-500 hover:to-orange-600 text-white font-bold py-4 px-6 rounded-2xl text-center shadow-lg shadow-orange-500/20 transition-all transform hover:-translate-y-1">
+                            <span class="flex items-center justify-center gap-2">
+                                <i data-lucide="download" class="w-5 h-5 transition-transform group-hover:scale-110"></i>
+                                 Descargar Certificado PDF
+                            </span>
+                        </a>
+                    </div>
+
+                    <!-- Right: Preview -->
+                    <div class="lg:col-span-8">
+                        <div class="bg-slate-100 rounded-3xl shadow-inner p-4 border border-slate-200 h-full min-h-[500px] flex flex-col">
+                            <div class="bg-white rounded-2xl shadow-sm flex-1 overflow-hidden relative">
+                                 <iframe src="/api/v1/certificados/descargar/mi-certificado/?preview=1" class="w-full h-full absolute inset-0 border-0" title="Vista Previa del Certificado"></iframe>
+                            </div>
                         </div>
                     </div>
                 </div>
-
-                <!-- Download Action -->
-                <a href="/api/v1/certificados/descargar/mi-certificado/?download=1" download="MiCerditificado_25_UNEMI.pdf"
-                   class="group block w-full bg-gradient-to-r from-unemi-orange to-amber-500 hover:from-amber-500 hover:to-orange-600 text-white font-bold py-4 px-6 rounded-2xl text-center shadow-lg shadow-orange-500/20 transition-all transform hover:-translate-y-1">
-                    <span class="flex items-center justify-center gap-2">
-                        <i data-lucide="download" class="w-5 h-5 transition-transform group-hover:scale-110"></i>
-                         Descargar Certificado PDF
-                    </span>
-                </a>
-            </div>
-
-            <!-- Right: Preview -->
-            <div class="lg:col-span-8">
-                <div class="bg-slate-100 rounded-3xl shadow-inner p-4 border border-slate-200 h-full min-h-[600px] flex flex-col">
-                    <div class="bg-white rounded-2xl shadow-sm flex-1 overflow-hidden relative">
-                         <iframe src="/api/v1/certificados/descargar/mi-certificado/" class="w-full h-full absolute inset-0 border-0" title="Vista Previa del Certificado"></iframe>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </section>
 
     <!-- IMPORT MODAL -->
     <div id="import-modal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 backdrop-blur-sm overflow-y-auto">
