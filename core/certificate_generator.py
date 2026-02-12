@@ -184,38 +184,59 @@ class CertificateGenerator:
         header_content_width = (width - margin_inner) - header_content_start_x
         
         logo_h = 22*mm 
-        logo_w_max = 50*mm
-        logo_spacing = 5*mm 
         
-        # Group logos in header space
-        group_total_width = (3 * logo_w_max) + (2 * logo_spacing)
-        group_start_x = header_content_start_x + (header_content_width - group_total_width) / 2
+        # Specific widths to organize them better
+        logo_w_muc = 50*mm
+        logo_w_unemi = 50*mm * 0.85 # The reduced size
+        logo_w_feue = 50*mm
+        
+        # User reported MUC-UNEMI is too tight, UNEMI-FEUE is wide.
+        # "mueve muc mas a la izquierda".
+        # We increase the gap between MUC and UNEMI.
+        gap_1 = 15*mm # Increased from 5mm to push MUC left relative to UNEMI
+        gap_2 = 5*mm  # Keep this tight as user said it looked "more space" (maybe fine, or reduce if needed, but user focused on MUC)
+        
+        # Group logos in header space using ACTUAL widths + specific gaps
+        group_total_width = logo_w_muc + logo_w_unemi + logo_w_feue + gap_1 + gap_2
+        
+        # User: "ubica bien los logos centardos... salen muy a la derecha"
+        # Previously we centered in `header_content_width`.
+        # But `center_x` (body text center) is shifted left by 15mm relative to that geometric center 
+        # to visually balance against the sidebar/banner.
+        # Let's use `center_x` as the anchor for the group center.
+        # We need to calculate `center_x` earlier or just re-calculate it here.
+        
+        # Re-calc center_x logic from line 230:
+        visual_center_x = (header_content_start_x + header_content_width / 2) - 15*mm
+        
+        group_start_x = visual_center_x - (group_total_width / 2)
         
         logos_y = y_top_alignment - logo_h - 2*mm
         
         # Draw Logos
-        curr_x = group_start_x
+        # Calculate centers
+        x_muc = group_start_x + logo_w_muc/2
+        x_unemi = group_start_x + logo_w_muc + gap_1 + logo_w_unemi/2
+        x_feue = group_start_x + logo_w_muc + gap_1 + logo_w_unemi + gap_2 + logo_w_feue/2
         
-        # MUC (Now on the Left)
+        # MUC (Left)
         logo_muc_path = os.path.join(settings.BASE_DIR, 'static', 'img', 'muc.png')
         if config.logo_izquierda: logo_muc_path = config.logo_izquierda.path 
         if os.path.exists(logo_muc_path):
-             c.drawImage(logo_muc_path, curr_x, logos_y, width=logo_w_max, height=logo_h, mask='auto', preserveAspectRatio=True, anchor='c')
+             c.drawImage(logo_muc_path, x_muc, logos_y, width=logo_w_muc, height=logo_h, mask='auto', preserveAspectRatio=True, anchor='c')
 
-        curr_x += logo_w_max + logo_spacing
-        
-        # UNEMI (Now in the Center)
+        # UNEMI (Center) - Reduced Size
         logo_unemi_path = os.path.join(settings.BASE_DIR, 'static', 'img', 'logo-unemi-removebg-preview.png')
         if config.logo_centro: logo_unemi_path = config.logo_centro.path
         if os.path.exists(logo_unemi_path):
-            c.drawImage(logo_unemi_path, curr_x, logos_y, width=logo_w_max, height=logo_h, mask='auto', preserveAspectRatio=True, anchor='c')
+            unemi_h = logo_h * 0.85
+            c.drawImage(logo_unemi_path, x_unemi, logos_y, width=logo_w_unemi, height=unemi_h, mask='auto', preserveAspectRatio=True, anchor='c')
 
-        curr_x += logo_w_max + logo_spacing
-
+        # FEUE (Right)
         logo_feue_path = os.path.join(settings.BASE_DIR, 'static', 'img', 'feue.png')
         if config.logo_derecha: logo_feue_path = config.logo_derecha.path
         if os.path.exists(logo_feue_path):
-             c.drawImage(logo_feue_path, curr_x, logos_y, width=logo_w_max, height=logo_h, mask='auto', preserveAspectRatio=True, anchor='c')
+             c.drawImage(logo_feue_path, x_feue, logos_y, width=logo_w_feue, height=logo_h, mask='auto', preserveAspectRatio=True, anchor='c')
 
 
         # === CENTER X FOR BODY TEXT ===
@@ -375,12 +396,13 @@ class CertificateGenerator:
         draw_signature_block(x_sig_3, config.firma_3_nombre, config.firma_3_cargo, config.firma_3_imagen)
 
         # Draw date near signatures?
-        # User: "ubica mejor la fecha mas en el centro para que no se mezcle"
-        # Moving to center of page, above the signatures to avoid any overlap.
-        # But align with body text (center_x), not geometric page center.
-        date_y = sig_y_line + 35*mm # Approx 67mm from bottom
+        # User: "la fecha debe salir asi al lado derecho y sobre la firma"
+        # Align with the 3rd signature (Right/FEUE)
+        # Position slightly above the signature image.
+        # Signature image max height is 30mm starting at sig_y_line.
+        date_y = sig_y_line + 32*mm 
         c.setFont("Helvetica-Bold", 11)
-        c.drawCentredString(center_x, date_y, date_text)
+        c.drawCentredString(x_sig_3, date_y, date_text)
 
         c.showPage()
         c.save()
