@@ -28,28 +28,19 @@ class CertificateBuscarView(views.APIView):
             })
         except Alumno.DoesNotExist:
             # Try searching for Leader by Email
-        except Alumno.DoesNotExist:
-            # Try searching for Leader by Email
             try:
-                # Case-insensitive email search - Use filter().first() to avoid MultipleObjectsReturned
-                lider = Lider.objects.filter(email__iexact=cedula).first()
-                
-                if lider:
-                    return Response({
-                        'encontrado': True,
-                        'nombre_completo': lider.nombre_completo,
-                        'cedula': lider.email, # Return email as the identifier (instead of cedula)
-                        'carrera': 'LIDERAZGO Y ORGANIZACIÓN',
-                        'grupo': lider.grupo,
-                        'elegible': True,
-                        'es_lider': True # Flag for frontend if needed
-                    })
-                else:
-                    return Response({
-                        'encontrado': False,
-                        'mensaje': 'No se encontró un participante o líder registrado con este dato (Cédula o Email).'
-                    }, status=status.HTTP_404_NOT_FOUND)
-            except Exception:
+                # Case-insensitive email search
+                lider = Lider.objects.get(email__iexact=cedula)
+                return Response({
+                    'encontrado': True,
+                    'nombre_completo': lider.nombre_completo,
+                    'cedula': lider.email, # Return email as the identifier (instead of cedula)
+                    'carrera': 'LIDERAZGO Y ORGANIZACIÓN',
+                    'grupo': lider.grupo,
+                    'elegible': True,
+                    'es_lider': True # Flag for frontend if needed
+                })
+            except Lider.DoesNotExist:
                 return Response({
                     'encontrado': False,
                     'mensaje': 'No se encontró un participante o líder registrado con este dato (Cédula o Email).'
@@ -109,21 +100,13 @@ class CertificateDescargarView(views.APIView):
                     alumno = Alumno.objects.get(cedula=cedula)
                 except Alumno.DoesNotExist:
                     # Try finding Leader by Email
-                    # Use filter to avoid MultipleObjectsReturned
-                    lider_qs = Lider.objects.filter(email__iexact=cedula)
-                    
-                    # Prioritize ACTIVE leaders
-                    lider = lider_qs.filter(activo=True).first()
-                    
-                    # If no active leader found, try inactive (just in case) or raise error
-                    if not lider:
-                        lider = lider_qs.first()
+                    try:
+                        lider = Lider.objects.get(email__iexact=cedula)
                         
-                    if lider:
-                        # Only allow ACTIVE leaders (strict check as before)
+                        # Only allow ACTIVE leaders
                         if not lider.activo:
                             raise Alumno.DoesNotExist
-    
+
                         # Use PseudoAlumno for Leader found by email
                         class PseudoLeader:
                             def __init__(self, lider):
@@ -133,10 +116,10 @@ class CertificateDescargarView(views.APIView):
                                 self.grupo = lider.grupo
                                 self.carrera = "LIDERAZGO Y ORGANIZACIÓN"
                                 self.es_lider_obj = True # Marker
-    
+
                         alumno = PseudoLeader(lider)
                         
-                    else:
+                    except Lider.DoesNotExist:
                          raise Alumno.DoesNotExist 
  
 

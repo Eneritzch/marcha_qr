@@ -63,31 +63,6 @@ class LeaderLoginView(views.APIView):
                     "grupo": lider.grupo,
                     "is_superuser": user.is_superuser
                 })
-            else:
-                 # Fallback: User exists but has no profile (orphan)
-                 # Check if there is an ACTIVE leader with this email (e.g. user_1)
-                 try:
-                     # Find active leader by email (from the orphaned user's email)
-                     lider_activo = Lider.objects.filter(email=user.email, activo=True).first()
-                     
-                     if lider_activo and lider_activo.user and lider_activo.user != user:
-                         # Try to authenticate with the ACTUAL user associated with this leader
-                         # We use the same password provided in the request
-                         real_user = authenticate(username=lider_activo.user.username, password=password)
-                         
-                         if real_user:
-                             login(request, real_user)
-                             token, _ = Token.objects.get_or_create(user=real_user)
-                             return Response({
-                                "token": token.key,
-                                "username": real_user.username,
-                                "nombre": lider_activo.nombre_completo,
-                                "grupo": lider_activo.grupo,
-                                "is_superuser": real_user.is_superuser
-                            })
-                 except Exception as e:
-                     pass # Fallback failed, proceed to error
-
             return Response({"error": "El usuario no tiene un perfil de líder"}, status=status.HTTP_403_FORBIDDEN)
             
         return Response({"error": "Credenciales inválidas"}, status=status.HTTP_401_UNAUTHORIZED)
