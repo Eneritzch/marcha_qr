@@ -354,7 +354,14 @@ document.addEventListener('DOMContentLoaded', function() {
                     <i data-lucide="alert-circle" class="w-8 h-8 text-red-500"></i>
                 </div>
                 <h5 class="text-red-800 font-black text-lg mb-1 italic">Sin coincidencias</h5>
-                <p class="text-red-500/80 text-sm font-medium">${msg}</p>
+                <p class="text-red-500/80 text-sm font-medium mb-6">${msg}</p>
+                <div class="pt-6 border-t border-red-100 w-full">
+                    <p class="text-xs font-bold text-slate-500 mb-4 uppercase tracking-tighter">¿Fuiste a la marcha pero no estás registrado?</p>
+                    <a href="/registro/" class="inline-flex items-center gap-2 px-6 py-3 bg-unemi-orange text-white font-black rounded-xl shadow-lg shadow-orange-500/20 hover:scale-105 transition-all">
+                        <i data-lucide="user-plus" class="w-4 h-4"></i>
+                        REGISTRARME AHORA
+                    </a>
+                </div>
             </div>
         `;
         lucide.createIcons();

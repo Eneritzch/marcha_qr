@@ -1,0 +1,336 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Registro de Participante - Marcha UNEMI 25 Años{% endblock %}
+
+{% block extra_head %}
+<style>
+    .glass-card {
+        background: rgba(255, 255, 255, 0.95);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+    body {
+        background: #0f1e4b;
+        min-height: 100vh;
+    }
+    .hero-bg {
+        position: fixed;
+        inset: 0;
+        z-index: 0;
+        background-image: linear-gradient(rgba(15, 30, 75, 0.8), rgba(15, 30, 75, 0.8)), url('/static/img/WEB-Unemi-2025.webp');
+        background-size: cover;
+        background-position: center;
+        filter: blur(5px);
+        transform: scale(1.05); /* Avoid white edges from blur */
+    }
+</style>
+{% endblock %}
+
+{% block header %}
+<header class="absolute top-0 left-0 right-0 z-50 px-6 py-6 flex justify-between items-center">
+    <div class="flex items-center space-x-3">
+        <a href="/" class="flex items-center space-x-3">
+            <img src="/static/img/icono.webp" alt="Logo UNEMI" class="w-12 h-12 brightness-0 invert">
+            <span class="text-white font-black tracking-tighter text-xl italic uppercase">MUC UNEMI</span>
+        </a>
+    </div>
+</header>
+{% endblock %}
+
+{% block content %}
+<!-- Background Image (Kept as requested) -->
+<div class="hero-bg"></div>
+
+<!-- Original Layout (Reverted) -->
+<main class="relative z-10 max-w-2xl mx-auto px-6 py-12 sm:py-24">
+    <div class="glass-card rounded-[2.5rem] shadow-2xl overflow-hidden p-8 sm:p-12">
+        <div class="text-center mb-10">
+            <div class="inline-flex items-center justify-center w-20 h-20 bg-orange-100 text-unemi-orange rounded-3xl mb-6 shadow-lg rotate-3">
+                <i data-lucide="user-plus" class="w-10 h-10"></i>
+            </div>
+            <h1 class="text-4xl font-black text-slate-900 tracking-tighter uppercase italic leading-none">
+                Registro de <br>
+                <span class="text-unemi-orange">Participante</span>
+            </h1>
+            <p class="mt-4 text-slate-500 font-medium">Si participaste en la marcha pero no apareces en el sistema, regístrate aquí para obtener tu certificado.</p>
+        </div>
+
+        <form id="registro-form" class="space-y-6">
+            <!-- Cédula -->
+            <div>
+                <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-1">Cédula de Identidad</label>
+                <div class="relative">
+                    <i data-lucide="hash" class="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400"></i>
+                    <input type="text" name="cedula" required maxlength="10" placeholder="Ej: 0912345678"
+                        class="w-full pl-12 pr-4 py-4 bg-slate-50 border-2 border-slate-100 rounded-2xl focus:border-unemi-orange focus:ring-4 focus:ring-unemi-orange/10 outline-none transition-all font-bold text-slate-700">
+                </div>
+            </div>
+
+            <!-- Nombre Completo -->
+            <div>
+                <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-1">Nombres Completos</label>
+                <div class="relative">
+                    <i data-lucide="user" class="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400"></i>
+                    <input type="text" name="nombre_completo" required maxlength="150" placeholder="Ej: JUAN PEREZ"
+                        class="w-full pl-12 pr-4 py-4 bg-slate-50 border-2 border-slate-100 rounded-2xl focus:border-unemi-orange focus:ring-4 focus:ring-unemi-orange/10 outline-none transition-all font-bold text-slate-700 uppercase">
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                <!-- Email -->
+                <div>
+                    <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-1">Correo Electrónico</label>
+                    <div class="relative">
+                        <i data-lucide="mail" class="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400"></i>
+                        <input type="email" name="email" required placeholder="ejemplo@unemi.edu.ec"
+                            class="w-full pl-12 pr-4 py-4 bg-slate-50 border-2 border-slate-100 rounded-2xl focus:border-unemi-orange focus:ring-4 focus:ring-unemi-orange/10 outline-none transition-all font-bold text-slate-700">
+                    </div>
+                </div>
+                <!-- Teléfono -->
+                <div>
+                    <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-1">WhatsApp / Teléfono</label>
+                    <div class="relative">
+                        <i data-lucide="phone" class="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400"></i>
+                        <input type="tel" name="telefono" required maxlength="15" placeholder="Ej: 0987654321"
+                            class="w-full pl-12 pr-4 py-4 bg-slate-50 border-2 border-slate-100 rounded-2xl focus:border-unemi-orange focus:ring-4 focus:ring-unemi-orange/10 outline-none transition-all font-bold text-slate-700">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Modalidad, Facultad, Carrera Section -->
+            <div id="academic-section" class="space-y-6 p-6 bg-slate-50 rounded-[2rem] border border-slate-100">
+                <div>
+                    <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Modalidad</label>
+                    <select id="select-modalidad" name="modalidad" required
+                        class="w-full px-4 py-4 bg-white border-2 border-slate-200 rounded-2xl focus:border-unemi-orange focus:ring-4 focus:ring-unemi-orange/10 outline-none transition-all font-bold text-slate-700">
+                        <option value="">Selecciona Modalidad</option>
+                        <option value="PRESENCIAL">PRESENCIAL</option>
+                        <option value="EN_LINEA">EN LÍNEA</option>
+                        <option value="SEMIPRESENCIAL">SEMIPRESENCIAL</option>
+                        <option value="POSGRADO">POSGRADO</option>
+                        <option value="EGRESADO">EGRESADO</option>
+                    </select>
+                </div>
+
+                <div id="facultad-container" class="hidden">
+                    <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Facultad</label>
+                    <select id="select-facultad" name="facultad" 
+                        class="w-full px-4 py-4 bg-white border-2 border-slate-200 rounded-2xl focus:border-unemi-orange focus:ring-4 focus:ring-unemi-orange/10 outline-none transition-all font-bold text-slate-700">
+                    </select>
+                </div>
+
+                <div id="carrera-container" class="hidden">
+                    <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Carrera</label>
+                    <select id="select-carrera" name="carrera"
+                        class="w-full px-4 py-4 bg-white border-2 border-slate-200 rounded-2xl focus:border-unemi-orange focus:ring-4 focus:ring-unemi-orange/10 outline-none transition-all font-bold text-slate-700">
+                    </select>
+                </div>
+            </div>
+
+            <!-- Toggle Externo - Moved Below Academic Section -->
+            <div class="p-4 bg-orange-50 rounded-2xl border border-orange-100 mb-6">
+                <label class="flex items-center gap-3 cursor-pointer group">
+                    <div class="relative">
+                        <input type="checkbox" id="check-externo" name="es_externo" class="sr-only peer">
+                        <div class="w-12 h-6 bg-slate-200 rounded-full peer peer-checked:bg-unemi-orange transition-all after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:after:translate-x-6"></div>
+                    </div>
+                    <div>
+                        <p class="text-sm font-black text-slate-800 uppercase tracking-tight">Soy Externo / Invitado</p>
+                        <p class="text-[10px] text-slate-500 font-bold">Marca esta opción si no eres estudiante o docente de UNEMI</p>
+                    </div>
+                </label>
+            </div>
+
+            <button type="submit" id="submit-btn" 
+                class="w-full py-5 bg-unemi-orange hover:bg-amber-500 text-white font-black rounded-2xl transition-all shadow-xl shadow-orange-500/30 flex items-center justify-center gap-3 text-xl group transform hover:-translate-y-1">
+                <i data-lucide="check-circle" class="w-6 h-6"></i>
+                COMPLETAR REGISTRO
+            </button>
+        </form>
+    </div>
+</main>
+{% endblock %}
+
+{% block extra_js %}
+<script type="module">
+    import { ACADEMIC_DATA } from '/static/js/academic_data.js';
+
+    document.addEventListener('DOMContentLoaded', function() {
+        const form = document.getElementById('registro-form');
+        const submitBtn = document.getElementById('submit-btn');
+        const successMsg = document.getElementById('success-msg'); 
+        
+        const selModalidad = document.getElementById('select-modalidad');
+        const selFacultad = document.getElementById('select-facultad');
+        const selCarrera = document.getElementById('select-carrera');
+        
+        const facContainer = document.getElementById('facultad-container');
+        const carContainer = document.getElementById('carrera-container');
+        
+        const checkExterno = document.getElementById('check-externo');
+        const academicSection = document.getElementById('academic-section');
+
+        // Toggle Academic Section
+        checkExterno.addEventListener('change', function() {
+            if (this.checked) {
+                academicSection.classList.add('hidden');
+                selModalidad.required = false;
+                // Reset academic values
+                selModalidad.value = "";
+                selFacultad.innerHTML = '<option value="">Selecciona Facultad</option>';
+                selCarrera.innerHTML = '<option value="">Selecciona Carrera</option>';
+                facContainer.classList.add('hidden');
+                carContainer.classList.add('hidden');
+            } else {
+                academicSection.classList.remove('hidden');
+                selModalidad.required = true;
+            }
+        });
+
+        // Populate Faculties based on Modalidad
+        selModalidad.addEventListener('change', function() {
+            const mod = this.value;
+            selFacultad.innerHTML = '<option value="">Selecciona Facultad</option>';
+            selCarrera.innerHTML = '<option value="">Selecciona Carrera</option>';
+            
+            if (mod && ACADEMIC_DATA[mod]) {
+                const faculties = Object.keys(ACADEMIC_DATA[mod]);
+                if (faculties.length > 0) {
+                    faculties.forEach(f => {
+                        const opt = document.createElement('option');
+                        opt.value = f;
+                        opt.textContent = f;
+                        selFacultad.appendChild(opt);
+                    });
+                    facContainer.classList.remove('hidden');
+                } else {
+                    facContainer.classList.add('hidden');
+                }
+            } else {
+                facContainer.classList.add('hidden');
+                carContainer.classList.add('hidden');
+            }
+        });
+
+        // Populate Careers based on Facultad
+        selFacultad.addEventListener('change', function() {
+            const mod = selModalidad.value;
+            const fac = this.value;
+            selCarrera.innerHTML = '<option value="">Selecciona Carrera</option>';
+            
+            if (mod && fac && ACADEMIC_DATA[mod][fac]) {
+                const careers = ACADEMIC_DATA[mod][fac];
+                careers.forEach(c => {
+                    const opt = document.createElement('option');
+                    opt.value = c;
+                    opt.textContent = c;
+                    selCarrera.appendChild(opt);
+                });
+                carContainer.classList.remove('hidden');
+            } else {
+                carContainer.classList.add('hidden');
+            }
+        });
+
+        // Handle Form Submission
+        form.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const formData = new FormData(form);
+            
+            // Convert to JSON
+            const payload = {};
+            formData.forEach((value, key) => {
+                if (key === 'es_externo') {
+                    payload[key] = true;
+                } else {
+                    payload[key] = value;
+                }
+            });
+            
+            // Explicitly set false if not in formData (checkbox behavior)
+            if (!payload.es_externo) payload.es_externo = false;
+
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<i class="animate-spin" data-lucide="loader-2"></i> PROCESANDO...';
+            if(window.lucide) lucide.createIcons();
+
+            try {
+                const response = await axios.post('/api/v1/alumnos/alumnos/', payload);
+                if (response.status === 201) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: '¡Registro Exitoso!',
+                        text: 'Tus datos han sido guardados. Ahora puedes descargar tu certificado.',
+                        confirmButtonText: 'Ir a Certificados',
+                        confirmButtonColor: '#EF7D00'
+                    }).then((result) => {
+                        if (result.isConfirmed) {
+                             window.location.href = '/certificados/';
+                        }
+                    });
+                }
+            } catch (error) {
+                console.error(error);
+                let msg = '';
+                
+                if (error.response && error.response.data) {
+                    // Check for Custom Exception Handler Structure
+                    // Structure: { status: 'error', errors: {...}, message: "..." }
+                    let data = error.response.data;
+                    
+                    if (data.status === 'error' && data.errors) {
+                        data = data.errors; // Use the inner 'errors' object
+                    }
+
+                    const errors = data;
+                    // Generic Error Processor
+                    if (typeof errors === 'object' && errors !== null) {
+                         for (const key in errors) {
+                             // Skip status/message if still present
+                             if (key === 'status' || key === 'message') continue;
+
+                             if (Array.isArray(errors[key])) {
+                                 msg += `• ${errors[key][0]}\n`;
+                             } else if (typeof errors[key] === 'string') {
+                                 msg += `• ${errors[key]}\n`;
+                             } else {
+                                // Fallback for nested objects
+                                msg += `• ${key}: Dato inválido.\n`;
+                             }
+                         }
+                    } else if (typeof errors === 'string') {
+                        msg = errors;
+                    } else {
+                        msg = 'Error desconocido en el servidor.';
+                    }
+                } else {
+                    msg = 'Ocurrió un error de conexión al procesar el registro.';
+                }
+                
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error de Registro',
+                    text: msg || 'Verifica tus datos e intenta nuevamente.',
+                    confirmButtonColor: '#EF7D00'
+                });
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '<i data-lucide="check-circle" class="w-6 h-6"></i> COMPLETAR REGISTRO';
+                if(window.lucide) lucide.createIcons();
+            }
+        });
+
+        if(window.lucide) lucide.createIcons();
+
+        // Fix for Back-Forward Cache (BF Cache) issue
+        // If the user navigates back to this page, force a reload to clear state/spinner
+        window.addEventListener('pageshow', function(event) {
+            if (event.persisted || (window.performance && window.performance.navigation.type === 2)) {
+                window.location.reload();
+            }
+        });
+    });
+</script>
+{% endblock %}

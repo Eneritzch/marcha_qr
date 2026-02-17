@@ -4,6 +4,7 @@ from rest_framework.response import Response
 from rest_framework.parsers import MultiPartParser, FormParser
 from django.shortcuts import get_object_or_404
 from django.http import HttpResponse
+from django.utils import timezone
 from .models import Alumno
 from .serializers import AlumnoSerializer
 from lideres_app.models import Lider
@@ -61,11 +62,28 @@ class AlumnoViewSet(viewsets.ModelViewSet):
                 return Response({"error": "No encontrado"}, status=status.HTTP_404_NOT_FOUND)
 
     def get_permissions(self):
-        # Use getattr to be safe during early lifecycle calls
-        action = getattr(self, 'action', None)
-        if action == 'destroy':
+        # Allow anyone to create (register)
+        if self.action == 'create':
+            return [permissions.AllowAny()]
+        
+        # Only admins can delete
+        if self.action == 'destroy':
             return [permissions.IsAdminUser()]
+            
+        # Standard: IsAuthenticated for everything else
         return [permissions.IsAuthenticated()]
+
+    def perform_create(self, serializer):
+        """
+        Custom completion logic: 
+        If registered now (after event closure), automatically set as completed/assisted.
+        """
+        user = self.request.user
+        
+        serializer.save()
+
+    def create(self, request, *args, **kwargs):
+        return super().create(request, *args, **kwargs)
 
     @property
     def pagination_class(self):

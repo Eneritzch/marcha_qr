@@ -25,7 +25,7 @@ urlpatterns = [
     path('login/', TemplateView.as_view(template_name='lideres/login.html'), name='login'),
     path('dashboard/', TemplateView.as_view(template_name='lideres/dashboard.html'), name='dashboard'),
     path('importar-exportar/', ExcelImportExportView.as_view(), name='importar-exportar'),
-    # path('registro/', TemplateView.as_view(template_name='alumnos/registro_cerrado.html'), name='registro'),
+    path('registro/', TemplateView.as_view(template_name='alumnos/registro.html'), name='registro'),
     path('certificados/', TemplateView.as_view(template_name='alumnos/certificados.html'), name='certificados'),
     path('', TemplateView.as_view(template_name='alumnos/landing.html'), name='home'),
     
